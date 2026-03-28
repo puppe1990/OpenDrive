@@ -42,12 +42,17 @@ defmodule OpenDriveWeb.UserLive.Registration do
           class="space-y-6 rounded-[2rem] border border-white/90 bg-white px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/80 sm:px-8 sm:py-8"
         >
           <div class="space-y-3">
-            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Criar workspace</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">
+              Criar workspace
+            </p>
             <div class="space-y-1">
               <h2 class="text-2xl font-bold tracking-tight text-slate-950">Comece agora</h2>
               <p class="text-sm text-slate-600">
                 Já tem conta?
-                <.link navigate={~p"/users/log-in"} class="font-semibold text-sky-700 hover:text-sky-900 hover:underline">
+                <.link
+                  navigate={~p"/users/log-in"}
+                  class="font-semibold text-sky-700 hover:text-sky-900 hover:underline"
+                >
                   Entrar
                 </.link>
               </p>
@@ -105,7 +110,8 @@ defmodule OpenDriveWeb.UserLive.Registration do
   end
 
   def mount(_params, _session, socket) do
-    changeset = Accounts.change_user_registration(%User{}, %{}, validate_unique: false)
+    changeset =
+      Accounts.change_user_registration_with_tenant(%User{}, %{}, validate_unique: false)
 
     {:ok, assign_form(socket, changeset), temporary_assigns: [form: nil]}
   end
@@ -126,7 +132,9 @@ defmodule OpenDriveWeb.UserLive.Registration do
   end
 
   def handle_event("validate", %{"user" => user_params}, socket) do
-    changeset = Accounts.change_user_registration(%User{}, user_params, validate_unique: false)
+    changeset =
+      Accounts.change_user_registration_with_tenant(%User{}, user_params, validate_unique: false)
+
     {:noreply, assign_form(socket, Map.put(changeset, :action, :validate))}
   end
 

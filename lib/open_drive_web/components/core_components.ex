@@ -242,7 +242,9 @@ defmodule OpenDriveWeb.CoreComponents do
           class={[
             @class ||
               "w-full min-h-13 rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
-            @errors != [] && (@error_class || "select-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
+            @errors != [] &&
+              (@error_class ||
+                 "select-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
           ]}
           multiple={@multiple}
           {@rest}
@@ -267,10 +269,55 @@ defmodule OpenDriveWeb.CoreComponents do
           class={[
             @class ||
               "w-full min-h-32 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-6 text-slate-950 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
-            @errors != [] && (@error_class || "textarea-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
+            @errors != [] &&
+              (@error_class ||
+                 "textarea-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
+      </label>
+      <.error :for={msg <- @errors}>{msg}</.error>
+    </div>
+    """
+  end
+
+  def input(%{type: "password"} = assigns) do
+    ~H"""
+    <div class="fieldset mb-2 space-y-1.5">
+      <label for={@id}>
+        <span :if={@label} class="mb-1 block text-sm font-medium text-slate-700">{@label}</span>
+        <div id={"#{@id}-visibility-toggle"} phx-hook="PasswordVisibility" class="relative">
+          <input
+            type="password"
+            name={@name}
+            id={@id}
+            value={Phoenix.HTML.Form.normalize_value("password", @value)}
+            class={[
+              @class ||
+                "w-full min-h-13 rounded-2xl border border-slate-300 bg-white px-4 pr-12 text-base text-slate-950 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+              @errors != [] &&
+                (@error_class ||
+                   "input-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
+            ]}
+            {@rest}
+          />
+          <button
+            type="button"
+            class="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 transition hover:text-slate-700 focus:text-slate-700 focus:outline-none"
+            aria-label="Mostrar senha"
+            aria-pressed="false"
+            data-password-toggle-button
+            data-show-label="Mostrar senha"
+            data-hide-label="Ocultar senha"
+          >
+            <.icon name="hero-eye" class="size-5" data-password-toggle-icon="show" />
+            <.icon
+              name="hero-eye-slash"
+              class="hidden size-5"
+              data-password-toggle-icon="hide"
+            />
+          </button>
+        </div>
       </label>
       <.error :for={msg <- @errors}>{msg}</.error>
     </div>
@@ -291,7 +338,8 @@ defmodule OpenDriveWeb.CoreComponents do
           class={[
             @class ||
               "w-full min-h-13 rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
-            @errors != [] && (@error_class || "input-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
+            @errors != [] &&
+              (@error_class || "input-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
           ]}
           {@rest}
         />
@@ -444,10 +492,11 @@ defmodule OpenDriveWeb.CoreComponents do
   """
   attr :name, :string, required: true
   attr :class, :any, default: "size-4"
+  attr :rest, :global
 
   def icon(%{name: "hero-" <> _} = assigns) do
     ~H"""
-    <span class={[@name, @class]} />
+    <span class={[@name, @class]} {@rest} />
     """
   end
 

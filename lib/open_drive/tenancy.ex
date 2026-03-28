@@ -40,7 +40,13 @@ defmodule OpenDrive.Tenancy do
       slug = attrs |> Map.get("name", Map.get(attrs, :name, "")) |> slugify()
 
       with {:ok, tenant} <-
-             %Tenant{} |> Tenant.changeset(Map.put(attrs, :slug, slug)) |> Repo.insert(),
+             %Tenant{}
+             |> Tenant.changeset(
+               attrs
+               |> Map.put(:slug, slug)
+               |> Map.put(:owner_user_id, user.id)
+             )
+             |> Repo.insert(),
            {:ok, membership} <-
              %Membership{}
              |> Membership.changeset(%{tenant_id: tenant.id, user_id: user.id, role: "owner"})

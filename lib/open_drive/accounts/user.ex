@@ -7,6 +7,7 @@ defmodule OpenDrive.Accounts.User do
   schema "users" do
     field :email, :string
     field :password, :string, virtual: true, redact: true
+    field :tenant_name, :string, virtual: true
     field :hashed_password, :string, redact: true
     field :confirmed_at, :utc_datetime
     field :authenticated_at, :utc_datetime, virtual: true
@@ -18,8 +19,20 @@ defmodule OpenDrive.Accounts.User do
 
   def registration_changeset(user, attrs, opts \\ []) do
     user
+    |> cast(attrs, [:tenant_name])
+    |> validate_tenant_name(opts)
     |> email_changeset(attrs, opts)
     |> password_changeset(attrs, opts)
+  end
+
+  defp validate_tenant_name(changeset, opts) do
+    if Keyword.get(opts, :validate_tenant, false) do
+      changeset
+      |> validate_required([:tenant_name])
+      |> validate_length(:tenant_name, min: 2, max: 80)
+    else
+      changeset
+    end
   end
 
   @doc """

@@ -8,6 +8,7 @@ defmodule OpenDrive.Accounts do
   alias OpenDrive.Accounts.{User, UserNotifier, UserToken}
   alias OpenDrive.Repo
   alias OpenDrive.Tenancy
+  alias OpenDrive.Tenancy.Tenant
 
   def get_user_by_email(email) when is_binary(email), do: Repo.get_by(User, email: email)
 
@@ -28,6 +29,12 @@ defmodule OpenDrive.Accounts do
 
   def change_user_registration(user, attrs \\ %{}, opts \\ []) do
     User.registration_changeset(user, attrs, opts)
+  end
+
+  def change_user_registration_with_tenant(user, attrs \\ %{}, opts \\ []) do
+    opts
+    |> Keyword.put_new(:validate_tenant, true)
+    |> then(&User.registration_changeset(user, attrs, &1))
   end
 
   def sudo_mode?(user, minutes \\ -20)
@@ -127,15 +134,26 @@ defmodule OpenDrive.Accounts do
   end
 
   def register_user_with_tenant(user_attrs, tenant_attrs) do
-    Repo.transaction(fn ->
-      with {:ok, user} <- register_user(user_attrs),
-           {:ok, tenant} <- Tenancy.create_tenant_with_owner(user, tenant_attrs) do
-        %{user: user, tenant: tenant}
-      else
-        {:error, reason} -> Repo.rollback(reason)
-      end
-    end)
-    |> normalize_transaction_result()
+    user_attrs_with_tenant = put_tenant_name(user_attrs, tenant_attrs)
+    registration_changeset = change_user_registration_with_tenant(%User{}, user_attrs_with_tenant)
+
+    if registration_changeset.valid? do
+      Repo.transaction(fn ->
+        with {:ok, user} <- register_user(user_attrs),
+             {:ok, tenant} <- Tenancy.create_tenant_with_owner(user, tenant_attrs) do
+          %{user: user, tenant: tenant}
+        else
+          {:error, %Ecto.Changeset{} = changeset} ->
+            Repo.rollback(remap_registration_error(user_attrs_with_tenant, changeset))
+
+          {:error, reason} ->
+            Repo.rollback(reason)
+        end
+      end)
+      |> normalize_transaction_result()
+    else
+      {:error, %{registration_changeset | action: :insert}}
+    end
   end
 
   def build_scope(user, tenant_id \\ nil)
@@ -161,6 +179,45 @@ defmodule OpenDrive.Accounts do
 
   defp user_with_authenticated_at(user, inserted_at) do
     %{user | authenticated_at: inserted_at}
+  end
+
+  defp remap_registration_error(user_attrs, %Ecto.Changeset{data: %Tenant{}} = changeset) do
+    base_changeset =
+      change_user_registration_with_tenant(%User{}, user_attrs, validate_unique: false)
+
+    mapped_changeset =
+      Enum.reduce(changeset.errors, base_changeset, fn
+        {:name, {message, opts}}, acc ->
+          Ecto.Changeset.add_error(acc, :tenant_name, message, opts)
+
+        {:slug, {message, opts}}, acc ->
+          Ecto.Changeset.add_error(acc, :tenant_name, message, opts)
+
+        _, acc ->
+          acc
+      end)
+
+    %{mapped_changeset | action: :insert}
+  end
+
+  defp remap_registration_error(_user_attrs, %Ecto.Changeset{} = changeset), do: changeset
+
+  defp put_tenant_name(user_attrs, tenant_attrs) do
+    tenant_name = Map.get(tenant_attrs, :name) || Map.get(tenant_attrs, "name")
+
+    cond do
+      is_nil(tenant_name) ->
+        user_attrs
+
+      is_map_key(user_attrs, :tenant_name) ->
+        user_attrs
+
+      is_map_key(user_attrs, "tenant_name") ->
+        user_attrs
+
+      true ->
+        Map.put(user_attrs, :tenant_name, tenant_name)
+    end
   end
 
   defp normalize_transaction_result({:ok, result}), do: {:ok, result}

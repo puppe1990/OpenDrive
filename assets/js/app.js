@@ -25,11 +25,45 @@ import {LiveSocket} from "phoenix_live_view"
 import {hooks as colocatedHooks} from "phoenix-colocated/open_drive"
 import topbar from "../vendor/topbar"
 
+const Hooks = {
+  PasswordVisibility: {
+    mounted() {
+      this.input = this.el.querySelector("input")
+      this.button = this.el.querySelector("[data-password-toggle-button]")
+      this.showIcon = this.el.querySelector('[data-password-toggle-icon="show"]')
+      this.hideIcon = this.el.querySelector('[data-password-toggle-icon="hide"]')
+
+      this.toggleVisibility = event => {
+        event.preventDefault()
+
+        if (!this.input || !this.button) return
+
+        const visible = this.input.type === "password"
+        this.input.type = visible ? "text" : "password"
+        this.button.setAttribute("aria-pressed", String(visible))
+        this.button.setAttribute(
+          "aria-label",
+          visible ? this.button.dataset.hideLabel : this.button.dataset.showLabel
+        )
+        this.showIcon?.classList.toggle("hidden", visible)
+        this.hideIcon?.classList.toggle("hidden", !visible)
+        this.input.focus({preventScroll: true})
+      }
+
+      this.button?.addEventListener("click", this.toggleVisibility)
+    },
+
+    destroyed() {
+      this.button?.removeEventListener("click", this.toggleVisibility)
+    },
+  },
+}
+
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks},
+  hooks: {...colocatedHooks, ...Hooks},
 })
 
 // Show progress bar on live navigation and form submits
@@ -80,4 +114,3 @@ if (process.env.NODE_ENV === "development") {
     window.liveReloader = reloader
   })
 }
-
