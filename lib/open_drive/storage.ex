@@ -6,6 +6,7 @@ defmodule OpenDrive.Storage do
   @callback put_object(binary(), binary(), keyword()) ::
               {:ok, map()} | {:error, term()}
   @callback delete_object(binary()) :: :ok | {:error, term()}
+  @callback move_object(binary(), binary(), keyword()) :: {:ok, map()} | {:error, term()}
   @callback presigned_download_url(binary(), keyword()) :: {:ok, binary()} | {:error, term()}
 
   def put_object(key, body, opts \\ []) do
@@ -14,6 +15,10 @@ defmodule OpenDrive.Storage do
 
   def delete_object(key) do
     adapter().delete_object(key)
+  end
+
+  def move_object(source_key, destination_key, opts \\ []) do
+    adapter().move_object(source_key, destination_key, opts)
   end
 
   def presigned_download_url(key, opts \\ []) do

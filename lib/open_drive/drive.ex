@@ -91,6 +91,29 @@ defmodule OpenDrive.Drive do
     end
   end
 
+  def rename_file(%Scope{} = scope, file_id, attrs) do
+    new_name = attrs[:name] || attrs["name"]
+
+    with %DriveFile{} = file <-
+           DriveFile
+           |> where(
+             [f],
+             f.tenant_id == ^Scope.tenant_id(scope) and f.id == ^file_id and is_nil(f.deleted_at)
+           )
+           |> preload(:file_object)
+           |> Repo.one(),
+         :ok <- ensure_name_available(scope, new_name, file.folder_id, :file, file.id),
+         new_key <- object_key(scope, new_name),
+         {:ok, _storage_result} <- Storage.move_object(file.file_object.key, new_key),
+         {:ok, renamed_file} <- persist_renamed_file(file, new_name, new_key) do
+      Audit.log(scope, "file.renamed", "file", renamed_file.id, %{name: renamed_file.name})
+      {:ok, renamed_file}
+    else
+      nil -> {:error, :not_found}
+      {:error, _} = error -> error
+    end
+  end
+
   def download_url(%Scope{} = scope, file_id) do
     file =
       DriveFile
@@ -304,8 +327,46 @@ defmodule OpenDrive.Drive do
     do: Repo.exists?(from q in query, where: q.id != ^exclude_id)
 
   defp object_key(scope, name) do
+    stem =
+      name
+      |> Path.basename()
+      |> Path.rootname()
+      |> String.trim()
+      |> String.replace(~r/[^\p{L}\p{N}\-_]+/u, "-")
+      |> String.trim("-")
+      |> case do
+        "" -> "file"
+        sanitized -> sanitized
+      end
+
     ext = Path.extname(name)
-    "tenant/#{Scope.tenant_id(scope)}/files/#{Ecto.UUID.generate()}#{ext}"
+    "tenant/#{Scope.tenant_id(scope)}/files/#{stem}-#{Ecto.UUID.generate()}#{ext}"
+  end
+
+  defp persist_renamed_file(file, new_name, new_key) do
+    old_key = file.file_object.key
+
+    case Repo.transaction(fn ->
+           with {:ok, file_object} <-
+                  file.file_object
+                  |> FileObject.changeset(%{key: new_key})
+                  |> Repo.update(),
+                {:ok, renamed_file} <-
+                  file
+                  |> DriveFile.changeset(%{name: new_name})
+                  |> Repo.update() do
+             %{renamed_file | file_object: file_object}
+           else
+             {:error, changeset} -> Repo.rollback(changeset)
+           end
+         end) do
+      {:ok, renamed_file} ->
+        {:ok, renamed_file}
+
+      {:error, reason} ->
+        _ = Storage.move_object(new_key, old_key)
+        {:error, reason}
+    end
   end
 
   defp do_breadcrumbs(%Folder{parent_folder_id: nil} = folder, _scope, acc), do: [folder | acc]

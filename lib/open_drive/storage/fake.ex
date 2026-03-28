@@ -19,6 +19,17 @@ defmodule OpenDrive.Storage.Fake do
     end
   end
 
+  def move_object(source_key, destination_key, _opts) do
+    source_path = object_path(source_key)
+    destination_path = object_path(destination_key)
+    File.mkdir_p!(Path.dirname(destination_path))
+
+    case File.rename(source_path, destination_path) do
+      :ok -> {:ok, %{source_key: source_key, destination_key: destination_key}}
+      error -> error
+    end
+  end
+
   def presigned_download_url(key, _opts) do
     {:ok, "file://" <> object_path(key)}
   end

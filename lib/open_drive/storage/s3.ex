@@ -16,6 +16,21 @@ defmodule OpenDrive.Storage.S3 do
     end
   end
 
+  def move_object(source_key, destination_key, _opts) do
+    bucket = OpenDrive.Storage.bucket()
+
+    with {:ok, copy_result} <-
+           bucket
+           |> ExAws.S3.put_object_copy(destination_key, bucket, source_key)
+           |> ExAws.request(),
+         :ok <- delete_object(source_key) do
+      {:ok, %{copy_result: copy_result, destination_key: destination_key}}
+    else
+      {:error, _} = error -> error
+      error -> {:error, error}
+    end
+  end
+
   def presigned_download_url(key, opts) do
     expires_in = Keyword.get(opts, :expires_in, 3600)
 

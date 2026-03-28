@@ -96,6 +96,47 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Abrir player"
   end
 
+  test "renames an already uploaded file from the drive list", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Rename Existing Space"})
+    path = Path.join(System.tmp_dir!(), "open_drive-existing-rename.txt")
+    File.write!(path, "rename me")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "draft.txt",
+        content_type: "text/plain",
+        size: byte_size("rename me")
+      })
+
+    old_key = file.file_object.key
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='start_rename_file'][phx-value-id='#{file.id}']")
+      |> render_click()
+
+    assert html =~ "Renomear arquivo"
+    assert html =~ "a key do arquivo sera movida no S3"
+    assert html =~ "Salvar"
+
+    html =
+      lv
+      |> element("form[phx-submit='rename_file']")
+      |> render_submit(%{"file_id" => "#{file.id}", "rename" => %{"name" => "final.txt"}})
+
+    assert html =~ "File renamed."
+    assert html =~ "final.txt"
+
+    [renamed_file] = Drive.list_children(workspace.scope).files
+    assert renamed_file.name == "final.txt"
+    refute renamed_file.file_object.key == old_key
+    assert String.contains?(renamed_file.file_object.key, "final")
+  end
+
   test "opens the image carousel and advances to the next visible photo", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Gallery Space"})
     first_path = Path.join(System.tmp_dir!(), "open_drive-gallery-first.webp")

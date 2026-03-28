@@ -25,8 +25,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
         progress: &handle_progress/3
       )
       |> assign(:folder_form, to_form(%{"name" => ""}, as: "folder"))
+      |> assign(:rename_form, to_form(%{"name" => ""}, as: "rename"))
       |> assign(:controls, @default_controls)
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
+      |> assign(:editing_file_id, nil)
       |> assign(:new_menu_open, true)
       |> assign(:children, %{folders: [], files: []})
       |> assign(:entries, [])
@@ -159,6 +161,48 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
   end
 
+  def handle_event("start_rename_file", %{"id" => id}, socket) do
+    file_id = normalize_id(id)
+
+    case Enum.find(socket.assigns.children.files, &(&1.id == file_id)) do
+      nil ->
+        {:noreply, socket}
+
+      file ->
+        {:noreply,
+         socket
+         |> assign(:editing_file_id, file_id)
+         |> assign(:rename_form, to_form(%{"name" => file.name}, as: "rename"))}
+    end
+  end
+
+  def handle_event("cancel_rename_file", _params, socket) do
+    {:noreply, clear_rename_state(socket)}
+  end
+
+  def handle_event("rename_file", %{"file_id" => id, "rename" => %{"name" => name}}, socket) do
+    case Drive.rename_file(socket.assigns.current_scope, normalize_id(id), %{name: name}) do
+      {:ok, _file} ->
+        {:noreply,
+         socket
+         |> clear_rename_state()
+         |> put_flash(:info, "File renamed.")
+         |> load_drive(socket.assigns.current_folder_id)}
+
+      {:error, :name_conflict} ->
+        {:noreply, put_flash(socket, :error, "Name already used in this folder.")}
+
+      {:error, :not_found} ->
+        {:noreply,
+         socket
+         |> clear_rename_state()
+         |> put_flash(:error, "File not found.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Unable to rename file.")}
+    end
+  end
+
   def handle_event("open_image", %{"id" => id}, socket) do
     image_id = normalize_id(id)
 
@@ -282,6 +326,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
       file_count: length(children.files),
       total_size: Enum.reduce(children.files, 0, &(&1.file_object.size + &2))
     )
+  end
+
+  defp clear_rename_state(socket) do
+    socket
+    |> assign(:editing_file_id, nil)
+    |> assign(:rename_form, to_form(%{"name" => ""}, as: "rename"))
+  end
+
+  defp editing_file(entries, editing_file_id) do
+    Enum.find(entries, &(&1.kind == :file and &1.id == editing_file_id))
   end
 
   defp assign_controls(socket, params) do
@@ -518,6 +572,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       assigns
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
       |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
+      |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
       |> assign(
         :upload_stats,
         upload_queue_stats(assigns.uploads.files.entries, assigns.uploads.files)
@@ -933,6 +988,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </button>
                     <button
                       :if={entry.kind == :file}
+                      phx-click="start_rename_file"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-sky-600"
+                    >
+                      <.icon name="hero-pencil-square" class="size-4" />
+                    </button>
+                    <button
+                      :if={entry.kind == :file}
                       phx-click="delete_file"
                       phx-value-id={entry.id}
                       class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
@@ -1124,6 +1187,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </button>
                     <button
                       :if={entry.kind == :file}
+                      phx-click="start_rename_file"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-sky-600"
+                    >
+                      <.icon name="hero-pencil-square" class="size-4" />
+                    </button>
+                    <button
+                      :if={entry.kind == :file}
                       phx-click="delete_file"
                       phx-value-id={entry.id}
                       class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
@@ -1134,6 +1205,68 @@ defmodule OpenDriveWeb.DriveLive.Index do
                 </div>
               <% end %>
             </section>
+
+            <%= if selected = @editing_file do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+                <button
+                  type="button"
+                  phx-click="cancel_rename_file"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar modal de renomear arquivo"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
+                  <div class="border-b border-slate-200 px-6 py-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
+                      Renomear arquivo
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      {selected.name}
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      O nome sera atualizado no Drive e a key do arquivo sera movida no S3.
+                    </p>
+                  </div>
+
+                  <.form for={@rename_form} phx-submit="rename_file" class="space-y-5 px-6 py-6">
+                    <input type="hidden" name="file_id" value={selected.id} />
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700">Novo nome</label>
+                      <input
+                        type="text"
+                        name={@rename_form[:name].name}
+                        value={@rename_form[:name].value}
+                        class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-200"
+                        required
+                        autofocus
+                      />
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
+                      {selected.content_type} · {format_bytes(selected.size)}
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_rename_file"
+                        class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </.form>
+                </div>
+              </div>
+            <% end %>
 
             <%= if selected = @selected_image do %>
               <div

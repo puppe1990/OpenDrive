@@ -12,6 +12,7 @@ defmodule OpenDrive.DriveTest do
     @behaviour OpenDrive.Storage
     def put_object(_key, _body, _opts), do: {:error, :boom}
     def delete_object(_key), do: :ok
+    def move_object(_source_key, _destination_key, _opts), do: {:error, :boom}
     def presigned_download_url(_key, _opts), do: {:error, :boom}
   end
 
@@ -48,6 +49,60 @@ defmodule OpenDrive.DriveTest do
 
     assert file.file_object.bucket == OpenDrive.Storage.bucket()
     assert Repo.aggregate(FileObject, :count) == 1
+  end
+
+  test "upload_file/3 accepts a custom name override" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-custom-name.txt")
+    Elixir.File.write!(path, "hello")
+
+    assert {:ok, file} =
+             Drive.upload_file(workspace.scope, %{name: "renamed.txt"}, %{
+               path: path,
+               client_name: "hello.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert file.name == "renamed.txt"
+  end
+
+  test "rename_file/3 updates the database name and moves the stored object" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-rename-source.txt")
+    Elixir.File.write!(path, "hello")
+
+    assert {:ok, file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "draft.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    old_key = file.file_object.key
+
+    old_path =
+      Path.join([System.tmp_dir!(), "open_drive_storage", OpenDrive.Storage.bucket(), old_key])
+
+    assert File.exists?(old_path)
+
+    assert {:ok, renamed_file} = Drive.rename_file(workspace.scope, file.id, %{name: "final.txt"})
+
+    refute renamed_file.file_object.key == old_key
+    assert renamed_file.name == "final.txt"
+    assert String.contains?(renamed_file.file_object.key, "final")
+
+    new_path =
+      Path.join([
+        System.tmp_dir!(),
+        "open_drive_storage",
+        OpenDrive.Storage.bucket(),
+        renamed_file.file_object.key
+      ])
+
+    refute File.exists?(old_path)
+    assert File.exists?(new_path)
   end
 
   test "upload_file/3 persists files inside an existing folder" do
