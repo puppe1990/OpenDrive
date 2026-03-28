@@ -4,34 +4,34 @@
       <div class="space-y-4">
         <p class="text-sm uppercase tracking-[0.4em] text-sky-700">OpenDrive</p>
         <h1 class="text-5xl font-black tracking-tight text-slate-950">
-          Seu drive interno multi-tenant em Phoenix LiveView.
+          {gettext("Your internal multi-tenant drive built with Phoenix LiveView.")}
         </h1>
         <p class="max-w-xl text-lg leading-8 text-slate-600">
-          Organize arquivos por workspace, controle membros por papel e mantenha os blobs em S3 com metadados leves em SQLite/Turso-compatible.
+          {gettext("Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage.")}
         </p>
       </div>
 
       <div class="flex flex-wrap gap-4">
         <.link navigate={~p"/users/register"} class="btn btn-primary btn-lg">
-          Criar workspace
+          {gettext("Create workspace")}
         </.link>
-        <.link navigate={~p"/users/log-in"} class="btn btn-outline btn-lg">Entrar</.link>
+        <.link navigate={~p"/users/log-in"} class="btn btn-outline btn-lg">{gettext("Log in")}</.link>
       </div>
     </div>
 
     <div class="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-cyan-100 p-8 shadow-xl shadow-sky-100">
       <div class="space-y-4">
         <div class="rounded-2xl bg-slate-950 p-5 text-slate-100">
-          <p class="text-sm text-sky-300">Workspace ativo</p>
+          <p class="text-sm text-sky-300">{gettext("Active workspace")}</p>
           <p class="mt-2 text-2xl font-bold">Product Ops</p>
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="rounded-2xl bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">Uploads hoje</p>
+            <p class="text-sm text-slate-500">{gettext("Uploads today")}</p>
             <p class="mt-2 text-3xl font-bold text-slate-950">128</p>
           </div>
           <div class="rounded-2xl bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">Membros</p>
+            <p class="text-sm text-slate-500">{gettext("Members")}</p>
             <p class="mt-2 text-3xl font-bold text-slate-950">14</p>
           </div>
         </div>

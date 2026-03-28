@@ -12,7 +12,7 @@ defmodule OpenDriveWeb.TenantSessionController do
       |> redirect(to: ~p"/app")
     else
       conn
-      |> put_flash(:error, "Workspace unavailable.")
+      |> put_flash(:error, gettext("Workspace unavailable."))
       |> redirect(to: ~p"/app")
     end
   end

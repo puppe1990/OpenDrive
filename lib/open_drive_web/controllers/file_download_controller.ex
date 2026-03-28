@@ -10,7 +10,7 @@ defmodule OpenDriveWeb.FileDownloadController do
 
       {:error, :not_found} ->
         conn
-        |> put_flash(:error, "File not found.")
+        |> put_flash(:error, gettext("File not found."))
         |> redirect(to: ~p"/app")
     end
   end
@@ -25,12 +25,12 @@ defmodule OpenDriveWeb.FileDownloadController do
 
       {:error, :not_found} ->
         conn
-        |> put_flash(:error, "Nenhum arquivo valido foi selecionado.")
+        |> put_flash(:error, gettext("No valid file was selected."))
         |> redirect(to: ~p"/app")
 
       {:error, _reason} ->
         conn
-        |> put_flash(:error, "Nao foi possivel gerar o zip dos arquivos selecionados.")
+        |> put_flash(:error, gettext("Unable to generate a ZIP for the selected files."))
         |> redirect(to: ~p"/app")
     end
   end

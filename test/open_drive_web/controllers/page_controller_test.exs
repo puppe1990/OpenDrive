@@ -7,4 +7,15 @@ defmodule OpenDriveWeb.PageControllerTest do
     assert html_response(conn, 200) =~ "Seu drive interno multi-tenant"
     assert html_response(conn, 200) =~ "Criar workspace"
   end
+
+  test "GET / persists an explicit locale override", %{conn: conn} do
+    conn = get(conn, ~p"/?locale=en")
+
+    assert html_response(conn, 200) =~ ~s(lang="en")
+    assert html_response(conn, 200) =~ "Attempting to reconnect"
+
+    conn = conn |> recycle() |> get(~p"/")
+
+    assert html_response(conn, 200) =~ ~s(lang="en")
+  end
 end

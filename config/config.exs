@@ -26,6 +26,10 @@ config :open_drive,
 
 config :open_drive, OpenDrive.Mailer, adapter: Swoosh.Adapters.Local
 
+config :open_drive, OpenDriveWeb.Gettext,
+  default_locale: "pt_BR",
+  locales: ~w(en pt_BR)
+
 config :open_drive, OpenDrive.Storage,
   adapter: OpenDrive.Storage.Fake,
   bucket: "open-drive-dev"

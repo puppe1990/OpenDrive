@@ -16,20 +16,20 @@ defmodule OpenDriveWeb.UserLive.Registration do
           </div>
           <div class="space-y-4">
             <h1 class="max-w-md text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              Crie seu workspace com clareza desde o primeiro acesso.
+              {gettext("Create your workspace with clarity from the first access.")}
             </h1>
             <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              Centralize arquivos, organize equipes e entre no ambiente certo sem uma tela lavada ou com contraste fraco.
+              {gettext("Centralize files, organize teams, and enter the right environment without washed-out screens or weak contrast.")}
             </p>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="rounded-3xl border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
-              <p class="text-sm font-semibold text-slate-900">Mais contraste</p>
-              <p class="mt-1 text-sm text-slate-600">Campos, labels e ações com leitura imediata.</p>
+              <p class="text-sm font-semibold text-slate-900">{gettext("Higher contrast")}</p>
+              <p class="mt-1 text-sm text-slate-600">{gettext("Fields, labels, and actions with immediate readability.")}</p>
             </div>
             <div class="rounded-3xl border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
-              <p class="text-sm font-semibold text-slate-900">Fluxo direto</p>
-              <p class="mt-1 text-sm text-slate-600">Conta e workspace criados no mesmo passo.</p>
+              <p class="text-sm font-semibold text-slate-900">{gettext("Direct flow")}</p>
+              <p class="mt-1 text-sm text-slate-600">{gettext("Account and workspace created in the same step.")}</p>
             </div>
           </div>
         </div>
@@ -43,17 +43,17 @@ defmodule OpenDriveWeb.UserLive.Registration do
         >
           <div class="space-y-3">
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">
-              Criar workspace
+              {gettext("Create workspace")}
             </p>
             <div class="space-y-1">
-              <h2 class="text-2xl font-bold tracking-tight text-slate-950">Comece agora</h2>
+              <h2 class="text-2xl font-bold tracking-tight text-slate-950">{gettext("Start now")}</h2>
               <p class="text-sm text-slate-600">
-                Já tem conta?
+                {gettext("Already have an account?")}
                 <.link
                   navigate={~p"/users/log-in"}
                   class="font-semibold text-sky-700 hover:text-sky-900 hover:underline"
                 >
-                  Entrar
+                  {gettext("Log in")}
                 </.link>
               </p>
             </div>
@@ -62,40 +62,40 @@ defmodule OpenDriveWeb.UserLive.Registration do
           <.input
             field={@form[:tenant_name]}
             type="text"
-            label="Nome do workspace"
-            placeholder="Ex.: Operações"
+            label={gettext("Workspace name")}
+            placeholder={gettext("Example: Operations")}
             required
           />
           <.input
             field={@form[:email]}
             type="email"
-            label="Email"
-            placeholder="voce@empresa.com"
+            label={gettext("Email")}
+            placeholder={gettext("you@company.com")}
             autocomplete="username"
             required
           />
           <.input
             field={@form[:password]}
             type="password"
-            label="Senha"
-            placeholder="Defina uma senha segura"
+            label={gettext("Password")}
+            placeholder={gettext("Choose a secure password")}
             autocomplete="new-password"
             required
           />
           <.input
             field={@form[:password_confirmation]}
             type="password"
-            label="Confirmar senha"
-            placeholder="Repita sua senha"
+            label={gettext("Confirm password")}
+            placeholder={gettext("Repeat your password")}
             autocomplete="new-password"
             required
           />
 
           <.button
-            phx-disable-with="Criando..."
+            phx-disable-with={gettext("Creating...")}
             class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-slate-800"
           >
-            Criar conta e workspace
+            {gettext("Create account and workspace")}
           </.button>
         </.form>
       </section>
@@ -120,9 +120,9 @@ defmodule OpenDriveWeb.UserLive.Registration do
   def handle_event("save", %{"user" => user_params}, socket) do
     case Accounts.register_user_with_tenant(user_params, %{name: user_params["tenant_name"]}) do
       {:ok, %{user: user}} ->
-        {:noreply,
+      {:noreply,
          socket
-         |> put_flash(:info, "Workspace criado com sucesso.")
+         |> put_flash(:info, gettext("Workspace created successfully."))
          |> push_navigate(to: ~p"/users/log-in", replace: true)
          |> then(fn socket -> assign(socket, :registered_user, user) end)}
 

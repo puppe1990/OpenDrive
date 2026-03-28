@@ -130,7 +130,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("form[phx-submit='rename_file']")
       |> render_submit(%{"file_id" => "#{file.id}", "rename" => %{"name" => "final.txt"}})
 
-    assert html =~ "File renamed."
+    assert html =~ "Arquivo renomeado."
     assert html =~ "final.txt"
 
     [renamed_file] = Drive.list_children(workspace.scope).files
@@ -160,7 +160,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("form[phx-submit='rename_folder']")
       |> render_submit(%{"folder_id" => "#{folder.id}", "rename" => %{"name" => "Approved"}})
 
-    assert html =~ "Folder renamed."
+    assert html =~ "Pasta renomeada."
     assert html =~ "Approved"
 
     [renamed_folder] = Drive.list_children(workspace.scope).folders
@@ -387,7 +387,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("button[phx-click='confirm_bulk_delete']")
       |> render_click()
 
-    assert html =~ "2 item(ns) enviado(s) para a lixeira."
+    assert html =~ "2 itens enviados para a lixeira."
     refute html =~ "first.txt"
     refute html =~ "second.txt"
     assert Drive.list_children(workspace.scope).files == []

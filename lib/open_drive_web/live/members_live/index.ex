@@ -19,23 +19,23 @@ defmodule OpenDriveWeb.MembersLive.Index do
            attrs
          ) do
       {:ok, _membership} ->
-        {:noreply, socket |> put_flash(:info, "Member added.") |> load_members()}
+        {:noreply, socket |> put_flash(:info, gettext("Member added.")) |> load_members()}
 
       {:error, :user_not_found} ->
         {:noreply,
-         put_flash(socket, :error, "User must register before being added to this workspace.")}
+         put_flash(socket, :error, gettext("User must register before being added to this workspace."))}
 
       {:error, :forbidden} ->
-        {:noreply, put_flash(socket, :error, "Only owners/admins can manage members.")}
+        {:noreply, put_flash(socket, :error, gettext("Only owners/admins can manage members."))}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Could not add member.")}
+        {:noreply, put_flash(socket, :error, gettext("Could not add member."))}
     end
   end
 
   defp load_members(socket) do
     assign(socket,
-      page_title: "Members",
+      page_title: gettext("Members"),
       memberships: Tenancy.list_members(socket.assigns.current_scope)
     )
   end
@@ -47,7 +47,7 @@ defmodule OpenDriveWeb.MembersLive.Index do
   end
 
   defp member_status(memberships) do
-    if Enum.empty?(memberships), do: "Workspace sem membros", else: "Equipe ativa"
+    if Enum.empty?(memberships), do: gettext("Workspace without members"), else: gettext("Active team")
   end
 
   defp role_badge("owner"),
@@ -71,25 +71,25 @@ defmodule OpenDriveWeb.MembersLive.Index do
               <div class="flex flex-wrap items-start justify-between gap-4">
                 <div class="space-y-3">
                   <span class="inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-sky-700">
-                    Team Access
+                    {gettext("Team Access")}
                   </span>
                   <div class="space-y-2">
                     <h1 class="max-w-2xl text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                      Membros com contexto claro para administrar o workspace sem ruído.
+                      {gettext("Members with clear context to manage the workspace without noise.")}
                     </h1>
                     <p class="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                      Centralize quem participa do ambiente, identifique rapidamente os perfis de acesso e convide novas pessoas sem perder o controle operacional.
+                      {gettext("Centralize who participates in the environment, quickly identify access profiles, and invite new people without losing operational control.")}
                     </p>
                   </div>
                 </div>
 
                 <div class="rounded-3xl border border-emerald-900/20 bg-slate-950 px-4 py-4 text-white shadow-[0_18px_50px_rgba(15,23,42,0.22)]">
                   <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-300">
-                    Status atual
+                    {gettext("Current status")}
                   </p>
                   <p class="mt-2 text-sm font-semibold">{member_status(@memberships)}</p>
                   <p class="mt-1 text-xs leading-5 text-slate-300">
-                    {membership_total(@memberships)} pessoa(s) com acesso ao workspace.
+                    {gettext("%{count} person(s) with access to the workspace.", count: membership_total(@memberships))}
                   </p>
                 </div>
               </div>
@@ -97,32 +97,32 @@ defmodule OpenDriveWeb.MembersLive.Index do
               <div class="grid gap-4 sm:grid-cols-3">
                 <div class="rounded-3xl border border-slate-200 bg-slate-50/90 p-4">
                   <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                    Total
+                    {gettext("Total")}
                   </p>
                   <p class="mt-2 text-2xl font-black tracking-tight text-slate-950">
                     {membership_total(@memberships)}
                   </p>
                   <p class="mt-1 text-sm text-slate-600">
-                    Pessoas ativas neste tenant.
+                    {gettext("Active people in this tenant.")}
                   </p>
                 </div>
                 <div class="rounded-3xl border border-slate-200 bg-slate-50/90 p-4">
                   <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                    Admins
+                    {gettext("Admins")}
                   </p>
                   <p class="mt-2 text-2xl font-black tracking-tight text-slate-950">
                     {role_total(@memberships, "admin") + role_total(@memberships, "owner")}
                   </p>
                   <p class="mt-1 text-sm text-slate-600">
-                    Perfis com poder de gestão.
+                    {gettext("Profiles with management power.")}
                   </p>
                 </div>
                 <div class="rounded-3xl border border-emerald-200 bg-emerald-50/90 p-4">
                   <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-emerald-700">
-                    Colaboração
+                    {gettext("Collaboration")}
                   </p>
                   <p class="mt-2 text-sm font-semibold text-slate-900">
-                    Convites para usuários já cadastrados no OpenDrive
+                    {gettext("Invitations for users already registered in OpenDrive")}
                   </p>
                 </div>
               </div>
@@ -133,17 +133,17 @@ defmodule OpenDriveWeb.MembersLive.Index do
             <div class="mb-6 flex items-start justify-between gap-4">
               <div>
                 <p class="text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                  Directory
+                  {gettext("Directory")}
                 </p>
                 <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                  Pessoas e níveis de acesso visíveis de imediato
+                  {gettext("People and access levels visible at a glance")}
                 </h2>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  A lista abaixo destaca quem administra o ambiente e quem participa da operação diária.
+                  {gettext("The list below highlights who administers the environment and who participates in daily operations.")}
                 </p>
               </div>
               <div class="hidden rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800 sm:block">
-                {membership_total(@memberships)} membro(s)
+                {gettext("%{count} member(s)", count: membership_total(@memberships))}
               </div>
             </div>
 
@@ -154,10 +154,10 @@ defmodule OpenDriveWeb.MembersLive.Index do
                     <.icon name="hero-users" class="size-7 text-slate-400" />
                   </div>
                   <h3 class="mt-4 text-lg font-semibold text-slate-900">
-                    Nenhum membro encontrado
+                    {gettext("No members found")}
                   </h3>
                   <p class="mt-2 text-sm leading-6 text-slate-500">
-                    Adicione usuários já cadastrados para começar a compartilhar este workspace.
+                    {gettext("Add already registered users to start sharing this workspace.")}
                   </p>
                 </div>
               <% else %>
@@ -171,9 +171,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                         <p class="text-sm font-semibold text-slate-950">{membership.user.email}</p>
                         <p class="mt-1 text-sm text-slate-500">
                           <%= if membership.role in ["owner", "admin"] do %>
-                            Pode administrar membros e operar o workspace.
+                            {gettext("Can manage members and operate the workspace.")}
                           <% else %>
-                            Participa do workspace com acesso operacional padrão.
+                            {gettext("Participates in the workspace with standard operational access.")}
                           <% end %>
                         </p>
                       </div>
@@ -196,22 +196,22 @@ defmodule OpenDriveWeb.MembersLive.Index do
           <div class="space-y-4">
             <div>
               <p class="text-[0.72rem] font-semibold uppercase tracking-[0.3em] text-slate-500">
-                Access Control
+                {gettext("Access Control")}
               </p>
               <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                Adicionar novo membro
+                {gettext("Add new member")}
               </h2>
               <p class="mt-2 text-sm leading-6 text-slate-600">
-                Convide uma pessoa pelo email já registrado e defina o nível de responsabilidade inicial.
+                {gettext("Invite a person using an already registered email and define the initial responsibility level.")}
               </p>
             </div>
 
             <div class="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
               <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                Regra de acesso
+                {gettext("Access rule")}
               </p>
               <p class="mt-2 text-sm leading-6 text-slate-600">
-                Apenas owners e admins conseguem gerenciar membros deste workspace.
+                {gettext("Only owners and admins can manage members in this workspace.")}
               </p>
             </div>
 
@@ -221,18 +221,18 @@ defmodule OpenDriveWeb.MembersLive.Index do
               phx-submit="add_member"
               class="space-y-4"
             >
-              <.input field={@member_form[:email]} type="email" label="User email" required />
+              <.input field={@member_form[:email]} type="email" label={gettext("User email")} required />
               <.input
                 field={@member_form[:role]}
                 type="select"
-                label="Role"
-                options={[{"Admin", "admin"}, {"Member", "member"}]}
+                label={gettext("Role")}
+                options={[{gettext("Admin"), "admin"}, {gettext("Member"), "member"}]}
               />
               <button
                 type="submit"
                 class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-sky-600 px-6 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(2,132,199,0.24)] transition hover:-translate-y-0.5 hover:bg-sky-700"
               >
-                <.icon name="hero-user-plus" class="mr-2 size-4" /> Add member
+                <.icon name="hero-user-plus" class="mr-2 size-4" /> {gettext("Add member")}
               </button>
             </.form>
 
@@ -240,9 +240,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
               :if={!OpenDrive.Accounts.Scope.manage_members?(@current_scope)}
               class="rounded-3xl border border-amber-200 bg-amber-50/90 p-4"
             >
-              <p class="text-sm font-semibold text-amber-900">Permissão insuficiente</p>
+              <p class="text-sm font-semibold text-amber-900">{gettext("Insufficient permission")}</p>
               <p class="mt-2 text-sm leading-6 text-amber-800">
-                Seu perfil atual pode visualizar a equipe, mas não pode adicionar novos membros.
+                {gettext("Your current profile can view the team, but cannot add new members.")}
               </p>
             </div>
           </div>

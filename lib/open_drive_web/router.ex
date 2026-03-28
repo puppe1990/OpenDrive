@@ -6,6 +6,7 @@ defmodule OpenDriveWeb.Router do
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
+    plug OpenDriveWeb.Locale
     plug :fetch_live_flash
     plug :put_root_layout, html: {OpenDriveWeb.Layouts, :root}
     plug :protect_from_forgery
@@ -50,7 +51,10 @@ defmodule OpenDriveWeb.Router do
     pipe_through [:browser, :require_authenticated_user]
 
     live_session :require_authenticated_user,
-      on_mount: [{OpenDriveWeb.UserAuth, :require_authenticated}] do
+      on_mount: [
+        {OpenDriveWeb.Locale, :default},
+        {OpenDriveWeb.UserAuth, :require_authenticated}
+      ] do
       live "/app", DriveLive.Index, :index
       live "/app/folders/:folder_id", DriveLive.Index, :index
       live "/app/trash", TrashLive.Index, :index
@@ -72,7 +76,10 @@ defmodule OpenDriveWeb.Router do
     pipe_through [:browser]
 
     live_session :current_user,
-      on_mount: [{OpenDriveWeb.UserAuth, :mount_current_scope}] do
+      on_mount: [
+        {OpenDriveWeb.Locale, :default},
+        {OpenDriveWeb.UserAuth, :mount_current_scope}
+      ] do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new

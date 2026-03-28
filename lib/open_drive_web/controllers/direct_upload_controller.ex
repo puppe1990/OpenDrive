@@ -63,49 +63,49 @@ defmodule OpenDriveWeb.DirectUploadController do
   defp render_error(conn, :name_conflict) do
     conn
     |> put_status(:conflict)
-    |> json(%{error: "Name already used in this folder."})
+    |> json(%{error: gettext("Name already used in this folder.")})
   end
 
   defp render_error(conn, :invalid_parent_folder) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Target folder is invalid."})
+    |> json(%{error: gettext("Target folder is invalid.")})
   end
 
   defp render_error(conn, :too_large) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Arquivo excede o limite de 2 GB."})
+    |> json(%{error: gettext("File exceeds the 2 GB limit.")})
   end
 
   defp render_error(conn, :invalid_size) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Invalid file size."})
+    |> json(%{error: gettext("Invalid file size.")})
   end
 
   defp render_error(conn, :size_mismatch) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Uploaded object size does not match the selected file."})
+    |> json(%{error: gettext("Uploaded object size does not match the selected file.")})
   end
 
   defp render_error(conn, :not_found) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Uploaded object was not found in storage."})
+    |> json(%{error: gettext("Uploaded object was not found in storage.")})
   end
 
   defp render_error(conn, :invalid_token) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: "Upload session expired. Select the file again."})
+    |> json(%{error: gettext("Upload session expired. Select the file again.")})
   end
 
   defp render_error(conn, _reason) do
     conn
     |> put_status(:internal_server_error)
-    |> json(%{error: "Unable to process this upload right now."})
+    |> json(%{error: gettext("Unable to process this upload right now.")})
   end
 
   defp upload_size(%Plug.Upload{path: path}) do

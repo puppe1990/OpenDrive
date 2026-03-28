@@ -1,0 +1,1616 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/open_drive_web/components/core_components.ex:422
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:166
+#: lib/open_drive_web/components/layouts.ex:178
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:173
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:161
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr ""
+
+#: lib/open_drive_web/components/core_components.ex:74
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:294
+#, elixir-autogen, elixir-format
+msgid "A link to confirm your email change has been sent to the new address."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:33
+#, elixir-autogen, elixir-format
+msgid "Access your workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:18
+#, elixir-autogen, elixir-format
+msgid "Account Settings"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:32
+#, elixir-autogen, elixir-format
+msgid "Account and workspace created in the same step."
+msgstr ""
+
+#: lib/open_drive_web/controllers/page_html/home.html.heex:25
+#, elixir-autogen, elixir-format
+msgid "Active workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:22
+#, elixir-autogen, elixir-format
+msgid "Adjust your access without losing workspace context."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:51
+#, elixir-autogen, elixir-format
+msgid "Already have an account?"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:216
+#, elixir-autogen, elixir-format
+msgid "Best practices"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:22
+#, elixir-autogen, elixir-format
+msgid "Centralize files, organize teams, and enter the right environment without washed-out screens or weak contrast."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:111
+#, elixir-autogen, elixir-format
+msgid "Change Email"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:83
+#, elixir-autogen, elixir-format
+msgid "Change confirmed by email"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:76
+#, elixir-autogen, elixir-format
+msgid "Change primary address"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:108
+#, elixir-autogen, elixir-format
+msgid "Changing..."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:81
+#, elixir-autogen, elixir-format
+msgid "Choose a secure password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:164
+#, elixir-autogen, elixir-format
+msgid "Confirm new password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:88
+#, elixir-autogen, elixir-format
+msgid "Confirm password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:98
+#, elixir-autogen, elixir-format
+msgid "Create account and workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:37
+#, elixir-autogen, elixir-format
+msgid "Create one now"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:72
+#: lib/open_drive_web/controllers/page_html/home.html.heex:16
+#: lib/open_drive_web/live/user_live/registration.ex:46
+#, elixir-autogen, elixir-format
+msgid "Create workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:19
+#, elixir-autogen, elixir-format
+msgid "Create your workspace with clarity from the first access."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:95
+#, elixir-autogen, elixir-format
+msgid "Creating..."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:192
+#, elixir-autogen, elixir-format
+msgid "Critical changes remain protected."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:44
+#, elixir-autogen, elixir-format
+msgid "Current email"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:32
+#, elixir-autogen, elixir-format
+msgid "Current login"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:18
+#, elixir-autogen, elixir-format
+msgid "Direct access, legible fields, and a clear visual focus for people who just want to sign in and work."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:31
+#, elixir-autogen, elixir-format
+msgid "Direct flow"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:35
+#, elixir-autogen, elixir-format
+msgid "Don't have an account yet?"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:54
+#, elixir-autogen, elixir-format
+msgid "Drive"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:46
+#: lib/open_drive_web/live/user_live/registration.ex:72
+#: lib/open_drive_web/live/user_live/settings.ex:73
+#, elixir-autogen, elixir-format
+msgid "Email"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:247
+#, elixir-autogen, elixir-format
+msgid "Email change link is invalid or it has expired."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:244
+#, elixir-autogen, elixir-format
+msgid "Email changed successfully."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:206
+#, elixir-autogen, elixir-format
+msgid "Email requires confirmation"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:15
+#, elixir-autogen, elixir-format
+msgid "Enter your workspace without visual strain."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:66
+#, elixir-autogen, elixir-format
+msgid "Example: Operations"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:28
+#, elixir-autogen, elixir-format
+msgid "Fields, labels, and actions with immediate readability."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:27
+#, elixir-autogen, elixir-format
+msgid "Higher contrast"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:229
+#, elixir-autogen, elixir-format
+msgid "If you are asked to re-authenticate, that is expected for sensitive changes."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:66
+#, elixir-autogen, elixir-format
+msgid "Keep me signed in"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:66
+#: lib/open_drive_web/controllers/page_html/home.html.heex:18
+#: lib/open_drive_web/live/user_live/confirmation.ex:53
+#: lib/open_drive_web/live/user_live/login.ex:31
+#: lib/open_drive_web/live/user_live/login.ex:70
+#: lib/open_drive_web/live/user_live/registration.ex:56
+#, elixir-autogen, elixir-format
+msgid "Log in"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:59
+#, elixir-autogen, elixir-format
+msgid "Log out"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:55
+#: lib/open_drive_web/controllers/page_html/home.html.heex:34
+#: lib/open_drive_web/live/members_live/index.ex:38
+#, elixir-autogen, elixir-format
+msgid "Members"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:97
+#, elixir-autogen, elixir-format
+msgid "New email"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:156
+#, elixir-autogen, elixir-format
+msgid "New password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:200
+#, elixir-autogen, elixir-format
+msgid "Old sessions are terminated"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:104
+#, elixir-autogen, elixir-format
+msgid "Only change it if you also have access to the new inbox."
+msgstr ""
+
+#: lib/open_drive_web/controllers/page_html/home.html.heex:10
+#, elixir-autogen, elixir-format
+msgid "Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:54
+#: lib/open_drive_web/live/user_live/registration.ex:80
+#: lib/open_drive_web/live/user_live/settings.ex:121
+#, elixir-autogen, elixir-format
+msgid "Password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:61
+#, elixir-autogen, elixir-format
+msgid "Personal account linked to the workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:171
+#, elixir-autogen, elixir-format
+msgid "Prefer a long, unique password that is not reused in other services."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:50
+#, elixir-autogen, elixir-format
+msgid "Re-authentication"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:89
+#, elixir-autogen, elixir-format
+msgid "Repeat your password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:53
+#, elixir-autogen, elixir-format
+msgid "Required only for sensitive changes"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:221
+#, elixir-autogen, elixir-format
+msgid "Review your email before saving to avoid locking yourself out of the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:178
+#, elixir-autogen, elixir-format
+msgid "Save Password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:175
+#, elixir-autogen, elixir-format
+msgid "Saving..."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:58
+#, elixir-autogen, elixir-format
+msgid "Scope"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:189
+#, elixir-autogen, elixir-format
+msgid "Security Notes"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:131
+#, elixir-autogen, elixir-format
+msgid "Sensitive update"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:124
+#, elixir-autogen, elixir-format
+msgid "Set a new password"
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:57
+#, elixir-autogen, elixir-format
+msgid "Settings"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:49
+#, elixir-autogen, elixir-format
+msgid "Start now"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:208
+#, elixir-autogen, elixir-format
+msgid "The account only points to the new address after the link in the email is clicked."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:79
+#, elixir-autogen, elixir-format
+msgid "The new address will receive a confirmation link before the change takes effect."
+msgstr ""
+
+#: lib/open_drive_web/components/layouts.ex:56
+#: lib/open_drive_web/live/drive_live/index.ex:869
+#: lib/open_drive_web/live/trash_live/index.ex:64
+#, elixir-autogen, elixir-format
+msgid "Trash"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:25
+#, elixir-autogen, elixir-format
+msgid "Update your email and password in a clearer panel focused on what changes your account security."
+msgstr ""
+
+#: lib/open_drive_web/controllers/page_html/home.html.heex:30
+#, elixir-autogen, elixir-format
+msgid "Uploads today"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:225
+#, elixir-autogen, elixir-format
+msgid "Use a password manager to generate long, unique combinations."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:36
+#, elixir-autogen, elixir-format
+msgid "Use this panel to manage your account credentials."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:202
+#, elixir-autogen, elixir-format
+msgid "When you change your password, previous tokens stop working."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:127
+#, elixir-autogen, elixir-format
+msgid "When you save, old sessions are invalidated to reduce risk on devices that are already signed in."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:125
+#, elixir-autogen, elixir-format
+msgid "Workspace created successfully."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/registration.ex:65
+#, elixir-autogen, elixir-format
+msgid "Workspace name"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:195
+#, elixir-autogen, elixir-format
+msgid "You can open this area at any time, but email and password changes require recent authentication to prevent improper changes."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/settings.ex:340
+#, elixir-autogen, elixir-format
+msgid "You must re-authenticate to update your account settings."
+msgstr ""
+
+#: lib/open_drive_web/controllers/page_html/home.html.heex:7
+#, elixir-autogen, elixir-format
+msgid "Your internal multi-tenant drive built with Phoenix LiveView."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:55
+#, elixir-autogen, elixir-format
+msgid "Your password"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/login.ex:47
+#: lib/open_drive_web/live/user_live/registration.ex:73
+#, elixir-autogen, elixir-format
+msgid "you@company.com"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1328
+#, elixir-autogen, elixir-format
+msgid "%{count} file(s) for ZIP"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:164
+#: lib/open_drive_web/live/trash_live/index.ex:223
+#, elixir-autogen, elixir-format
+msgid "%{count} item(s)"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:97
+#, elixir-autogen, elixir-format
+msgid "%{count} item(s) awaiting restore or permanent removal."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:146
+#, elixir-autogen, elixir-format
+msgid "%{count} member(s)"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:92
+#, elixir-autogen, elixir-format
+msgid "%{count} person(s) with access to the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1087
+#, elixir-autogen, elixir-format
+msgid "%{count} results"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1820
+#, elixir-autogen, elixir-format
+msgid "%{count} selected item(s) will be sent to the trash."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:350
+#, elixir-autogen, elixir-format
+msgid "%{files} file(s) and %{folders} folder(s) will be permanently removed."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:881
+#, elixir-autogen, elixir-format
+msgid "%{size} used in workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1008
+#, elixir-autogen, elixir-format
+msgid "0 completed"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:996
+#, elixir-autogen, elixir-format
+msgid "0 queued"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1002
+#, elixir-autogen, elixir-format
+msgid "0 uploading"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1014
+#, elixir-autogen, elixir-format
+msgid "0 with error"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2244
+#, elixir-autogen, elixir-format
+msgid "About the player"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:199
+#, elixir-autogen, elixir-format
+msgid "Access Control"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:211
+#, elixir-autogen, elixir-format
+msgid "Access rule"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:106
+#, elixir-autogen, elixir-format
+msgid "Active people in this tenant."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:50
+#, elixir-autogen, elixir-format
+msgid "Active team"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:160
+#, elixir-autogen, elixir-format
+msgid "Add already registered users to start sharing this workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:235
+#, elixir-autogen, elixir-format
+msgid "Add member"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:202
+#, elixir-autogen, elixir-format
+msgid "Add new member"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:229
+#, elixir-autogen, elixir-format
+msgid "Admin"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:111
+#, elixir-autogen, elixir-format
+msgid "Admins"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:292
+#, elixir-autogen, elixir-format
+msgid "After confirmation, the objects are no longer available for recovery."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1052
+#, elixir-autogen, elixir-format
+msgid "All"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1717
+#: lib/open_drive_web/live/drive_live/index.ex:1767
+#, elixir-autogen, elixir-format
+msgid "Are you sure?"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:300
+#, elixir-autogen, elixir-format
+msgid "Before emptying"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1814
+#, elixir-autogen, elixir-format
+msgid "Bulk delete"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:174
+#, elixir-autogen, elixir-format
+msgid "Can manage members and operate the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1625
+#: lib/open_drive_web/live/drive_live/index.ex:1687
+#: lib/open_drive_web/live/drive_live/index.ex:1735
+#: lib/open_drive_web/live/drive_live/index.ex:1785
+#: lib/open_drive_web/live/drive_live/index.ex:1837
+#: lib/open_drive_web/live/trash_live/index.ex:360
+#, elixir-autogen, elixir-format
+msgid "Cancel"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:81
+#, elixir-autogen, elixir-format
+msgid "Centralize who participates in the environment, quickly identify access profiles, and invite new people without losing operational control."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:290
+#, elixir-autogen, elixir-format
+msgid "Cleanup also deletes from storage"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:971
+#, elixir-autogen, elixir-format
+msgid "Click to choose files from your device"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1876
+#: lib/open_drive_web/live/drive_live/index.ex:1934
+#, elixir-autogen, elixir-format
+msgid "Close"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1807
+#, elixir-autogen, elixir-format
+msgid "Close bulk delete modal"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1707
+#, elixir-autogen, elixir-format
+msgid "Close delete file modal"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1757
+#, elixir-autogen, elixir-format
+msgid "Close delete folder modal"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:325
+#, elixir-autogen, elixir-format
+msgid "Close empty trash modal"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1861
+#, elixir-autogen, elixir-format
+msgid "Close preview"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1583
+#, elixir-autogen, elixir-format
+msgid "Close rename file modal"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1645
+#, elixir-autogen, elixir-format
+msgid "Close rename folder modal"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1917
+#, elixir-autogen, elixir-format
+msgid "Close video player"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:122
+#, elixir-autogen, elixir-format
+msgid "Collaboration"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:111
+#, elixir-autogen, elixir-format
+msgid "Complete structures ready to restore."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1817
+#, elixir-autogen, elixir-format
+msgid "Confirm deletion"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:32
+#, elixir-autogen, elixir-format
+msgid "Could not add member."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1133
+#, elixir-autogen, elixir-format
+msgid "Create a folder, upload a file, or adjust the filters to find what you need."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:825
+#, elixir-autogen, elixir-format
+msgid "Create folder"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:88
+#: lib/open_drive_web/live/trash_live/index.ex:93
+#, elixir-autogen, elixir-format
+msgid "Current status"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2164
+#, elixir-autogen, elixir-format
+msgid "Decrease speed"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1743
+#: lib/open_drive_web/live/drive_live/index.ex:1793
+#, elixir-autogen, elixir-format
+msgid "Delete"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1714
+#, elixir-autogen, elixir-format
+msgid "Delete file"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1764
+#, elixir-autogen, elixir-format
+msgid "Delete folder"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:336
+#, elixir-autogen, elixir-format
+msgid "Delete permanently?"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1357
+#: lib/open_drive_web/live/drive_live/index.ex:1844
+#, elixir-autogen, elixir-format
+msgid "Delete selected"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:136
+#, elixir-autogen, elixir-format
+msgid "Directory"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1293
+#: lib/open_drive_web/live/drive_live/index.ex:1537
+#, elixir-autogen, elixir-format
+msgid "Download"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1347
+#, elixir-autogen, elixir-format
+msgid "Download ZIP"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:962
+#, elixir-autogen, elixir-format
+msgid "Drag files into this folder"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:143
+#: lib/open_drive_web/live/trash_live/index.ex:333
+#, elixir-autogen, elixir-format
+msgid "Empty trash"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2188
+#, elixir-autogen, elixir-format
+msgid "Enable fullscreen"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:157
+#, elixir-autogen, elixir-format
+msgid "Entire structures ready to return"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1276
+#, elixir-autogen, elixir-format
+msgid "File"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:250
+#, elixir-autogen, elixir-format
+msgid "File removed and kept until permanent cleanup."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:916
+#: lib/open_drive_web/live/drive_live/index.ex:1054
+#: lib/open_drive_web/live/trash_live/index.ex:116
+#, elixir-autogen, elixir-format
+msgid "Files"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:237
+#, elixir-autogen, elixir-format
+msgid "Files removed individually will appear here for quick restore."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:125
+#, elixir-autogen, elixir-format
+msgid "Final action"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:191
+#, elixir-autogen, elixir-format
+msgid "Folder removed and awaiting restore."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1678
+#, elixir-autogen, elixir-format
+msgid "Folder · updated at this Drive level"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:863
+#: lib/open_drive_web/live/drive_live/index.ex:912
+#: lib/open_drive_web/live/drive_live/index.ex:1053
+#: lib/open_drive_web/live/trash_live/index.ex:105
+#, elixir-autogen, elixir-format
+msgid "Folders"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:286
+#, elixir-autogen, elixir-format
+msgid "Folders and files return individually to the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:988
+#, elixir-autogen, elixir-format
+msgid "Follow the progress of each file in real time"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2234
+#, elixir-autogen, elixir-format
+msgid "Fullscreen"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2079
+#, elixir-autogen, elixir-format
+msgid "Go back 5 seconds"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2088
+#, elixir-autogen, elixir-format
+msgid "Go forward 5 seconds"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:219
+#, elixir-autogen, elixir-format
+msgid "Ideal for recovering a specific item without touching the rest of the structure."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:849
+#: lib/open_drive_web/live/drive_live/index.ex:1055
+#, elixir-autogen, elixir-format
+msgid "Images"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:284
+#, elixir-autogen, elixir-format
+msgid "Immediate restore"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:347
+#, elixir-autogen, elixir-format
+msgid "Impact of this action"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2178
+#, elixir-autogen, elixir-format
+msgid "Increase speed"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:243
+#, elixir-autogen, elixir-format
+msgid "Insufficient permission"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:125
+#, elixir-autogen, elixir-format
+msgid "Invitations for users already registered in OpenDrive"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:205
+#, elixir-autogen, elixir-format
+msgid "Invite a person using an already registered email and define the initial responsibility level."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:55
+#, elixir-autogen, elixir-format
+msgid "Item restored."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1776
+#, elixir-autogen, elixir-format
+msgid "Items inside this folder will also stop appearing in the current Drive."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2205
+#, elixir-autogen, elixir-format
+msgid "Keyboard shortcuts"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1071
+#, elixir-autogen, elixir-format
+msgid "Largest size"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2218
+#, elixir-autogen, elixir-format
+msgid "Left/Right arrows"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:229
+#, elixir-autogen, elixir-format
+msgid "Member"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:22
+#, elixir-autogen, elixir-format
+msgid "Member added."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:78
+#, elixir-autogen, elixir-format
+msgid "Members with clear context to manage the workspace without noise."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1420
+#, elixir-autogen, elixir-format
+msgid "Modified"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2097
+#, elixir-autogen, elixir-format
+msgid "Mute video"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:835
+#: lib/open_drive_web/live/drive_live/index.ex:891
+#, elixir-autogen, elixir-format
+msgid "My Drive"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1067
+#: lib/open_drive_web/live/drive_live/index.ex:1374
+#, elixir-autogen, elixir-format
+msgid "Name"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1068
+#, elixir-autogen, elixir-format
+msgid "Name Z-A"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:811
+#, elixir-autogen, elixir-format
+msgid "New"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:824
+#, elixir-autogen, elixir-format
+msgid "New folder"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1604
+#: lib/open_drive_web/live/drive_live/index.ex:1666
+#, elixir-autogen, elixir-format
+msgid "New name"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1896
+#, elixir-autogen, elixir-format
+msgid "Next photo"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:234
+#, elixir-autogen, elixir-format
+msgid "No files in trash"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:175
+#, elixir-autogen, elixir-format
+msgid "No folders in trash"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:157
+#, elixir-autogen, elixir-format
+msgid "No members found"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1131
+#, elixir-autogen, elixir-format
+msgid "Nothing here yet"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1066
+#, elixir-autogen, elixir-format
+msgid "Oldest modified"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:313
+#, elixir-autogen, elixir-format
+msgid "Only empty it when you are sure nothing needs to return to the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:214
+#, elixir-autogen, elixir-format
+msgid "Only owners and admins can manage members in this workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:29
+#, elixir-autogen, elixir-format
+msgid "Only owners/admins can manage members."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1212
+#, elixir-autogen, elixir-format
+msgid "Open folder"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1252
+#, elixir-autogen, elixir-format
+msgid "Open player"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1236
+#, elixir-autogen, elixir-format
+msgid "Open video %{name}"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2247
+#, elixir-autogen, elixir-format
+msgid "OpenDrive Player uses native browser acceleration for smooth playback. MP4, WebM, and OGG remain private in the app, with dedicated controls for fullscreen, speed, and quick keyboard navigation."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:83
+#, elixir-autogen, elixir-format
+msgid "Organized trash to recover quickly and delete with clarity."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:176
+#, elixir-autogen, elixir-format
+msgid "Participates in the workspace with standard operational access."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:139
+#, elixir-autogen, elixir-format
+msgid "People and access levels visible at a glance"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:128
+#, elixir-autogen, elixir-format
+msgid "Permanent cleanup only when you are sure"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2210
+#, elixir-autogen, elixir-format
+msgid "Play / Pause"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1983
+#: lib/open_drive_web/live/drive_live/index.ex:2053
+#, elixir-autogen, elixir-format
+msgid "Play video"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1887
+#, elixir-autogen, elixir-format
+msgid "Previous photo"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:117
+#, elixir-autogen, elixir-format
+msgid "Profiles with management power."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:842
+#, elixir-autogen, elixir-format
+msgid "Recent"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1065
+#, elixir-autogen, elixir-format
+msgid "Recently modified"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:276
+#, elixir-autogen, elixir-format
+msgid "Recovery first, deletion only in the final step."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:213
+#, elixir-autogen, elixir-format
+msgid "Removed files"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:154
+#, elixir-autogen, elixir-format
+msgid "Removed folders"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1590
+#, elixir-autogen, elixir-format
+msgid "Rename file"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1652
+#, elixir-autogen, elixir-format
+msgid "Rename folder"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2228
+#, elixir-autogen, elixir-format
+msgid "Reset speed"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1429
+#, elixir-autogen, elixir-format
+msgid "Resize Modified column"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1383
+#, elixir-autogen, elixir-format
+msgid "Resize Name column"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1452
+#, elixir-autogen, elixir-format
+msgid "Resize Size column"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1406
+#, elixir-autogen, elixir-format
+msgid "Resize Type column"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:201
+#: lib/open_drive_web/live/trash_live/index.ex:260
+#, elixir-autogen, elixir-format
+msgid "Restore"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:59
+#, elixir-autogen, elixir-format
+msgid "Restore failed because the name is already in use."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:160
+#, elixir-autogen, elixir-format
+msgid "Restore the folder to return its hierarchy to the workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:135
+#, elixir-autogen, elixir-format
+msgid "Restoring preserves the item context. Emptying the trash removes the records and also deletes the objects from storage."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:79
+#, elixir-autogen, elixir-format
+msgid "Retention Zone"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:305
+#, elixir-autogen, elixir-format
+msgid "Review conflicting names before restoring important items."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:86
+#, elixir-autogen, elixir-format
+msgid "Review removed items before final disposal. Everything here can still return to the workspace until you empty the trash."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:228
+#, elixir-autogen, elixir-format
+msgid "Role"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:896
+#, elixir-autogen, elixir-format
+msgid "Root"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1631
+#: lib/open_drive_web/live/drive_live/index.ex:1693
+#, elixir-autogen, elixir-format
+msgid "Save"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1043
+#, elixir-autogen, elixir-format
+msgid "Search by name"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1363
+#, elixir-autogen, elixir-format
+msgid "Sel."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1319
+#, elixir-autogen, elixir-format
+msgid "Select all"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:953
+#, elixir-autogen, elixir-format
+msgid "Select files from device"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1322
+#, elixir-autogen, elixir-format
+msgid "Selected: %{count}"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:920
+#: lib/open_drive_web/live/drive_live/index.ex:1443
+#, elixir-autogen, elixir-format
+msgid "Size"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2216
+#, elixir-autogen, elixir-format
+msgid "Skip 5s"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1072
+#, elixir-autogen, elixir-format
+msgid "Smallest size"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2212
+#, elixir-autogen, elixir-format
+msgid "Space"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1967
+#: lib/open_drive_web/live/drive_live/index.ex:2158
+#, elixir-autogen, elixir-format
+msgid "Speed"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2222
+#, elixir-autogen, elixir-format
+msgid "Speed +/-"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:216
+#, elixir-autogen, elixir-format
+msgid "Standalone documents still recoverable"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:121
+#, elixir-autogen, elixir-format
+msgid "Standalone documents still recoverable."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:74
+#, elixir-autogen, elixir-format
+msgid "Team Access"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:142
+#, elixir-autogen, elixir-format
+msgid "The list below highlights who administers the environment and who participates in daily operations."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1596
+#, elixir-autogen, elixir-format
+msgid "The name will be updated in Drive and the file key will be moved in S3."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1658
+#, elixir-autogen, elixir-format
+msgid "The new name will be displayed immediately for this workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:339
+#, elixir-autogen, elixir-format
+msgid "This action permanently removes the files from the trash and deletes the objects from storage."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:279
+#, elixir-autogen, elixir-format
+msgid "This area separates what can still be restored from what will be removed forever. The goal is to reduce human error in irreversible actions."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:100
+#, elixir-autogen, elixir-format
+msgid "Total"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:24
+#, elixir-autogen, elixir-format
+msgid "Trash emptied. %{files} file(s) and %{folders} folder(s) permanently deleted."
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:273
+#, elixir-autogen, elixir-format
+msgid "Trash policy"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1069
+#: lib/open_drive_web/live/drive_live/index.ex:1397
+#, elixir-autogen, elixir-format
+msgid "Type"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1070
+#, elixir-autogen, elixir-format
+msgid "Type Z-A"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:40
+#, elixir-autogen, elixir-format
+msgid "Unable to empty trash."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2224
+#, elixir-autogen, elixir-format
+msgid "Up/Down arrows"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:986
+#, elixir-autogen, elixir-format
+msgid "Upload queue"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:965
+#, elixir-autogen, elixir-format
+msgid "Upload starts as soon as you drop the file"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:309
+#, elixir-autogen, elixir-format
+msgid "Use the trash as a review step, not as permanent storage."
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:224
+#, elixir-autogen, elixir-format
+msgid "User email"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:26
+#, elixir-autogen, elixir-format
+msgid "User must register before being added to this workspace."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1249
+#, elixir-autogen, elixir-format
+msgid "Video"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2031
+#: lib/open_drive_web/live/drive_live/index.ex:2042
+#, elixir-autogen, elixir-format
+msgid "Video progress"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2124
+#: lib/open_drive_web/live/drive_live/index.ex:2138
+#, elixir-autogen, elixir-format
+msgid "Video volume"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:856
+#: lib/open_drive_web/live/drive_live/index.ex:1056
+#, elixir-autogen, elixir-format
+msgid "Videos"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:2127
+#, elixir-autogen, elixir-format
+msgid "Volume"
+msgstr ""
+
+#: lib/open_drive_web/live/trash_live/index.ex:178
+#, elixir-autogen, elixir-format
+msgid "When a folder is removed, it will appear here with the option to restore it."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:874
+#, elixir-autogen, elixir-format
+msgid "Workspace"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:50
+#, elixir-autogen, elixir-format
+msgid "Workspace without members"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:968
+#, elixir-autogen, elixir-format
+msgid "You can drop multiple files at once"
+msgstr ""
+
+#: lib/open_drive_web/live/members_live/index.ex:245
+#, elixir-autogen, elixir-format
+msgid "Your current profile can view the team, but cannot add new members."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1093
+#, elixir-autogen, elixir-format
+msgid "filter: %{value}"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1720
+#, elixir-autogen, elixir-format
+msgid "The file %{name} will be sent to the trash."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1770
+#, elixir-autogen, elixir-format
+msgid "The folder %{name} will be sent to the trash."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:78
+#, elixir-autogen, elixir-format
+msgid "File exceeds the 2 GB limit."
+msgstr ""
+
+#: lib/open_drive_web/controllers/file_download_controller.ex:13
+#: lib/open_drive_web/live/drive_live/index.ex:335
+#, elixir-autogen, elixir-format
+msgid "File not found."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:325
+#, elixir-autogen, elixir-format
+msgid "File renamed."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:142
+#, elixir-autogen, elixir-format
+msgid "Folder created."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:312
+#, elixir-autogen, elixir-format
+msgid "Folder not found."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:302
+#, elixir-autogen, elixir-format
+msgid "Folder renamed."
+msgstr ""
+
+#: lib/open_drive_web/components/core_components.ex:311
+#, elixir-autogen, elixir-format
+msgid "Hide password"
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:84
+#, elixir-autogen, elixir-format
+msgid "Invalid file size."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:66
+#: lib/open_drive_web/live/drive_live/index.ex:146
+#: lib/open_drive_web/live/drive_live/index.ex:306
+#: lib/open_drive_web/live/drive_live/index.ex:329
+#, elixir-autogen, elixir-format
+msgid "Name already used in this folder."
+msgstr ""
+
+#: lib/open_drive_web/components/core_components.ex:307
+#: lib/open_drive_web/components/core_components.ex:310
+#, elixir-autogen, elixir-format
+msgid "Show password"
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:72
+#, elixir-autogen, elixir-format
+msgid "Target folder is invalid."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:149
+#, elixir-autogen, elixir-format
+msgid "Unable to create folder."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:108
+#, elixir-autogen, elixir-format
+msgid "Unable to process this upload right now."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:338
+#, elixir-autogen, elixir-format
+msgid "Unable to rename file."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:315
+#, elixir-autogen, elixir-format
+msgid "Unable to rename folder."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:102
+#, elixir-autogen, elixir-format
+msgid "Upload session expired. Select the file again."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:90
+#, elixir-autogen, elixir-format
+msgid "Uploaded object size does not match the selected file."
+msgstr ""
+
+#: lib/open_drive_web/controllers/direct_upload_controller.ex:96
+#, elixir-autogen, elixir-format
+msgid "Uploaded object was not found in storage."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:244
+#, elixir-autogen, elixir-format
+msgid "%{count} item sent to the trash."
+msgid_plural "%{count} items sent to the trash."
+msgstr[0] ""
+msgstr[1] ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:43
+#, elixir-autogen, elixir-format
+msgid "Invalid email or password"
+msgstr ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:71
+#, elixir-autogen, elixir-format
+msgid "Logged out successfully."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:91
+#, elixir-autogen, elixir-format
+msgid "Magic link is invalid or it has expired."
+msgstr ""
+
+#: lib/open_drive_web/controllers/file_download_controller.ex:28
+#, elixir-autogen, elixir-format
+msgid "No valid file was selected."
+msgstr ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:27
+#, elixir-autogen, elixir-format
+msgid "The link is invalid or it has expired."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:256
+#, elixir-autogen, elixir-format
+msgid "Unable to delete the selected items."
+msgstr ""
+
+#: lib/open_drive_web/controllers/file_download_controller.ex:33
+#, elixir-autogen, elixir-format
+msgid "Unable to generate a ZIP for the selected files."
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:362
+#, elixir-autogen, elixir-format
+msgid "Upload complete."
+msgstr ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:8
+#, elixir-autogen, elixir-format
+msgid "User confirmed successfully."
+msgstr ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:12
+#, elixir-autogen, elixir-format
+msgid "Welcome back!"
+msgstr ""
+
+#: lib/open_drive_web/controllers/tenant_session_controller.ex:15
+#, elixir-autogen, elixir-format
+msgid "Workspace unavailable."
+msgstr ""
+
+#: lib/open_drive_web/user_auth.ex:145
+#: lib/open_drive_web/user_auth.ex:190
+#, elixir-autogen, elixir-format
+msgid "You must log in to access this page."
+msgstr ""
+
+#: lib/open_drive_web/user_auth.ex:160
+#, elixir-autogen, elixir-format
+msgid "You must re-authenticate to access this page."
+msgstr ""
+
+#: lib/open_drive_web/controllers/user_session_controller.ex:63
+#, elixir-autogen, elixir-format
+msgid "You must re-authenticate to update your password."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:37
+#, elixir-autogen, elixir-format
+msgid "Confirm and log in only this time"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:31
+#, elixir-autogen, elixir-format
+msgid "Confirm and stay logged in"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:28
+#: lib/open_drive_web/live/user_live/confirmation.ex:34
+#, elixir-autogen, elixir-format
+msgid "Confirming..."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:62
+#, elixir-autogen, elixir-format
+msgid "Keep me logged in on this device"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:68
+#, elixir-autogen, elixir-format
+msgid "Log me in only this time"
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:52
+#: lib/open_drive_web/live/user_live/confirmation.ex:59
+#: lib/open_drive_web/live/user_live/confirmation.ex:65
+#, elixir-autogen, elixir-format
+msgid "Logging in..."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:74
+#, elixir-autogen, elixir-format
+msgid "Tip: If you prefer passwords, you can enable them in the user settings."
+msgstr ""
+
+#: lib/open_drive_web/live/user_live/confirmation.ex:12
+#, elixir-autogen, elixir-format
+msgid "Welcome %{email}"
+msgstr ""

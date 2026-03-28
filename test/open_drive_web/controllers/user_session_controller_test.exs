@@ -47,6 +47,6 @@ defmodule OpenDriveWeb.UserSessionControllerTest do
     assert redirected_to(conn) == ~p"/users/log-in"
 
     assert Phoenix.Flash.get(conn.assigns.flash, :error) ==
-             "You must re-authenticate to update your password."
+             "Voce precisa se autenticar novamente para atualizar sua senha."
   end
 end

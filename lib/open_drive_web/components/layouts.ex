@@ -31,6 +31,8 @@ defmodule OpenDriveWeb.Layouts do
     default: nil,
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
+  attr :locale, :string, default: nil
+
   slot :inner_block, required: true
 
   def app(assigns) do
@@ -49,23 +51,25 @@ defmodule OpenDriveWeb.Layouts do
         <div class="flex items-center gap-3">
           <%= if @current_scope && @current_scope.user do %>
             <.tenant_switcher current_scope={@current_scope} />
-            <.link navigate={~p"/app"} class="btn btn-ghost">Drive</.link>
-            <.link navigate={~p"/app/members"} class="btn btn-ghost">Members</.link>
-            <.link navigate={~p"/app/trash"} class="btn btn-ghost">Trash</.link>
-            <.link href={~p"/users/settings"} class="btn btn-ghost">Settings</.link>
-            <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">Log out</.link>
+            <.link navigate={~p"/app"} class="btn btn-ghost">{gettext("Drive")}</.link>
+            <.link navigate={~p"/app/members"} class="btn btn-ghost">{gettext("Members")}</.link>
+            <.link navigate={~p"/app/trash"} class="btn btn-ghost">{gettext("Trash")}</.link>
+            <.link href={~p"/users/settings"} class="btn btn-ghost">{gettext("Settings")}</.link>
+            <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
+            <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">{gettext("Log out")}</.link>
           <% else %>
+            <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
             <.link
               navigate={~p"/users/log-in"}
               class="inline-flex h-11 items-center rounded-2xl px-4 text-sm font-semibold text-slate-700 transition hover:bg-white/80 hover:text-slate-950"
             >
-              Log in
+              {gettext("Log in")}
             </.link>
             <.link
               navigate={~p"/users/register"}
               class="inline-flex h-11 items-center rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-800"
             >
-              Create workspace
+              {gettext("Create workspace")}
             </.link>
           <% end %>
         </div>
@@ -79,6 +83,35 @@ defmodule OpenDriveWeb.Layouts do
     </div>
 
     <.flash_group flash={@flash} />
+    """
+  end
+
+  attr :locale, :string, required: true
+
+  def translation_switcher(assigns) do
+    ~H"""
+    <div class="inline-flex rounded-[1.4rem] bg-slate-100 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-slate-200/80">
+      <.link
+        href="?locale=pt-BR"
+        class={[
+          "rounded-[1rem] px-4 py-2 text-sm font-semibold tracking-[0.02em] transition",
+          @locale == "pt_BR" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
+          @locale != "pt_BR" && "text-slate-500 hover:text-slate-800"
+        ]}
+      >
+        PT-BR
+      </.link>
+      <.link
+        href="?locale=en"
+        class={[
+          "rounded-[1rem] px-4 py-2 text-sm font-semibold tracking-[0.02em] transition",
+          @locale == "en" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
+          @locale != "en" && "text-slate-500 hover:text-slate-800"
+        ]}
+      >
+        EN
+      </.link>
+    </div>
     """
   end
 

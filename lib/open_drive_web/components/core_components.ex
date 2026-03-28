@@ -304,11 +304,11 @@ defmodule OpenDriveWeb.CoreComponents do
           <button
             type="button"
             class="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-slate-400 transition hover:text-slate-700 focus:text-slate-700 focus:outline-none"
-            aria-label="Mostrar senha"
+            aria-label={gettext("Show password")}
             aria-pressed="false"
             data-password-toggle-button
-            data-show-label="Mostrar senha"
-            data-hide-label="Ocultar senha"
+            data-show-label={gettext("Show password")}
+            data-hide-label={gettext("Hide password")}
           >
             <.icon name="hero-eye" class="size-5" data-password-toggle-icon="show" />
             <.icon

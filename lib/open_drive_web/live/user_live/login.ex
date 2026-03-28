@@ -12,10 +12,10 @@ defmodule OpenDriveWeb.UserLive.Login do
           </div>
           <div class="space-y-4">
             <h1 class="max-w-md text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-              Entre no seu workspace sem forçar a vista.
+              {gettext("Enter your workspace without visual strain.")}
             </h1>
             <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              Acesso direto, campos legíveis e foco visual claro para quem só quer entrar e trabalhar.
+              {gettext("Direct access, legible fields, and a clear visual focus for people who just want to sign in and work.")}
             </p>
           </div>
         </div>
@@ -28,13 +28,13 @@ defmodule OpenDriveWeb.UserLive.Login do
           class="space-y-6 rounded-[2rem] border border-white/90 bg-white px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/80 sm:px-8 sm:py-8"
         >
           <div class="space-y-3">
-            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">Entrar</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">{gettext("Log in")}</p>
             <div class="space-y-1">
-              <h2 class="text-2xl font-bold tracking-tight text-slate-950">Acesse seu workspace</h2>
+              <h2 class="text-2xl font-bold tracking-tight text-slate-950">{gettext("Access your workspace")}</h2>
               <p class="text-sm text-slate-600">
-                Ainda não tem conta?
+                {gettext("Don't have an account yet?")}
                 <.link navigate={~p"/users/register"} class="font-semibold text-sky-700 hover:text-sky-900 hover:underline">
-                  Criar agora
+                  {gettext("Create one now")}
                 </.link>
               </p>
             </div>
@@ -43,16 +43,16 @@ defmodule OpenDriveWeb.UserLive.Login do
           <.input
             field={f[:email]}
             type="email"
-            label="Email"
-            placeholder="voce@empresa.com"
+            label={gettext("Email")}
+            placeholder={gettext("you@company.com")}
             autocomplete="username"
             required
           />
           <.input
             field={f[:password]}
             type="password"
-            label="Senha"
-            placeholder="Sua senha"
+            label={gettext("Password")}
+            placeholder={gettext("Your password")}
             autocomplete="current-password"
             required
           />
@@ -63,11 +63,11 @@ defmodule OpenDriveWeb.UserLive.Login do
               name={f[:remember_me].name}
               value="true"
               class="checkbox checkbox-sm border-slate-400"
-            /> Manter sessão ativa
+            /> {gettext("Keep me signed in")}
           </label>
 
           <.button class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-slate-800">
-            Entrar
+            {gettext("Log in")}
           </.button>
         </.form>
       </section>

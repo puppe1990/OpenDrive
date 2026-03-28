@@ -139,14 +139,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
       {:ok, _folder} ->
         {:noreply,
          socket
-         |> put_flash(:info, "Folder created.")
+         |> put_flash(:info, gettext("Folder created."))
          |> load_drive(socket.assigns.current_folder_id)}
 
       {:error, :name_conflict} ->
-        {:noreply, put_flash(socket, :error, "Name already used in this folder.")}
+        {:noreply, put_flash(socket, :error, gettext("Name already used in this folder."))}
 
       {:error, _} ->
-        {:noreply, put_flash(socket, :error, "Unable to create folder.")}
+        {:noreply, put_flash(socket, :error, gettext("Unable to create folder."))}
     end
   end
 
@@ -239,14 +239,21 @@ defmodule OpenDriveWeb.DriveLive.Index do
          socket
          |> assign(:confirm_bulk_delete, false)
          |> assign(:selected_entries, MapSet.new())
-         |> put_flash(:info, "#{length(entries)} item(ns) enviado(s) para a lixeira.")
+         |> put_flash(
+           :info,
+           ngettext(
+             "%{count} item sent to the trash.",
+             "%{count} items sent to the trash.",
+             length(entries)
+           )
+         )
          |> load_drive(socket.assigns.current_folder_id)}
 
       {:error, _reason} ->
         {:noreply,
          socket
          |> assign(:confirm_bulk_delete, false)
-         |> put_flash(:error, "Nao foi possivel deletar os itens selecionados.")}
+         |> put_flash(:error, gettext("Unable to delete the selected items."))}
     end
   end
 
@@ -292,20 +299,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
         {:noreply,
          socket
          |> clear_rename_state()
-         |> put_flash(:info, "Folder renamed.")
+         |> put_flash(:info, gettext("Folder renamed."))
          |> load_drive(socket.assigns.current_folder_id)}
 
       {:error, :name_conflict} ->
-        {:noreply, put_flash(socket, :error, "Name already used in this folder.")}
+        {:noreply, put_flash(socket, :error, gettext("Name already used in this folder."))}
 
       {:error, :not_found} ->
         {:noreply,
          socket
          |> clear_rename_state()
-         |> put_flash(:error, "Folder not found.")}
+         |> put_flash(:error, gettext("Folder not found."))}
 
       {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Unable to rename folder.")}
+        {:noreply, put_flash(socket, :error, gettext("Unable to rename folder."))}
     end
   end
 
@@ -315,20 +322,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
         {:noreply,
          socket
          |> clear_rename_state()
-         |> put_flash(:info, "File renamed.")
+         |> put_flash(:info, gettext("File renamed."))
          |> load_drive(socket.assigns.current_folder_id)}
 
       {:error, :name_conflict} ->
-        {:noreply, put_flash(socket, :error, "Name already used in this folder.")}
+        {:noreply, put_flash(socket, :error, gettext("Name already used in this folder."))}
 
       {:error, :not_found} ->
         {:noreply,
          socket
          |> clear_rename_state()
-         |> put_flash(:error, "File not found.")}
+         |> put_flash(:error, gettext("File not found."))}
 
       {:error, _reason} ->
-        {:noreply, put_flash(socket, :error, "Unable to rename file.")}
+        {:noreply, put_flash(socket, :error, gettext("Unable to rename file."))}
     end
   end
 
@@ -352,7 +359,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
   def handle_event("refresh_after_direct_upload", _params, socket) do
     {:noreply,
      socket
-     |> put_flash(:info, "Upload complete.")
+     |> put_flash(:info, gettext("Upload complete."))
      |> load_drive(socket.assigns.current_folder_id)}
   end
 
@@ -798,10 +805,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
           <aside class="space-y-5 rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
             <button
               phx-click="toggle_new_menu"
-              class="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+                class="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
               <span class="flex items-center gap-3">
-                <.icon name="hero-plus" class="size-5" /> Novo
+                <.icon name="hero-plus" class="size-5" /> {gettext("New")}
               </span>
               <.icon
                 name={if @new_menu_open, do: "hero-chevron-up", else: "hero-chevron-down"}
@@ -814,8 +821,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
               class="space-y-4 rounded-[1.5rem] bg-slate-50 p-3 ring-1 ring-slate-200"
             >
               <.form for={@folder_form} phx-submit="create_folder" class="space-y-2">
-                <.input field={@folder_form[:name]} type="text" label="Nova pasta" required />
-                <.button class="btn btn-primary w-full">Criar pasta</.button>
+                <.input field={@folder_form[:name]} type="text" label={gettext("New folder")} required />
+                <.button class="btn btn-primary w-full">{gettext("Create folder")}</.button>
               </.form>
             </div>
 
@@ -825,53 +832,53 @@ defmodule OpenDriveWeb.DriveLive.Index do
                 phx-value-preset="my_drive"
                 class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
               >
-                <.icon name="hero-home" class="size-5 text-slate-500" /> Meu Drive
+                <.icon name="hero-home" class="size-5 text-slate-500" /> {gettext("My Drive")}
               </button>
               <button
                 phx-click="set_sidebar_preset"
                 phx-value-preset="recent"
                 class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
-                <.icon name="hero-clock" class="size-5 text-slate-500" /> Recentes
+                <.icon name="hero-clock" class="size-5 text-slate-500" /> {gettext("Recent")}
               </button>
               <button
                 phx-click="set_sidebar_preset"
                 phx-value-preset="images"
                 class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
-                <.icon name="hero-photo" class="size-5 text-slate-500" /> Imagens
+                <.icon name="hero-photo" class="size-5 text-slate-500" /> {gettext("Images")}
               </button>
               <button
                 phx-click="set_sidebar_preset"
                 phx-value-preset="videos"
                 class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
-                <.icon name="hero-film" class="size-5 text-slate-500" /> Videos
+                <.icon name="hero-film" class="size-5 text-slate-500" /> {gettext("Videos")}
               </button>
               <button
                 phx-click="set_sidebar_preset"
                 phx-value-preset="folders"
                 class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
-                <.icon name="hero-folder" class="size-5 text-slate-500" /> Pastas
+                <.icon name="hero-folder" class="size-5 text-slate-500" /> {gettext("Folders")}
               </button>
               <.link
                 navigate={~p"/app/trash"}
                 class="flex items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
               >
-                <.icon name="hero-trash" class="size-5 text-slate-500" /> Lixeira
+                <.icon name="hero-trash" class="size-5 text-slate-500" /> {gettext("Trash")}
               </.link>
             </nav>
 
             <div class="rounded-[1.5rem] bg-slate-950 p-4 text-white">
-              <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Workspace</p>
+              <p class="text-xs uppercase tracking-[0.28em] text-slate-400">{gettext("Workspace")}</p>
               <p class="mt-2 text-lg font-semibold">{@current_scope.tenant.name}</p>
               <p class="mt-1 text-sm text-slate-400">{@current_scope.user.email}</p>
               <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
                 <div class="h-full w-full rounded-full bg-sky-400"></div>
               </div>
               <p class="mt-2 text-xs text-slate-400">
-                {format_bytes(@workspace_used_size)} usados no workspace
+                {gettext("%{size} used in workspace", size: format_bytes(@workspace_used_size))}
               </p>
             </div>
           </aside>
@@ -881,12 +888,12 @@ defmodule OpenDriveWeb.DriveLive.Index do
               <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div class="flex items-center gap-2">
-                    <h1 class="text-3xl font-black tracking-tight text-slate-950">Meu Drive</h1>
+                    <h1 class="text-3xl font-black tracking-tight text-slate-950">{gettext("My Drive")}</h1>
                     <.icon name="hero-chevron-down" class="size-4 text-slate-400" />
                   </div>
                   <nav class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                     <.link navigate={~p"/app"} class="rounded-full bg-slate-100 px-3 py-1.5">
-                      Root
+                      {gettext("Root")}
                     </.link>
                     <%= for folder <- @breadcrumbs do %>
                       <span>/</span>
@@ -902,15 +909,15 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                 <div class="grid gap-2 sm:grid-cols-3">
                   <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Pastas</p>
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Folders")}</p>
                     <p class="mt-1 text-xl font-semibold text-slate-950">{@folder_count}</p>
                   </div>
                   <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Arquivos</p>
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Files")}</p>
                     <p class="mt-1 text-xl font-semibold text-slate-950">{@file_count}</p>
                   </div>
                   <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Tamanho</p>
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Size")}</p>
                     <p class="mt-1 text-xl font-semibold text-slate-950">
                       {format_bytes(@total_size)}
                     </p>
@@ -943,7 +950,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                 data-direct-upload-trigger
                 role="button"
                 tabindex="0"
-                aria-label="Selecionar arquivos do dispositivo"
+                aria-label={gettext("Select files from device")}
                 class="mb-4 block cursor-pointer overflow-hidden rounded-[1.5rem] border border-dashed border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(239,246,255,0.9))] px-4 py-5 text-center transition hover:border-sky-300 hover:bg-sky-50/70 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
               >
                 <div class="flex flex-col items-center justify-center gap-3 sm:flex-row sm:text-left">
@@ -952,16 +959,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   </div>
                   <div>
                     <p class="text-sm font-semibold text-slate-900">
-                      Arraste arquivos para esta pasta
+                      {gettext("Drag files into this folder")}
                     </p>
                     <p class="mt-1 text-xs text-slate-500">
-                      O upload comeca assim que voce solta o arquivo
+                      {gettext("Upload starts as soon as you drop the file")}
                     </p>
                     <p class="mt-1 text-xs text-slate-400">
-                      Voce pode soltar varios arquivos por vez
+                      {gettext("You can drop multiple files at once")}
                     </p>
                     <p class="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                      Clique para escolher arquivos do dispositivo
+                      {gettext("Click to choose files from your device")}
                     </p>
                   </div>
                 </div>
@@ -976,9 +983,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
               >
                 <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
                   <div>
-                    <p class="text-sm font-semibold text-slate-900">Fila de uploads</p>
+                    <p class="text-sm font-semibold text-slate-900">{gettext("Upload queue")}</p>
                     <p class="text-xs text-slate-500">
-                      Acompanhe o progresso de cada arquivo em tempo real
+                      {gettext("Follow the progress of each file in real time")}
                     </p>
                   </div>
                   <div class="flex flex-wrap items-center gap-2 text-[11px] font-medium">
@@ -986,25 +993,25 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       data-upload-stat="queued"
                       class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 ring-1 ring-slate-200"
                     >
-                      0 na fila
+                      {gettext("0 queued")}
                     </span>
                     <span
                       data-upload-stat="uploading"
                       class="rounded-full bg-sky-100 px-3 py-1 text-sky-700 ring-1 ring-sky-200"
                     >
-                      0 enviando
+                      {gettext("0 uploading")}
                     </span>
                     <span
                       data-upload-stat="complete"
                       class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 ring-1 ring-emerald-200"
                     >
-                      0 concluidos
+                      {gettext("0 completed")}
                     </span>
                     <span
                       data-upload-stat="error"
                       class="rounded-full bg-rose-100 px-3 py-1 text-rose-700 ring-1 ring-rose-200"
                     >
-                      0 com erro
+                      {gettext("0 with error")}
                     </span>
                   </div>
                 </div>
@@ -1033,7 +1040,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     type="text"
                     name={@controls_form[:query].name}
                     value={@controls_form[:query].value}
-                    placeholder="Buscar por nome"
+                    placeholder={gettext("Search by name")}
                     class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
                   />
                 </label>
@@ -1042,11 +1049,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   field={@controls_form[:type]}
                   type="select"
                   options={[
-                    {"Tudo", "all"},
-                    {"Pastas", "folders"},
-                    {"Arquivos", "files"},
-                    {"Imagens", "images"},
-                    {"Videos", "videos"}
+                    {gettext("All"), "all"},
+                    {gettext("Folders"), "folders"},
+                    {gettext("Files"), "files"},
+                    {gettext("Images"), "images"},
+                    {gettext("Videos"), "videos"}
                   ]}
                   class="select rounded-2xl bg-slate-100 px-4"
                 />
@@ -1055,14 +1062,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   field={@controls_form[:sort]}
                   type="select"
                   options={[
-                    {"Modificado", "modified_desc"},
-                    {"Modificado mais antigo", "modified_asc"},
-                    {"Nome", "name_asc"},
-                    {"Nome Z-A", "name_desc"},
-                    {"Tipo", "type_asc"},
-                    {"Tipo Z-A", "type_desc"},
-                    {"Maior tamanho", "size_desc"},
-                    {"Menor tamanho", "size_asc"}
+                    {gettext("Recently modified"), "modified_desc"},
+                    {gettext("Oldest modified"), "modified_asc"},
+                    {gettext("Name"), "name_asc"},
+                    {gettext("Name Z-A"), "name_desc"},
+                    {gettext("Type"), "type_asc"},
+                    {gettext("Type Z-A"), "type_desc"},
+                    {gettext("Largest size"), "size_desc"},
+                    {gettext("Smallest size"), "size_asc"}
                   ]}
                   class="select rounded-2xl bg-slate-100 px-4"
                 />
@@ -1077,13 +1084,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
               <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
                 <div class="flex items-center gap-2 text-sm text-slate-500">
                   <span class="rounded-full bg-slate-100 px-3 py-1.5">
-                    {length(@entries)} resultados
+                    {gettext("%{count} results", count: length(@entries))}
                   </span>
                   <span
                     :if={@controls["type"] != "all"}
                     class="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"
                   >
-                    filtro: {@controls["type"]}
+                    {gettext("filter: %{value}", value: @controls["type"])}
                   </span>
                 </div>
 
@@ -1121,9 +1128,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
               <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-slate-100">
                 <.icon name="hero-folder-open" class="size-8 text-slate-400" />
               </div>
-              <h2 class="mt-5 text-2xl font-semibold text-slate-950">Nada por aqui ainda</h2>
+              <h2 class="mt-5 text-2xl font-semibold text-slate-950">{gettext("Nothing here yet")}</h2>
               <p class="mt-2 text-sm text-slate-500">
-                Crie uma pasta, envie um arquivo ou ajuste os filtros para encontrar o que precisa.
+                {gettext("Create a folder, upload a file, or adjust the filters to find what you need.")}
               </p>
             </section>
 
@@ -1202,7 +1209,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       <div class="text-center">
                         <.icon name="hero-folder" class="mx-auto size-10 text-sky-600" />
-                        <p class="mt-2 text-sm font-medium">Abrir pasta</p>
+                        <p class="mt-2 text-sm font-medium">{gettext("Open folder")}</p>
                       </div>
                     </.link>
 
@@ -1226,7 +1233,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       phx-click="open_video"
                       phx-value-id={entry.id}
                       class="video-preview-shell group relative block h-36 w-full overflow-hidden rounded-[1.25rem] text-left ring-1 ring-slate-200 transition hover:ring-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
-                      aria-label={"Abrir video #{entry.name}"}
+                      aria-label={gettext("Open video %{name}", name: entry.name)}
                     >
                       <video
                         src={entry.href}
@@ -1239,10 +1246,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                       <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
                         <span class="rounded-full border border-white/20 bg-slate-950/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 backdrop-blur-md">
-                          Video
+                          {gettext("Video")}
                         </span>
                         <span class="rounded-full border border-white/15 bg-white/12 px-2.5 py-1 text-[11px] font-medium text-white/85 shadow-sm backdrop-blur-md">
-                          Abrir player
+                          {gettext("Open player")}
                         </span>
                       </div>
 
@@ -1266,7 +1273,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       <div class="text-center">
                         <.icon name="hero-document" class="mx-auto size-10" />
-                        <p class="mt-2 text-sm">{entry.content_type || "Arquivo"}</p>
+                        <p class="mt-2 text-sm">{entry.content_type || gettext("File")}</p>
                       </div>
                     </div>
                   </div>
@@ -1283,7 +1290,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       href={entry.href}
                       class="rounded-xl bg-slate-100 px-3 py-2 font-medium text-slate-700 transition hover:bg-slate-200"
                     >
-                      Baixar
+                      {gettext("Download")}
                     </.link>
                   </div>
                 </article>
@@ -1309,16 +1316,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       checked={@all_list_entries_selected}
                       class="checkbox checkbox-sm rounded-md border-slate-300"
                     />
-                    <span>Selecionar todos</span>
+                    <span>{gettext("Select all")}</span>
                   </label>
                   <span class="rounded-full bg-white px-3 py-2 ring-1 ring-slate-200">
-                    Selecionados: {length(@selected_list_entries)}
+                    {gettext("Selected: %{count}", count: length(@selected_list_entries))}
                   </span>
                   <span
                     :if={@selected_file_entries != []}
                     class="rounded-full bg-sky-50 px-3 py-2 text-sky-700 ring-1 ring-sky-200"
                   >
-                    {length(@selected_file_entries)} arquivo(s) para ZIP
+                    {gettext("%{count} file(s) for ZIP", count: length(@selected_file_entries))}
                   </span>
                 </div>
 
@@ -1337,7 +1344,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       disabled={@selected_file_entries == []}
                       class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                     >
-                      Baixar ZIP
+                      {gettext("Download ZIP")}
                     </button>
                   </form>
 
@@ -1347,13 +1354,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     disabled={@selected_list_entries == []}
                     class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   >
-                    Deletar selecionados
+                    {gettext("Delete selected")}
                   </button>
                 </div>
               </div>
 
               <div class="drive-list-grid gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                <span class="flex items-center justify-center">Sel.</span>
+                <span class="flex items-center justify-center">{gettext("Sel.")}</span>
                 <div class="drive-list-header-cell" data-resizable-column="name">
                   <button
                     type="button"
@@ -1364,7 +1371,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       active_sort?(@controls["sort"], "name") && "text-slate-700"
                     ]}
                   >
-                    <span>Nome</span>
+                    <span>{gettext("Name")}</span>
                     <.icon name={sort_icon(@controls["sort"], "name")} class="size-4" />
                   </button>
                   <button
@@ -1373,7 +1380,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     data-column-resizer="name"
                     data-min-width="260"
                     data-max-width="820"
-                    aria-label="Redimensionar coluna Nome"
+                    aria-label={gettext("Resize Name column")}
                   >
                   </button>
                 </div>
@@ -1387,7 +1394,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       active_sort?(@controls["sort"], "type") && "text-slate-700"
                     ]}
                   >
-                    <span>Tipo</span>
+                    <span>{gettext("Type")}</span>
                     <.icon name={sort_icon(@controls["sort"], "type")} class="size-4" />
                   </button>
                   <button
@@ -1396,7 +1403,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     data-column-resizer="type"
                     data-min-width="120"
                     data-max-width="320"
-                    aria-label="Redimensionar coluna Tipo"
+                    aria-label={gettext("Resize Type column")}
                   >
                   </button>
                 </div>
@@ -1410,7 +1417,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       active_sort?(@controls["sort"], "modified") && "text-slate-700"
                     ]}
                   >
-                    <span>Modificado</span>
+                    <span>{gettext("Modified")}</span>
                     <.icon name={sort_icon(@controls["sort"], "modified")} class="size-4" />
                   </button>
                   <button
@@ -1419,7 +1426,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     data-column-resizer="modified"
                     data-min-width="110"
                     data-max-width="280"
-                    aria-label="Redimensionar coluna Modificado"
+                    aria-label={gettext("Resize Modified column")}
                   >
                   </button>
                 </div>
@@ -1433,7 +1440,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       active_sort?(@controls["sort"], "size") && "text-slate-700"
                     ]}
                   >
-                    <span>Tamanho</span>
+                    <span>{gettext("Size")}</span>
                     <.icon name={sort_icon(@controls["sort"], "size")} class="size-4" />
                   </button>
                   <button
@@ -1442,7 +1449,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     data-column-resizer="size"
                     data-min-width="110"
                     data-max-width="280"
-                    aria-label="Redimensionar coluna Tamanho"
+                    aria-label={gettext("Resize Size column")}
                   >
                   </button>
                 </div>
@@ -1527,7 +1534,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       href={entry.href}
                       class="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
                     >
-                      Baixar
+                      {gettext("Download")}
                     </.link>
                     <button
                       :if={entry.kind == :folder}
@@ -1573,20 +1580,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="cancel_rename_file"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar modal de renomear arquivo"
+                  aria-label={gettext("Close rename file modal")}
                 >
                 </button>
 
                 <div class="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
                   <div class="border-b border-slate-200 px-6 py-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
-                      Renomear arquivo
+                      {gettext("Rename file")}
                     </p>
                     <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
                       {selected.name}
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      O nome sera atualizado no Drive e a key do arquivo sera movida no S3.
+                      {gettext("The name will be updated in Drive and the file key will be moved in S3.")}
                     </p>
                   </div>
 
@@ -1594,7 +1601,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <input type="hidden" name="file_id" value={selected.id} />
 
                     <div>
-                      <label class="block text-sm font-medium text-slate-700">Novo nome</label>
+                      <label class="block text-sm font-medium text-slate-700">{gettext("New name")}</label>
                       <input
                         type="text"
                         name={@rename_form[:name].name}
@@ -1615,13 +1622,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-click="cancel_rename_file"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        Cancelar
+                        {gettext("Cancel")}
                       </button>
                       <button
                         type="submit"
                         class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                       >
-                        Salvar
+                        {gettext("Save")}
                       </button>
                     </div>
                   </.form>
@@ -1635,20 +1642,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="cancel_rename_folder"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar modal de renomear pasta"
+                  aria-label={gettext("Close rename folder modal")}
                 >
                 </button>
 
                 <div class="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
                   <div class="border-b border-slate-200 px-6 py-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
-                      Renomear pasta
+                      {gettext("Rename folder")}
                     </p>
                     <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
                       {selected.name}
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      O novo nome sera exibido imediatamente para este workspace.
+                      {gettext("The new name will be displayed immediately for this workspace.")}
                     </p>
                   </div>
 
@@ -1656,7 +1663,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <input type="hidden" name="folder_id" value={selected.id} />
 
                     <div>
-                      <label class="block text-sm font-medium text-slate-700">Novo nome</label>
+                      <label class="block text-sm font-medium text-slate-700">{gettext("New name")}</label>
                       <input
                         type="text"
                         name={@rename_form[:name].name}
@@ -1668,7 +1675,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </div>
 
                     <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
-                      Pasta · atualizada neste nivel do Drive
+                      {gettext("Folder · updated at this Drive level")}
                     </div>
 
                     <div class="flex items-center justify-end gap-3">
@@ -1677,13 +1684,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-click="cancel_rename_folder"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        Cancelar
+                        {gettext("Cancel")}
                       </button>
                       <button
                         type="submit"
                         class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                       >
-                        Salvar
+                        {gettext("Save")}
                       </button>
                     </div>
                   </.form>
@@ -1697,21 +1704,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="cancel_delete_file"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar modal de exclusao de arquivo"
+                  aria-label={gettext("Close delete file modal")}
                 >
                 </button>
 
                 <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
                   <div class="border-b border-slate-200 px-6 py-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
-                      Deletar arquivo
+                      {gettext("Delete file")}
                     </p>
                     <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                      Tem certeza?
+                      {gettext("Are you sure?")}
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      O arquivo <span class="font-semibold text-slate-700">{selected.name}</span>
-                      sera enviado para a lixeira.
+                      {gettext("The file %{name} will be sent to the trash.", name: selected.name)}
                     </p>
                   </div>
 
@@ -1726,7 +1732,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-click="cancel_delete_file"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        Cancelar
+                        {gettext("Cancel")}
                       </button>
                       <button
                         type="button"
@@ -1734,7 +1740,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-value-id={selected.id}
                         class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                       >
-                        Deletar
+                        {gettext("Delete")}
                       </button>
                     </div>
                   </div>
@@ -1748,27 +1754,26 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="cancel_delete_folder"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar modal de exclusao de pasta"
+                  aria-label={gettext("Close delete folder modal")}
                 >
                 </button>
 
                 <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
                   <div class="border-b border-slate-200 px-6 py-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
-                      Deletar pasta
+                      {gettext("Delete folder")}
                     </p>
                     <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                      Tem certeza?
+                      {gettext("Are you sure?")}
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      A pasta <span class="font-semibold text-slate-700">{selected.name}</span>
-                      sera enviada para a lixeira.
+                      {gettext("The folder %{name} will be sent to the trash.", name: selected.name)}
                     </p>
                   </div>
 
                   <div class="space-y-5 px-6 py-6">
                     <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
-                      Os itens dentro desta pasta tambem deixarao de aparecer no Drive atual.
+                      {gettext("Items inside this folder will also stop appearing in the current Drive.")}
                     </div>
 
                     <div class="flex items-center justify-end gap-3">
@@ -1777,7 +1782,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-click="cancel_delete_folder"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        Cancelar
+                        {gettext("Cancel")}
                       </button>
                       <button
                         type="button"
@@ -1785,7 +1790,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-value-id={selected.id}
                         class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                       >
-                        Deletar
+                        {gettext("Delete")}
                       </button>
                     </div>
                   </div>
@@ -1799,20 +1804,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="cancel_bulk_delete"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar modal de exclusao em massa"
+                  aria-label={gettext("Close bulk delete modal")}
                 >
                 </button>
 
                 <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
                   <div class="border-b border-slate-200 px-6 py-5">
                     <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
-                      Deletar em massa
+                      {gettext("Bulk delete")}
                     </p>
                     <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                      Confirmar exclusao
+                      {gettext("Confirm deletion")}
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      {length(@selected_list_entries)} item(ns) selecionado(s) sera(ao) enviado(s) para a lixeira.
+                      {gettext("%{count} selected item(s) will be sent to the trash.", count: length(@selected_list_entries))}
                     </p>
                   </div>
 
@@ -1829,14 +1834,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         phx-click="cancel_bulk_delete"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
-                        Cancelar
+                        {gettext("Cancel")}
                       </button>
                       <button
                         type="button"
                         phx-click="confirm_bulk_delete"
                         class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                       >
-                        Deletar selecionados
+                        {gettext("Delete selected")}
                       </button>
                     </div>
                   </div>
@@ -1853,7 +1858,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="close_image"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar visualizacao"
+                  aria-label={gettext("Close preview")}
                 >
                 </button>
 
@@ -1868,7 +1873,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       type="button"
                       phx-click="close_image"
                       class="rounded-full border border-white/15 p-2 text-white transition hover:bg-white/10"
-                      aria-label="Fechar"
+                      aria-label={gettext("Close")}
                     >
                       <.icon name="hero-x-mark" class="size-5" />
                     </button>
@@ -1879,7 +1884,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       type="button"
                       phx-click="prev_image"
                       class="absolute left-6 top-1/2 z-20 -translate-y-1/2 rounded-full bg-slate-950/70 p-3 text-white shadow-lg ring-1 ring-white/15 transition hover:bg-slate-900"
-                      aria-label="Foto anterior"
+                      aria-label={gettext("Previous photo")}
                     >
                       <.icon name="hero-chevron-left" class="size-6" />
                     </button>
@@ -1888,7 +1893,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       type="button"
                       phx-click="next_image"
                       class="absolute right-6 top-1/2 z-20 -translate-y-1/2 rounded-full bg-slate-950/70 p-3 text-white shadow-lg ring-1 ring-white/15 transition hover:bg-slate-900"
-                      aria-label="Proxima foto"
+                      aria-label={gettext("Next photo")}
                     >
                       <.icon name="hero-chevron-right" class="size-6" />
                     </button>
@@ -1909,7 +1914,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="button"
                   phx-click="close_video"
                   class="absolute inset-0 cursor-default"
-                  aria-label="Fechar player de video"
+                  aria-label={gettext("Close video player")}
                 >
                 </button>
 
@@ -1926,7 +1931,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       type="button"
                       phx-click="close_video"
                       class="rounded-full border border-white/15 p-2 text-white transition hover:bg-white/10"
-                      aria-label="Fechar"
+                      aria-label={gettext("Close")}
                     >
                       <.icon name="hero-x-mark" class="size-5" />
                     </button>
@@ -1959,7 +1964,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                               OpenDrive Player
                             </span>
                             <p class="mt-3 text-xs text-white/45">
-                              Velocidade <span data-role="speed">1x</span>
+                              {gettext("Speed")} <span data-role="speed">1x</span>
                             </p>
                           </div>
                           <span
@@ -1975,7 +1980,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="toggle-play"
                             class="video-preview-play flex size-20 items-center justify-center rounded-full border border-white/20 bg-white/18 text-white shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl transition duration-300 hover:scale-105 hover:bg-white/24 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Reproduzir video"
+                            aria-label={gettext("Play video")}
                           >
                             <svg
                               data-icon="play"
@@ -2023,7 +2028,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                           </div>
 
                           <label class="sr-only" for={"video-progress-modal-#{selected.id}"}>
-                            Progresso do video
+                            {gettext("Video progress")}
                           </label>
                           <input
                             id={"video-progress-modal-#{selected.id}"}
@@ -2034,7 +2039,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             value="0"
                             step="0.1"
                             class="video-preview-range"
-                            aria-label="Progresso do video"
+                            aria-label={gettext("Video progress")}
                           />
                         </div>
                       </div>
@@ -2045,7 +2050,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="toggle-play"
                             class="flex size-10 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Reproduzir video"
+                            aria-label={gettext("Play video")}
                           >
                             <svg
                               data-icon="play"
@@ -2071,7 +2076,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="seek-backward"
                             class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Voltar 5 segundos"
+                            aria-label={gettext("Go back 5 seconds")}
                           >
                             <span class="hero-backward size-4"></span>
                           </button>
@@ -2080,7 +2085,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="seek-forward"
                             class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Avancar 5 segundos"
+                            aria-label={gettext("Go forward 5 seconds")}
                           >
                             <span class="hero-forward size-4"></span>
                           </button>
@@ -2089,7 +2094,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="toggle-mute"
                             class="flex size-10 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Silenciar video"
+                            aria-label={gettext("Mute video")}
                           >
                             <svg
                               data-icon="volume-on"
@@ -2116,10 +2121,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                           <div class="flex min-w-[11rem] items-center gap-3 rounded-full bg-white/6 px-3 py-2 text-sm text-white/80">
                             <label class="sr-only" for={"video-volume-modal-#{selected.id}"}>
-                              Volume do video
+                              {gettext("Video volume")}
                             </label>
                             <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
-                              Volume
+                              {gettext("Volume")}
                             </span>
                             <input
                               id={"video-volume-modal-#{selected.id}"}
@@ -2130,7 +2135,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                               value="100"
                               step="1"
                               class="video-volume-range"
-                              aria-label="Volume do video"
+                              aria-label={gettext("Video volume")}
                             />
                             <span
                               data-role="volume-value"
@@ -2150,13 +2155,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                           <div class="flex items-center gap-2 rounded-full bg-white/6 px-3 py-1.5 text-sm text-white/75">
                             <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
-                              Speed
+                              {gettext("Speed")}
                             </span>
                             <button
                               type="button"
                               data-action="speed-down"
                               class="rounded-full px-2 py-1 transition hover:bg-white/10"
-                              aria-label="Diminuir velocidade"
+                              aria-label={gettext("Decrease speed")}
                             >
                               -
                             </button>
@@ -2170,7 +2175,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                               type="button"
                               data-action="speed-up"
                               class="rounded-full px-2 py-1 transition hover:bg-white/10"
-                              aria-label="Aumentar velocidade"
+                              aria-label={gettext("Increase speed")}
                             >
                               +
                             </button>
@@ -2180,7 +2185,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             type="button"
                             data-action="toggle-fullscreen"
                             class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
-                            aria-label="Ativar tela cheia"
+                            aria-label={gettext("Enable fullscreen")}
                           >
                             <span class="hero-arrows-pointing-out size-4" data-icon="fullscreen-enter">
                             </span>
@@ -2197,36 +2202,36 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <aside class="space-y-5">
                       <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
                         <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
-                          Atalhos do teclado
+                          {gettext("Keyboard shortcuts")}
                         </p>
 
                         <div class="mt-5 space-y-4 text-sm text-white/72">
                           <div class="flex items-center justify-between gap-4">
-                            <span>Play / Pause</span>
+                            <span>{gettext("Play / Pause")}</span>
                             <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
-                              Espaço
+                              {gettext("Space")}
                             </kbd>
                           </div>
                           <div class="flex items-center justify-between gap-4">
-                            <span>Pular 5s</span>
+                            <span>{gettext("Skip 5s")}</span>
                             <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
-                              Setas Esquerda/Direita
+                              {gettext("Left/Right arrows")}
                             </kbd>
                           </div>
                           <div class="flex items-center justify-between gap-4">
-                            <span>Velocidade +/-</span>
+                            <span>{gettext("Speed +/-")}</span>
                             <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
-                              Setas Cima/Baixo
+                              {gettext("Up/Down arrows")}
                             </kbd>
                           </div>
                           <div class="flex items-center justify-between gap-4">
-                            <span>Resetar velocidade</span>
+                            <span>{gettext("Reset speed")}</span>
                             <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
                               R
                             </kbd>
                           </div>
                           <div class="flex items-center justify-between gap-4">
-                            <span>Fullscreen</span>
+                            <span>{gettext("Fullscreen")}</span>
                             <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
                               F
                             </kbd>
@@ -2236,12 +2241,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                       <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
                         <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
-                          Sobre o player
+                          {gettext("About the player")}
                         </p>
                         <p class="mt-5 text-base leading-8 text-white/62">
-                          O OpenDrive Player usa aceleracao nativa do navegador para reproducao suave.
-                          MP4, WebM e OGG continuam privados no app, com controles dedicados para
-                          fullscreen, velocidade e navegacao rapida por teclado.
+                          {gettext("OpenDrive Player uses native browser acceleration for smooth playback. MP4, WebM, and OGG remain private in the app, with dedicated controls for fullscreen, speed, and quick keyboard navigation.")}
                         </p>
                       </section>
                     </aside>
