@@ -26,6 +26,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:new_menu_open, true)
       |> assign(:children, %{folders: [], files: []})
       |> assign(:entries, [])
+      |> assign(:selected_image_id, nil)
       |> assign(:folder_count, 0)
       |> assign(:file_count, 0)
       |> assign(:total_size, 0)
@@ -149,6 +150,47 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
   end
 
+  def handle_event("open_image", %{"id" => id}, socket) do
+    image_id = normalize_id(id)
+
+    socket =
+      if Enum.any?(visible_images(socket.assigns.entries), &(&1.id == image_id)) do
+        assign(socket, :selected_image_id, image_id)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close_image", _params, socket) do
+    {:noreply, assign(socket, :selected_image_id, nil)}
+  end
+
+  def handle_event("next_image", _params, socket) do
+    {:noreply, cycle_selected_image(socket, 1)}
+  end
+
+  def handle_event("prev_image", _params, socket) do
+    {:noreply, cycle_selected_image(socket, -1)}
+  end
+
+  def handle_event("image_keydown", %{"key" => "ArrowRight"}, socket) do
+    {:noreply, cycle_selected_image(socket, 1)}
+  end
+
+  def handle_event("image_keydown", %{"key" => "ArrowLeft"}, socket) do
+    {:noreply, cycle_selected_image(socket, -1)}
+  end
+
+  def handle_event("image_keydown", %{"key" => "Escape"}, socket) do
+    {:noreply, assign(socket, :selected_image_id, nil)}
+  end
+
+  def handle_event("image_keydown", _params, socket) do
+    {:noreply, socket}
+  end
+
   defp handle_progress(:files, entry, socket) do
     if entry.done? do
       result =
@@ -208,6 +250,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
     assign(socket,
       entries: entries,
+      selected_image_id: selected_image_id(entries, socket.assigns[:selected_image_id]),
       folder_count: length(children.folders),
       file_count: length(children.files),
       total_size: Enum.reduce(children.files, 0, &(&1.file_object.size + &2))
@@ -318,6 +361,31 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp current_view(socket), do: socket.assigns.controls["view"] || "grid"
 
+  defp visible_images(entries), do: Enum.filter(entries, &(&1.preview == :image))
+
+  defp selected_image_id(entries, current_id) do
+    if Enum.any?(entries, &(&1.preview == :image and &1.id == current_id)),
+      do: current_id,
+      else: nil
+  end
+
+  defp selected_image(entries, selected_image_id) do
+    Enum.find(visible_images(entries), &(&1.id == selected_image_id))
+  end
+
+  defp cycle_selected_image(socket, step) do
+    images = visible_images(socket.assigns.entries)
+
+    case Enum.find_index(images, &(&1.id == socket.assigns.selected_image_id)) do
+      nil ->
+        socket
+
+      index ->
+        next_index = Integer.mod(index + step, length(images))
+        assign(socket, :selected_image_id, Enum.at(images, next_index).id)
+    end
+  end
+
   defp normalize_id(id) when is_binary(id), do: String.to_integer(id)
   defp normalize_id(id), do: id
 
@@ -352,6 +420,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   @impl true
   def render(assigns) do
+    assigns =
+      assign(assigns, :selected_image, selected_image(assigns.entries, assigns.selected_image_id))
+
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <section class="rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#f8fbff_0%,#f3f6fb_100%)] p-4 shadow-sm lg:p-6">
@@ -671,12 +742,19 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       </div>
                     </.link>
 
-                    <img
+                    <button
                       :if={entry.preview == :image}
-                      src={entry.href}
-                      alt={entry.name}
-                      class="h-36 w-full rounded-[1.25rem] object-cover ring-1 ring-slate-200"
-                    />
+                      type="button"
+                      phx-click="open_image"
+                      phx-value-id={entry.id}
+                      class="block w-full overflow-hidden rounded-[1.25rem] ring-1 ring-slate-200 transition hover:ring-sky-300"
+                    >
+                      <img
+                        src={entry.href}
+                        alt={entry.name}
+                        class="h-36 w-full object-cover"
+                      />
+                    </button>
 
                     <video
                       :if={entry.preview == :video}
@@ -757,12 +835,21 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         {entry.name}
                       </.link>
                       <.link
-                        :if={entry.kind == :file}
+                        :if={entry.kind == :file and entry.preview != :image}
                         href={entry.href}
                         class="block truncate font-medium text-slate-950 hover:text-sky-700"
                       >
                         {entry.name}
                       </.link>
+                      <button
+                        :if={entry.preview == :image}
+                        type="button"
+                        phx-click="open_image"
+                        phx-value-id={entry.id}
+                        class="block truncate font-medium text-left text-slate-950 hover:text-sky-700"
+                      >
+                        {entry.name}
+                      </button>
                     </div>
                   </div>
                   <span class="text-sm text-slate-500">{entry.content_type}</span>
@@ -795,6 +882,65 @@ defmodule OpenDriveWeb.DriveLive.Index do
                 </div>
               <% end %>
             </section>
+
+            <%= if selected = @selected_image do %>
+              <div
+                class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4"
+                phx-window-keydown="image_keydown"
+              >
+                <button
+                  type="button"
+                  phx-click="close_image"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar visualizacao"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-5xl overflow-hidden rounded-[2rem] bg-slate-950 text-white shadow-2xl">
+                  <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                    <div class="min-w-0">
+                      <p class="truncate text-base font-semibold">{selected.name}</p>
+                      <p class="text-sm text-slate-400">{format_bytes(selected.size)}</p>
+                    </div>
+
+                    <button
+                      type="button"
+                      phx-click="close_image"
+                      class="rounded-full border border-white/15 p-2 text-white transition hover:bg-white/10"
+                      aria-label="Fechar"
+                    >
+                      <.icon name="hero-x-mark" class="size-5" />
+                    </button>
+                  </div>
+
+                  <div class="relative bg-[radial-gradient(circle_at_top,#1e293b_0%,#020617_65%)] p-4 sm:p-6">
+                    <button
+                      type="button"
+                      phx-click="prev_image"
+                      class="absolute left-6 top-1/2 z-20 -translate-y-1/2 rounded-full bg-slate-950/70 p-3 text-white shadow-lg ring-1 ring-white/15 transition hover:bg-slate-900"
+                      aria-label="Foto anterior"
+                    >
+                      <.icon name="hero-chevron-left" class="size-6" />
+                    </button>
+
+                    <button
+                      type="button"
+                      phx-click="next_image"
+                      class="absolute right-6 top-1/2 z-20 -translate-y-1/2 rounded-full bg-slate-950/70 p-3 text-white shadow-lg ring-1 ring-white/15 transition hover:bg-slate-900"
+                      aria-label="Proxima foto"
+                    >
+                      <.icon name="hero-chevron-right" class="size-6" />
+                    </button>
+
+                    <img
+                      src={selected.href}
+                      alt={selected.name}
+                      class="max-h-[75vh] w-full rounded-[1.5rem] object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            <% end %>
           </div>
         </div>
       </section>

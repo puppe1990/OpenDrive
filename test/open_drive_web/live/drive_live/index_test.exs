@@ -94,6 +94,60 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "<video"
   end
 
+  test "opens the image carousel and advances to the next visible photo", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Gallery Space"})
+    first_path = Path.join(System.tmp_dir!(), "open_drive-gallery-first.webp")
+    second_path = Path.join(System.tmp_dir!(), "open_drive-gallery-second.webp")
+
+    File.write!(first_path, "first image")
+    File.write!(second_path, "second image")
+
+    {:ok, first} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: first_path,
+        client_name: "first.webp",
+        content_type: "image/webp",
+        size: byte_size("first image")
+      })
+
+    {:ok, _second} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: second_path,
+        client_name: "second.webp",
+        content_type: "image/webp",
+        size: byte_size("second image")
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='open_image'][phx-value-id='#{first.id}']")
+      |> render_click()
+
+    assert html =~ "first.webp"
+
+    html =
+      lv
+      |> element("button[phx-click='next_image'][aria-label='Proxima foto']")
+      |> render_click()
+
+    assert html =~ "second.webp"
+
+    html =
+      lv
+      |> render_keydown("image_keydown", %{"key" => "ArrowLeft"})
+
+    assert html =~ "first.webp"
+
+    html =
+      lv
+      |> render_keydown("image_keydown", %{"key" => "ArrowRight"})
+
+    assert html =~ "second.webp"
+  end
+
   test "filters and switches between grid and list controls", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Control Space"})
     {:ok, _folder} = Drive.create_folder(workspace.scope, %{name: "Invoices"})
