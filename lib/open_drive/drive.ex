@@ -24,6 +24,16 @@ defmodule OpenDrive.Drive do
     %{folders: list_folders(scope, folder_id), files: list_files(scope, folder_id)}
   end
 
+  def workspace_used_size(%Scope{} = scope) do
+    tenant_id = Scope.tenant_id(scope)
+
+    DriveFile
+    |> where([f], f.tenant_id == ^tenant_id and is_nil(f.deleted_at))
+    |> join(:inner, [f], fo in assoc(f, :file_object))
+    |> select([_f, fo], coalesce(sum(fo.size), 0))
+    |> Repo.one()
+  end
+
   def list_trash(%Scope{} = scope) do
     tenant_id = Scope.tenant_id(scope)
 

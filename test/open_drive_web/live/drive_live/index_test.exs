@@ -68,6 +68,36 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Abrir player"
   end
 
+  test "shows used workspace storage in the sidebar card", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Usage Space"})
+    first_path = Path.join(System.tmp_dir!(), "open_drive-usage-first.txt")
+    second_path = Path.join(System.tmp_dir!(), "open_drive-usage-second.txt")
+
+    File.write!(first_path, "12345")
+    File.write!(second_path, "1234567890")
+
+    {:ok, _first} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: first_path,
+        client_name: "first.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, _second} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: second_path,
+        client_name: "second.txt",
+        content_type: "text/plain",
+        size: 10
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, _lv, html} = live(conn, ~p"/app")
+
+    assert html =~ "15 B usados no workspace"
+  end
+
   test "renames an already uploaded file from the drive list", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Rename Existing Space"})
     path = Path.join(System.tmp_dir!(), "open_drive-existing-rename.txt")
@@ -107,6 +137,31 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert renamed_file.name == "final.txt"
     refute renamed_file.file_object.key == old_key
     assert String.contains?(renamed_file.file_object.key, "final")
+  end
+
+  test "asks for confirmation before deleting a folder", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Folder Delete Space"})
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Invoices"})
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='delete_folder'][phx-value-id='#{folder.id}']")
+      |> render_click()
+
+    assert html =~ "Deletar pasta"
+    assert html =~ "Tem certeza?"
+    assert html =~ "Invoices"
+
+    html =
+      lv
+      |> element("button[phx-click='confirm_delete_folder'][phx-value-id='#{folder.id}']")
+      |> render_click()
+
+    refute html =~ "Invoices"
+    assert Drive.list_children(workspace.scope).folders == []
   end
 
   test "opens the image carousel and advances to the next visible photo", %{conn: conn} do

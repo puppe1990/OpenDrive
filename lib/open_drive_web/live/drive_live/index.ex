@@ -19,6 +19,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:controls, @default_controls)
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
       |> assign(:editing_file_id, nil)
+      |> assign(:pending_delete_folder_id, nil)
       |> assign(:pending_delete_file_id, nil)
       |> assign(:confirm_bulk_delete, false)
       |> assign(:new_menu_open, true)
@@ -27,6 +28,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:selected_entries, MapSet.new())
       |> assign(:selected_image_id, nil)
       |> assign(:selected_video_id, nil)
+      |> assign(:workspace_used_size, 0)
       |> assign(:folder_count, 0)
       |> assign(:file_count, 0)
       |> assign(:total_size, 0)
@@ -148,8 +150,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   def handle_event("delete_folder", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :pending_delete_folder_id, normalize_id(id))}
+  end
+
+  def handle_event("cancel_delete_folder", _params, socket) do
+    {:noreply, assign(socket, :pending_delete_folder_id, nil)}
+  end
+
+  def handle_event("confirm_delete_folder", %{"id" => id}, socket) do
     {:ok, _} = Drive.soft_delete_node(socket.assigns.current_scope, {:folder, id})
-    {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
+
+    {:noreply,
+     socket
+     |> assign(:pending_delete_folder_id, nil)
+     |> load_drive(socket.assigns.current_folder_id)}
   end
 
   def handle_event("delete_file", %{"id" => id}, socket) do
@@ -370,6 +384,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
         sanitize_selected_entries(entries, socket.assigns[:selected_entries] || MapSet.new()),
       selected_image_id: selected_image_id(entries, socket.assigns[:selected_image_id]),
       selected_video_id: selected_video_id(entries, socket.assigns[:selected_video_id]),
+      workspace_used_size: Drive.workspace_used_size(socket.assigns.current_scope),
       folder_count: length(children.folders),
       file_count: length(children.files),
       total_size: Enum.reduce(children.files, 0, &(&1.file_object.size + &2))
@@ -388,6 +403,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp pending_delete_file(entries, pending_delete_file_id) do
     Enum.find(entries, &(&1.kind == :file and &1.id == pending_delete_file_id))
+  end
+
+  defp pending_delete_folder(entries, pending_delete_folder_id) do
+    Enum.find(entries, &(&1.kind == :folder and &1.id == pending_delete_folder_id))
   end
 
   defp selected_entries(entries, selected_keys) do
@@ -715,6 +734,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
         selected_all_entries?(assigns.entries, assigns.selected_entries)
       )
       |> assign(
+        :pending_delete_folder,
+        pending_delete_folder(assigns.entries, assigns.pending_delete_folder_id)
+      )
+      |> assign(
         :pending_delete_file,
         pending_delete_file(assigns.entries, assigns.pending_delete_file_id)
       )
@@ -796,10 +819,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
               <p class="mt-2 text-lg font-semibold">{@current_scope.tenant.name}</p>
               <p class="mt-1 text-sm text-slate-400">{@current_scope.user.email}</p>
               <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-                <div class="h-full w-2/5 rounded-full bg-sky-400"></div>
+                <div class="h-full w-full rounded-full bg-sky-400"></div>
               </div>
               <p class="mt-2 text-xs text-slate-400">
-                {length(@entries)} itens visiveis · {@folder_count} pastas · {@file_count} arquivos
+                {format_bytes(@workspace_used_size)} usados no workspace
               </p>
             </div>
           </aside>
@@ -1579,6 +1602,57 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       <button
                         type="button"
                         phx-click="confirm_delete_file"
+                        phx-value-id={selected.id}
+                        class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+                      >
+                        Deletar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if selected = @pending_delete_folder do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+                <button
+                  type="button"
+                  phx-click="cancel_delete_folder"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar modal de exclusao de pasta"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
+                  <div class="border-b border-slate-200 px-6 py-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+                      Deletar pasta
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      Tem certeza?
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      A pasta <span class="font-semibold text-slate-700">{selected.name}</span>
+                      sera enviada para a lixeira.
+                    </p>
+                  </div>
+
+                  <div class="space-y-5 px-6 py-6">
+                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
+                      Os itens dentro desta pasta tambem deixarao de aparecer no Drive atual.
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_delete_folder"
+                        class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="confirm_delete_folder"
                         phx-value-id={selected.id}
                         class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                       >
