@@ -19,6 +19,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:controls, @default_controls)
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
       |> assign(:editing_file_id, nil)
+      |> assign(:pending_delete_file_id, nil)
       |> assign(:new_menu_open, true)
       |> assign(:children, %{folders: [], files: []})
       |> assign(:entries, [])
@@ -139,8 +140,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   def handle_event("delete_file", %{"id" => id}, socket) do
+    {:noreply, assign(socket, :pending_delete_file_id, normalize_id(id))}
+  end
+
+  def handle_event("cancel_delete_file", _params, socket) do
+    {:noreply, assign(socket, :pending_delete_file_id, nil)}
+  end
+
+  def handle_event("confirm_delete_file", %{"id" => id}, socket) do
     {:ok, _} = Drive.soft_delete_node(socket.assigns.current_scope, {:file, id})
-    {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
+
+    {:noreply,
+     socket
+     |> assign(:pending_delete_file_id, nil)
+     |> load_drive(socket.assigns.current_folder_id)}
   end
 
   def handle_event("start_rename_file", %{"id" => id}, socket) do
@@ -292,6 +305,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp editing_file(entries, editing_file_id) do
     Enum.find(entries, &(&1.kind == :file and &1.id == editing_file_id))
+  end
+
+  defp pending_delete_file(entries, pending_delete_file_id) do
+    Enum.find(entries, &(&1.kind == :file and &1.id == pending_delete_file_id))
   end
 
   defp assign_controls(socket, params) do
@@ -483,6 +500,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
       |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
       |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
+      |> assign(
+        :pending_delete_file,
+        pending_delete_file(assigns.entries, assigns.pending_delete_file_id)
+      )
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -863,6 +884,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </button>
                     <button
                       :if={entry.kind == :file}
+                      type="button"
                       phx-click="delete_file"
                       phx-value-id={entry.id}
                       class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
@@ -1062,6 +1084,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </button>
                     <button
                       :if={entry.kind == :file}
+                      type="button"
                       phx-click="delete_file"
                       phx-value-id={entry.id}
                       class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
@@ -1131,6 +1154,56 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       </button>
                     </div>
                   </.form>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if selected = @pending_delete_file do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+                <button
+                  type="button"
+                  phx-click="cancel_delete_file"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar modal de exclusao de arquivo"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
+                  <div class="border-b border-slate-200 px-6 py-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+                      Deletar arquivo
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      Tem certeza?
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      O arquivo <span class="font-semibold text-slate-700">{selected.name}</span> sera enviado para a lixeira.
+                    </p>
+                  </div>
+
+                  <div class="space-y-5 px-6 py-6">
+                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
+                      {selected.content_type} · {format_bytes(selected.size)}
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_delete_file"
+                        class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="confirm_delete_file"
+                        phx-value-id={selected.id}
+                        class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+                      >
+                        Deletar
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             <% end %>

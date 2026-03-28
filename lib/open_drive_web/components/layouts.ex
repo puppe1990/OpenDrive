@@ -43,7 +43,6 @@ defmodule OpenDriveWeb.Layouts do
           </div>
           <div>
             <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-700">OpenDrive</p>
-            <p class="text-xs text-slate-500">Phoenix LiveView</p>
           </div>
         </a>
 

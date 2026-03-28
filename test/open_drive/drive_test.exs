@@ -225,4 +225,62 @@ defmodule OpenDrive.DriveTest do
 
     assert {:error, :name_conflict} = Drive.restore_node(workspace.scope, {:file, file.id})
   end
+
+  test "empty_trash/1 permanently deletes trashed files from storage and keeps other tenants isolated" do
+    workspace = workspace_fixture()
+    other_workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-empty-trash.txt")
+    Elixir.File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, other_file} =
+      Drive.upload_file(other_workspace.scope, %{}, %{
+        path: path,
+        client_name: "other.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Temporary"})
+
+    storage_path =
+      Path.join([System.tmp_dir!(), "open_drive_storage", OpenDrive.Storage.bucket(), file.file_object.key])
+
+    other_storage_path =
+      Path.join([
+        System.tmp_dir!(),
+        "open_drive_storage",
+        OpenDrive.Storage.bucket(),
+        other_file.file_object.key
+      ])
+
+    assert File.exists?(storage_path)
+    assert File.exists?(other_storage_path)
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, folder.id})
+
+    assert {:ok, result} = Drive.empty_trash(workspace.scope)
+    assert result.files_deleted == 1
+    assert result.folders_deleted == 1
+    assert result.file_objects_deleted == 1
+
+    refute File.exists?(storage_path)
+    assert File.exists?(other_storage_path)
+
+    assert [] = Drive.list_trash(workspace.scope).files
+    assert [] = Drive.list_trash(workspace.scope).folders
+    assert [%{id: other_file_id}] = Drive.list_children(other_workspace.scope).files
+    assert other_file_id == other_file.id
+
+    assert Repo.aggregate(DriveFile, :count) == 1
+    assert Repo.aggregate(FileObject, :count) == 1
+  end
 end

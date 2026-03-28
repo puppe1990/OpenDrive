@@ -281,6 +281,55 @@ defmodule OpenDrive.Drive do
     end
   end
 
+  def empty_trash(%Scope{} = scope) do
+    tenant_id = Scope.tenant_id(scope)
+
+    trashed_files =
+      DriveFile
+      |> where([f], f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+      |> preload(:file_object)
+      |> Repo.all()
+
+    case delete_trashed_objects(trashed_files) do
+      :ok ->
+        Repo.transaction(fn ->
+          {deleted_files_count, _} =
+            Repo.delete_all(
+              from(f in DriveFile, where: f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+            )
+
+          file_object_ids =
+            trashed_files
+            |> Enum.map(& &1.file_object_id)
+            |> Enum.uniq()
+
+          {deleted_file_objects_count, _} =
+            Repo.delete_all(
+              from(fo in FileObject, where: fo.tenant_id == ^tenant_id and fo.id in ^file_object_ids)
+            )
+
+          {deleted_folders_count, _} =
+            Repo.delete_all(
+              from(f in Folder, where: f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+            )
+
+          result = %{
+            files_deleted: deleted_files_count,
+            file_objects_deleted: deleted_file_objects_count,
+            folders_deleted: deleted_folders_count
+          }
+
+          Audit.log(scope, "trash.emptied", "trash", tenant_id, result)
+
+          result
+        end)
+        |> normalize_transaction_result()
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
     Repo.transaction(fn ->
       with {:ok, file_object} <-
@@ -502,6 +551,15 @@ defmodule OpenDrive.Drive do
 
   defp maybe_filter_by_folder(query, nil), do: where(query, [f], is_nil(f.folder_id))
   defp maybe_filter_by_folder(query, folder_id), do: where(query, [f], f.folder_id == ^folder_id)
+
+  defp delete_trashed_objects(files) do
+    Enum.reduce_while(files, :ok, fn file, :ok ->
+      case Storage.delete_object(file.file_object.key) do
+        :ok -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
 
   defp tap_audit({:ok, resource}, scope, action, resource_type) do
     Audit.log(scope, action, resource_type, resource.id, %{})
