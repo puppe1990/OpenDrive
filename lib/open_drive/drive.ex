@@ -256,7 +256,12 @@ defmodule OpenDrive.Drive do
   defp validate_parent_folder(_scope, nil), do: {:ok, nil}
 
   defp validate_parent_folder(scope, folder_id) do
-    case Repo.get_by(Folder, id: folder_id, tenant_id: Scope.tenant_id(scope), deleted_at: nil) do
+    case Repo.one(
+           from f in Folder,
+             where:
+               f.id == ^folder_id and f.tenant_id == ^Scope.tenant_id(scope) and
+                 is_nil(f.deleted_at)
+         ) do
       %Folder{} = folder -> {:ok, folder.id}
       nil -> {:error, :invalid_parent_folder}
     end

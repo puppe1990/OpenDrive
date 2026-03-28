@@ -60,7 +60,10 @@ Optional custom endpoint env vars:
 ```bash
 export AWS_S3_HOST=localhost
 export AWS_S3_PORT=9000
+export AWS_S3_SCHEME=http://
 ```
+
+For local development, you can also create `.env.local` in the project root. It is loaded automatically by `config/runtime.exs`.
 
 ## Main modules
 

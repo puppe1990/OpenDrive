@@ -70,15 +70,24 @@ config :logger, :default_formatter,
 # Use Jason for JSON parsing in Phoenix
 config :phoenix, :json_library, Jason
 
+aws_s3_host = System.get_env("AWS_S3_HOST")
+
+aws_s3_config =
+  if aws_s3_host do
+    [
+      scheme: System.get_env("AWS_S3_SCHEME") || "https://",
+      host: aws_s3_host,
+      port: System.get_env("AWS_S3_PORT")
+    ]
+  else
+    []
+  end
+
 config :ex_aws,
   access_key_id: [{:system, "AWS_ACCESS_KEY_ID"}, :instance_role],
   secret_access_key: [{:system, "AWS_SECRET_ACCESS_KEY"}, :instance_role],
   region: {:system, "AWS_REGION"},
-  s3: [
-    scheme: "https://",
-    host: System.get_env("AWS_S3_HOST"),
-    port: System.get_env("AWS_S3_PORT")
-  ]
+  s3: aws_s3_config
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

@@ -3,12 +3,27 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   alias OpenDrive.Drive
 
+  @default_controls %{
+    "query" => "",
+    "type" => "all",
+    "sort" => "modified_desc",
+    "view" => "grid"
+  }
+
   @impl true
   def mount(_params, _session, socket) do
     socket =
       socket
       |> allow_upload(:files, accept: :any, max_entries: 5)
       |> assign(:folder_form, to_form(%{"name" => ""}, as: "folder"))
+      |> assign(:controls, @default_controls)
+      |> assign(:controls_form, to_form(@default_controls, as: "controls"))
+      |> assign(:new_menu_open, true)
+      |> assign(:children, %{folders: [], files: []})
+      |> assign(:entries, [])
+      |> assign(:folder_count, 0)
+      |> assign(:file_count, 0)
+      |> assign(:total_size, 0)
 
     {:ok, socket}
   end
@@ -23,6 +38,46 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   @impl true
+  def handle_event("toggle_new_menu", _params, socket) do
+    {:noreply, update(socket, :new_menu_open, &(!&1))}
+  end
+
+  def handle_event("update_controls", %{"controls" => params}, socket) do
+    socket =
+      socket
+      |> assign_controls(params)
+      |> refresh_entries()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_sidebar_preset", %{"preset" => preset}, socket) do
+    controls =
+      case preset do
+        "my_drive" -> %{"query" => "", "type" => "all", "sort" => "modified_desc", "view" => current_view(socket)}
+        "recent" -> %{"query" => "", "type" => "all", "sort" => "modified_desc", "view" => current_view(socket)}
+        "images" -> %{"query" => "", "type" => "images", "sort" => "modified_desc", "view" => current_view(socket)}
+        "videos" -> %{"query" => "", "type" => "videos", "sort" => "modified_desc", "view" => current_view(socket)}
+        "folders" -> %{"query" => "", "type" => "folders", "sort" => "name_asc", "view" => current_view(socket)}
+      end
+
+    socket =
+      socket
+      |> assign_controls(controls)
+      |> refresh_entries()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_view", %{"view" => view}, socket) do
+    socket =
+      socket
+      |> assign_controls(%{"view" => view})
+      |> refresh_entries()
+
+    {:noreply, socket}
+  end
+
   def handle_event("create_folder", %{"folder" => attrs}, socket) do
     attrs = Map.put(attrs, "parent_folder_id", socket.assigns.current_folder_id)
 
@@ -41,31 +96,44 @@ defmodule OpenDriveWeb.DriveLive.Index do
     end
   end
 
+  def handle_event("validate_upload", _params, socket) do
+    {:noreply, socket}
+  end
+
   def handle_event("upload", _params, socket) do
-    results =
-      consume_uploaded_entries(socket, :files, fn %{path: path}, entry ->
-        upload = %{
-          path: path,
-          client_name: entry.client_name,
-          content_type: entry.client_type,
-          size: entry.client_size
-        }
+    case uploaded_entries(socket, :files) do
+      {[], []} ->
+        {:noreply, put_flash(socket, :error, "Select a file and wait for it to finish loading.")}
 
-        Drive.upload_file(
-          socket.assigns.current_scope,
-          %{folder_id: socket.assigns.current_folder_id},
-          upload
-        )
-      end)
+      {[], _in_progress} ->
+        {:noreply, put_flash(socket, :error, "Upload still in progress. Wait a moment and try again.")}
 
-    error? = Enum.any?(results, &match?({:error, _}, &1))
+      {_completed, _in_progress} ->
+        results =
+          consume_uploaded_entries(socket, :files, fn %{path: path}, entry ->
+            upload = %{
+              path: path,
+              client_name: entry.client_name,
+              content_type: entry.client_type,
+              size: entry.client_size
+            }
 
-    socket =
-      if error?,
-        do: put_flash(socket, :error, "Upload failed for at least one file."),
-        else: put_flash(socket, :info, "Upload complete.")
+            Drive.upload_file(
+              socket.assigns.current_scope,
+              %{folder_id: socket.assigns.current_folder_id},
+              upload
+            )
+          end)
 
-    {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
+        error? = Enum.any?(results, &match?({:error, _}, &1))
+
+        socket =
+          if error?,
+            do: put_flash(socket, :error, "Upload failed for at least one file."),
+            else: put_flash(socket, :info, "Upload complete.")
+
+        {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
+    end
   end
 
   def handle_event("delete_folder", %{"id" => id}, socket) do
@@ -89,110 +157,569 @@ defmodule OpenDriveWeb.DriveLive.Index do
       :breadcrumbs,
       Drive.list_breadcrumbs(socket.assigns.current_scope, folder_id && normalize_id(folder_id))
     )
+    |> refresh_entries()
   end
+
+  defp refresh_entries(socket) do
+    controls = socket.assigns.controls
+    children = socket.assigns.children
+
+    entries =
+      children
+      |> build_entries()
+      |> filter_entries(controls)
+      |> sort_entries(controls["sort"])
+
+    assign(socket,
+      entries: entries,
+      folder_count: length(children.folders),
+      file_count: length(children.files),
+      total_size: Enum.reduce(children.files, 0, &(&1.file_object.size + &2))
+    )
+  end
+
+  defp assign_controls(socket, params) do
+    controls =
+      @default_controls
+      |> Map.merge(socket.assigns.controls || %{})
+      |> Map.merge(params)
+      |> Map.update!("view", fn view -> if view in ["grid", "list"], do: view, else: "grid" end)
+      |> Map.update!("type", fn type ->
+        if type in ["all", "folders", "files", "images", "videos"], do: type, else: "all"
+      end)
+      |> Map.update!("sort", fn sort ->
+        if sort in ["modified_desc", "name_asc", "size_desc"], do: sort, else: "modified_desc"
+      end)
+
+    socket
+    |> assign(:controls, controls)
+    |> assign(:controls_form, to_form(controls, as: "controls"))
+  end
+
+  defp build_entries(children) do
+    folder_entries =
+      Enum.map(children.folders, fn folder ->
+        %{
+          id: folder.id,
+          kind: :folder,
+          name: folder.name,
+          content_type: "Folder",
+          size: nil,
+          updated_at: folder.updated_at,
+          href: ~p"/app/folders/#{folder.id}",
+          preview: :folder
+        }
+      end)
+
+    file_entries =
+      Enum.map(children.files, fn file ->
+        %{
+          id: file.id,
+          kind: :file,
+          name: file.name,
+          content_type: file.file_object.content_type,
+          size: file.file_object.size,
+          updated_at: file.updated_at,
+          href: ~p"/app/files/#{file.id}/download",
+          preview:
+            cond do
+              image_file?(file) -> :image
+              video_file?(file) -> :video
+              true -> :file
+            end
+        }
+      end)
+
+    folder_entries ++ file_entries
+  end
+
+  defp filter_entries(entries, controls) do
+    query = String.downcase(String.trim(controls["query"] || ""))
+    type = controls["type"] || "all"
+
+    Enum.filter(entries, fn entry ->
+      matches_query? = query == "" or String.contains?(String.downcase(entry.name), query)
+
+      matches_type? =
+        case type do
+          "all" -> true
+          "folders" -> entry.kind == :folder
+          "files" -> entry.kind == :file
+          "images" -> entry.preview == :image
+          "videos" -> entry.preview == :video
+        end
+
+      matches_query? and matches_type?
+    end)
+  end
+
+  defp sort_entries(entries, "name_asc"),
+    do: Enum.sort_by(entries, &{entry_order(&1), String.downcase(&1.name)})
+
+  defp sort_entries(entries, "size_desc"),
+    do: Enum.sort_by(entries, &{entry_order(&1), -(&1.size || -1), String.downcase(&1.name)})
+
+  defp sort_entries(entries, _sort) do
+    Enum.sort(entries, fn left, right ->
+      cond do
+        entry_order(left) != entry_order(right) ->
+          entry_order(left) <= entry_order(right)
+
+        DateTime.compare(left.updated_at, right.updated_at) == :gt ->
+          true
+
+        DateTime.compare(left.updated_at, right.updated_at) == :lt ->
+          false
+
+        true ->
+          String.downcase(left.name) <= String.downcase(right.name)
+      end
+    end)
+  end
+
+  defp entry_order(%{kind: :folder}), do: 0
+  defp entry_order(%{kind: :file}), do: 1
+
+  defp current_view(socket), do: socket.assigns.controls["view"] || "grid"
 
   defp normalize_id(id) when is_binary(id), do: String.to_integer(id)
   defp normalize_id(id), do: id
+
+  defp image_file?(file), do: String.starts_with?(file.file_object.content_type || "", "image/")
+  defp video_file?(file), do: String.starts_with?(file.file_object.content_type || "", "video/")
+
+  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1024, do: "#{bytes} B"
+  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_048_576, do: "#{Float.round(bytes / 1024, 1)} KB"
+  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_073_741_824, do: "#{Float.round(bytes / 1_048_576, 1)} MB"
+  defp format_bytes(bytes) when is_integer(bytes), do: "#{Float.round(bytes / 1_073_741_824, 1)} GB"
+  defp format_bytes(_), do: "--"
+
+  defp relative_time(nil), do: "--"
+
+  defp relative_time(datetime) do
+    seconds = DateTime.diff(DateTime.utc_now(), datetime, :second)
+
+    cond do
+      seconds < 60 -> "agora"
+      seconds < 3600 -> "#{div(seconds, 60)} min"
+      seconds < 86_400 -> "#{div(seconds, 3600)} h"
+      true -> "#{div(seconds, 86_400)} d"
+    end
+  end
 
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <section class="space-y-8">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p class="text-sm uppercase tracking-[0.35em] text-slate-500">Workspace</p>
-            <h1 class="text-3xl font-black text-slate-950">{@current_scope.tenant.name}</h1>
-          </div>
-          <div class="text-sm text-slate-500">{@current_scope.user.email}</div>
-        </div>
-
-        <nav class="flex flex-wrap items-center gap-2 text-sm">
-          <.link navigate={~p"/app"} class="rounded-full bg-white px-4 py-2 shadow-sm">Root</.link>
-          <%= for folder <- @breadcrumbs do %>
-            <span>/</span>
-            <.link
-              navigate={~p"/app/folders/#{folder.id}"}
-              class="rounded-full bg-white px-4 py-2 shadow-sm"
+      <section class="rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,#f8fbff_0%,#f3f6fb_100%)] p-4 shadow-sm lg:p-6">
+        <div class="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+          <aside class="space-y-5 rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
+            <button
+              phx-click="toggle_new_menu"
+              class="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
-              {folder.name}
-            </.link>
-          <% end %>
-        </nav>
+              <span class="flex items-center gap-3">
+                <.icon name="hero-plus" class="size-5" /> Novo
+              </span>
+              <.icon
+                name={if @new_menu_open, do: "hero-chevron-up", else: "hero-chevron-down"}
+                class="size-4"
+              />
+            </button>
 
-        <div class="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <aside class="space-y-6 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <div class="space-y-3">
-              <p class="text-sm font-semibold text-slate-700">New folder</p>
-              <.form for={@folder_form} phx-submit="create_folder" class="space-y-3">
-                <.input field={@folder_form[:name]} type="text" label="Folder name" required />
-                <.button class="btn btn-primary w-full">Create folder</.button>
+            <div :if={@new_menu_open} class="space-y-4 rounded-[1.5rem] bg-slate-50 p-3 ring-1 ring-slate-200">
+              <.form for={@folder_form} phx-submit="create_folder" class="space-y-2">
+                <.input field={@folder_form[:name]} type="text" label="Nova pasta" required />
+                <.button class="btn btn-primary w-full">Criar pasta</.button>
+              </.form>
+
+              <.form
+                for={%{}}
+                id="upload_form"
+                phx-change="validate_upload"
+                phx-submit="upload"
+                class="space-y-2"
+              >
+                <.live_file_input
+                  upload={@uploads.files}
+                  class="file-input file-input-bordered w-full bg-white"
+                />
+                <.button class="btn btn-outline w-full">Enviar arquivo</.button>
               </.form>
             </div>
 
-            <div class="space-y-3">
-              <p class="text-sm font-semibold text-slate-700">Upload files</p>
-              <.live_file_input upload={@uploads.files} class="file-input file-input-bordered w-full" />
-              <.button phx-click="upload" class="btn btn-outline w-full">Upload</.button>
+            <nav class="space-y-1">
+              <button
+                phx-click="set_sidebar_preset"
+                phx-value-preset="my_drive"
+                class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-home" class="size-5 text-slate-500" /> Meu Drive
+              </button>
+              <button
+                phx-click="set_sidebar_preset"
+                phx-value-preset="recent"
+                class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-clock" class="size-5 text-slate-500" /> Recentes
+              </button>
+              <button
+                phx-click="set_sidebar_preset"
+                phx-value-preset="images"
+                class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-photo" class="size-5 text-slate-500" /> Imagens
+              </button>
+              <button
+                phx-click="set_sidebar_preset"
+                phx-value-preset="videos"
+                class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-film" class="size-5 text-slate-500" /> Videos
+              </button>
+              <button
+                phx-click="set_sidebar_preset"
+                phx-value-preset="folders"
+                class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-folder" class="size-5 text-slate-500" /> Pastas
+              </button>
+              <.link
+                navigate={~p"/app/trash"}
+                class="flex items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
+              >
+                <.icon name="hero-trash" class="size-5 text-slate-500" /> Lixeira
+              </.link>
+            </nav>
+
+            <div class="rounded-[1.5rem] bg-slate-950 p-4 text-white">
+              <p class="text-xs uppercase tracking-[0.28em] text-slate-400">Workspace</p>
+              <p class="mt-2 text-lg font-semibold">{@current_scope.tenant.name}</p>
+              <p class="mt-1 text-sm text-slate-400">{@current_scope.user.email}</p>
+              <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
+                <div class="h-full w-2/5 rounded-full bg-sky-400"></div>
+              </div>
+              <p class="mt-2 text-xs text-slate-400">
+                {length(@entries)} itens visiveis · {@folder_count} pastas · {@file_count} arquivos
+              </p>
             </div>
           </aside>
 
-          <div class="space-y-6">
-            <section class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-950">Folders</h2>
-                <span class="text-sm text-slate-500">{length(@children.folders)} items</span>
-              </div>
-              <div class="grid gap-4 md:grid-cols-2">
-                <%= for folder <- @children.folders do %>
-                  <div class="rounded-2xl border border-slate-200 p-4">
-                    <.link
-                      navigate={~p"/app/folders/#{folder.id}"}
-                      class="text-lg font-semibold text-slate-950 hover:text-sky-700"
-                    >
-                      {folder.name}
-                    </.link>
-                    <button
-                      phx-click="delete_folder"
-                      phx-value-id={folder.id}
-                      class="mt-4 text-sm text-rose-600"
-                    >
-                      Move to trash
-                    </button>
+          <div class="space-y-4">
+            <header class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h1 class="text-3xl font-black tracking-tight text-slate-950">Meu Drive</h1>
+                    <.icon name="hero-chevron-down" class="size-4 text-slate-400" />
                   </div>
-                <% end %>
+                  <nav class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+                    <.link navigate={~p"/app"} class="rounded-full bg-slate-100 px-3 py-1.5">Root</.link>
+                    <%= for folder <- @breadcrumbs do %>
+                      <span>/</span>
+                      <.link
+                        navigate={~p"/app/folders/#{folder.id}"}
+                        class="rounded-full bg-slate-100 px-3 py-1.5"
+                      >
+                        {folder.name}
+                      </.link>
+                    <% end %>
+                  </nav>
+                </div>
+
+                <div class="grid gap-2 sm:grid-cols-3">
+                  <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Pastas</p>
+                    <p class="mt-1 text-xl font-semibold text-slate-950">{@folder_count}</p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Arquivos</p>
+                    <p class="mt-1 text-xl font-semibold text-slate-950">{@file_count}</p>
+                  </div>
+                  <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Tamanho</p>
+                    <p class="mt-1 text-xl font-semibold text-slate-950">{format_bytes(@total_size)}</p>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <section class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
+              <.form
+                for={@controls_form}
+                id="controls_form"
+                phx-change="update_controls"
+                class="flex flex-wrap items-center gap-3"
+              >
+                <label class="flex min-w-[220px] flex-1 items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3">
+                  <.icon name="hero-magnifying-glass" class="size-5 text-slate-400" />
+                  <input
+                    type="text"
+                    name={@controls_form[:query].name}
+                    value={@controls_form[:query].value}
+                    placeholder="Buscar por nome"
+                    class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  />
+                </label>
+
+                <.input
+                  field={@controls_form[:type]}
+                  type="select"
+                  options={[
+                    {"Tudo", "all"},
+                    {"Pastas", "folders"},
+                    {"Arquivos", "files"},
+                    {"Imagens", "images"},
+                    {"Videos", "videos"}
+                  ]}
+                  class="select rounded-2xl bg-slate-100 px-4"
+                />
+
+                <.input
+                  field={@controls_form[:sort]}
+                  type="select"
+                  options={[
+                    {"Modificado", "modified_desc"},
+                    {"Nome", "name_asc"},
+                    {"Maior tamanho", "size_desc"}
+                  ]}
+                  class="select rounded-2xl bg-slate-100 px-4"
+                />
+
+                <input type="hidden" name={@controls_form[:view].name} value={@controls_form[:view].value} />
+              </.form>
+
+              <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
+                <div class="flex items-center gap-2 text-sm text-slate-500">
+                  <span class="rounded-full bg-slate-100 px-3 py-1.5">
+                    {length(@entries)} resultados
+                  </span>
+                  <span :if={@controls["type"] != "all"} class="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700">
+                    filtro: {@controls["type"]}
+                  </span>
+                </div>
+
+                <div class="inline-flex rounded-2xl bg-slate-100 p-1">
+                  <button
+                    phx-click="set_view"
+                    phx-value-view="grid"
+                    class={[
+                      "rounded-xl px-3 py-2 text-sm transition",
+                      @controls["view"] == "grid" && "bg-white shadow-sm text-slate-950",
+                      @controls["view"] != "grid" && "text-slate-500"
+                    ]}
+                  >
+                    <.icon name="hero-squares-2x2" class="size-5" />
+                  </button>
+                  <button
+                    phx-click="set_view"
+                    phx-value-view="list"
+                    class={[
+                      "rounded-xl px-3 py-2 text-sm transition",
+                      @controls["view"] == "list" && "bg-white shadow-sm text-slate-950",
+                      @controls["view"] != "list" && "text-slate-500"
+                    ]}
+                  >
+                    <.icon name="hero-list-bullet" class="size-5" />
+                  </button>
+                </div>
               </div>
             </section>
 
-            <section class="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-              <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-lg font-semibold text-slate-950">Files</h2>
-                <span class="text-sm text-slate-500">{length(@children.files)} items</span>
+            <section
+              :if={@entries == []}
+              class="rounded-[1.75rem] border border-dashed border-slate-300 bg-white/80 px-8 py-16 text-center"
+            >
+              <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-slate-100">
+                <.icon name="hero-folder-open" class="size-8 text-slate-400" />
               </div>
-              <div class="space-y-3">
-                <%= for file <- @children.files do %>
-                  <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 p-4">
-                    <div>
-                      <p class="font-semibold text-slate-950">{file.name}</p>
-                      <p class="text-sm text-slate-500">
-                        {file.file_object.content_type} · {file.file_object.size} bytes
-                      </p>
+              <h2 class="mt-5 text-2xl font-semibold text-slate-950">Nada por aqui ainda</h2>
+              <p class="mt-2 text-sm text-slate-500">
+                Crie uma pasta, envie um arquivo ou ajuste os filtros para encontrar o que precisa.
+              </p>
+            </section>
+
+            <section
+              :if={@entries != [] and @controls["view"] == "grid"}
+              class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            >
+              <%= for entry <- @entries do %>
+                <article class="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
+                  <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <div class="flex min-w-0 items-center gap-3">
+                      <div class={[
+                        "flex size-10 items-center justify-center rounded-2xl",
+                        entry.kind == :folder && "bg-sky-100 text-sky-700",
+                        entry.kind == :file && "bg-slate-100 text-slate-700"
+                      ]}>
+                        <.icon
+                          name={
+                            case entry.preview do
+                              :folder -> "hero-folder"
+                              :image -> "hero-photo"
+                              :video -> "hero-film"
+                              :file -> "hero-document"
+                            end
+                          }
+                          class="size-5"
+                        />
+                      </div>
+                      <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold text-slate-950">{entry.name}</p>
+                        <p class="text-xs text-slate-400">{relative_time(entry.updated_at)}</p>
+                      </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                      <.link href={~p"/app/files/#{file.id}/download"} class="btn btn-ghost btn-sm">
-                        Download
-                      </.link>
-                      <button
-                        phx-click="delete_file"
-                        phx-value-id={file.id}
-                        class="btn btn-ghost btn-sm text-rose-600"
-                      >
-                        Trash
-                      </button>
+                    <button
+                      :if={entry.kind == :folder}
+                      phx-click="delete_folder"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
+                    >
+                      <.icon name="hero-trash" class="size-4" />
+                    </button>
+                    <button
+                      :if={entry.kind == :file}
+                      phx-click="delete_file"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
+                    >
+                      <.icon name="hero-trash" class="size-4" />
+                    </button>
+                  </div>
+
+                  <div class="bg-[linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] p-4">
+                    <.link
+                      :if={entry.kind == :folder}
+                      navigate={entry.href}
+                      class="flex h-36 items-center justify-center rounded-[1.25rem] border border-dashed border-slate-300 text-slate-500"
+                    >
+                      <div class="text-center">
+                        <.icon name="hero-folder" class="mx-auto size-10 text-sky-600" />
+                        <p class="mt-2 text-sm font-medium">Abrir pasta</p>
+                      </div>
+                    </.link>
+
+                    <img
+                      :if={entry.preview == :image}
+                      src={entry.href}
+                      alt={entry.name}
+                      class="h-36 w-full rounded-[1.25rem] object-cover ring-1 ring-slate-200"
+                    />
+
+                    <video
+                      :if={entry.preview == :video}
+                      src={entry.href}
+                      controls
+                      preload="metadata"
+                      class="h-36 w-full rounded-[1.25rem] object-cover ring-1 ring-slate-200"
+                    />
+
+                    <div
+                      :if={entry.preview == :file}
+                      class="flex h-36 items-center justify-center rounded-[1.25rem] border border-dashed border-slate-300 bg-white text-slate-500"
+                    >
+                      <div class="text-center">
+                        <.icon name="hero-document" class="mx-auto size-10" />
+                        <p class="mt-2 text-sm">{entry.content_type || "Arquivo"}</p>
+                      </div>
                     </div>
                   </div>
-                <% end %>
+
+                  <div class="flex items-center justify-between px-4 py-3 text-sm">
+                    <div>
+                      <p class="text-slate-500">{entry.content_type}</p>
+                      <p :if={entry.kind == :file} class="text-xs text-slate-400">{format_bytes(entry.size)}</p>
+                    </div>
+                    <.link
+                      :if={entry.kind == :file}
+                      href={entry.href}
+                      class="rounded-xl bg-slate-100 px-3 py-2 font-medium text-slate-700 transition hover:bg-slate-200"
+                    >
+                      Baixar
+                    </.link>
+                  </div>
+                </article>
+              <% end %>
+            </section>
+
+            <section
+              :if={@entries != [] and @controls["view"] == "list"}
+              class="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/70"
+            >
+              <div class="grid grid-cols-[minmax(0,1fr)_120px_120px_110px] gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <span>Nome</span>
+                <span>Tipo</span>
+                <span>Modificado</span>
+                <span></span>
               </div>
+
+              <%= for entry <- @entries do %>
+                <div class="grid grid-cols-[minmax(0,1fr)_120px_120px_110px] items-center gap-4 border-b border-slate-100 px-5 py-3 last:border-b-0">
+                  <div class="flex min-w-0 items-center gap-3">
+                    <div class={[
+                      "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+                      entry.kind == :folder && "bg-sky-100 text-sky-700",
+                      entry.kind == :file && "bg-slate-100 text-slate-700"
+                    ]}>
+                      <.icon
+                        name={
+                          case entry.preview do
+                            :folder -> "hero-folder"
+                            :image -> "hero-photo"
+                            :video -> "hero-film"
+                            :file -> "hero-document"
+                          end
+                        }
+                        class="size-5"
+                      />
+                    </div>
+
+                    <div class="min-w-0">
+                      <.link
+                        :if={entry.kind == :folder}
+                        navigate={entry.href}
+                        class="block truncate font-medium text-slate-950 hover:text-sky-700"
+                      >
+                        {entry.name}
+                      </.link>
+                      <.link
+                        :if={entry.kind == :file}
+                        href={entry.href}
+                        class="block truncate font-medium text-slate-950 hover:text-sky-700"
+                      >
+                        {entry.name}
+                      </.link>
+                    </div>
+                  </div>
+                  <span class="text-sm text-slate-500">{entry.content_type}</span>
+                  <span class="text-sm text-slate-500">{relative_time(entry.updated_at)}</span>
+                  <div class="flex items-center justify-end gap-2">
+                    <.link
+                      :if={entry.kind == :file}
+                      href={entry.href}
+                      class="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
+                    >
+                      Baixar
+                    </.link>
+                    <button
+                      :if={entry.kind == :folder}
+                      phx-click="delete_folder"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
+                    >
+                      <.icon name="hero-trash" class="size-4" />
+                    </button>
+                    <button
+                      :if={entry.kind == :file}
+                      phx-click="delete_file"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
+                    >
+                      <.icon name="hero-trash" class="size-4" />
+                    </button>
+                  </div>
+                </div>
+              <% end %>
             </section>
           </div>
         </div>

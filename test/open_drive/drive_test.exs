@@ -50,6 +50,25 @@ defmodule OpenDrive.DriveTest do
     assert Repo.aggregate(FileObject, :count) == 1
   end
 
+  test "upload_file/3 persists files inside an existing folder" do
+    workspace = workspace_fixture()
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Fotos"})
+    path = Path.join(System.tmp_dir!(), "open_drive-upload-folder.txt")
+    Elixir.File.write!(path, "hello")
+
+    assert {:ok, file} =
+             Drive.upload_file(workspace.scope, %{folder_id: folder.id}, %{
+               path: path,
+               client_name: "inside-folder.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert file.folder_id == folder.id
+    assert [%{id: uploaded_id}] = Drive.list_children(workspace.scope, folder.id).files
+    assert uploaded_id == file.id
+  end
+
   test "upload_file/3 does not leave orphan metadata when storage fails" do
     original = Application.get_env(:open_drive, OpenDrive.Storage)
 
