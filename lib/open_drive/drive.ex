@@ -12,6 +12,12 @@ defmodule OpenDrive.Drive do
   alias OpenDrive.Repo
   alias OpenDrive.Storage
 
+  @max_upload_file_size 2_000_000_000
+  @backend_upload_fallback_size 100_000_000
+
+  def max_upload_file_size, do: @max_upload_file_size
+  def backend_upload_fallback_size, do: @backend_upload_fallback_size
+
   def list_children(%Scope{} = scope, folder_id \\ nil) do
     folder_id = normalize_folder_id(folder_id)
 
@@ -77,13 +83,66 @@ defmodule OpenDrive.Drive do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
     name = attrs[:name] || attrs["name"] || upload.client_name
     content_type = upload.content_type || "application/octet-stream"
+    checksum = checksum_file(upload.path)
 
     with :ok <- ensure_name_available(scope, name, folder_id, :file),
          {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
-         {:ok, body} <- Elixir.File.read(upload.path),
          key <- object_key(scope, name),
-         {:ok, _object_result} <- Storage.put_object(key, body, content_type: content_type),
-         {:ok, result} <- persist_upload(scope, folder_id, name, content_type, upload, key, body) do
+         {:ok, _object_result} <-
+           Storage.put_object(key, {:file, upload.path}, content_type: content_type),
+         {:ok, result} <-
+           persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
+      {:ok, result}
+    else
+      {:error, _} = error -> error
+      error -> {:error, error}
+    end
+  end
+
+  def prepare_direct_upload(%Scope{} = scope, attrs) do
+    folder_id = attrs[:folder_id] || attrs["folder_id"]
+    name = attrs[:name] || attrs["name"]
+    content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"
+    size = attrs[:size] || attrs["size"]
+
+    with {:ok, size} <- normalize_upload_size(size),
+         :ok <- validate_upload_size(size),
+         :ok <- ensure_name_available(scope, name, folder_id, :file),
+         {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+         key <- object_key(scope, name),
+         {:ok, %{url: url, headers: headers}} <-
+           Storage.presigned_upload_url(key, content_type: content_type, expires_in: 3600) do
+      {:ok,
+       %{
+         key: key,
+         name: name,
+         folder_id: folder_id,
+         size: size,
+         content_type: content_type,
+         upload_url: url,
+         upload_headers: headers
+       }}
+    else
+      {:error, _} = error -> error
+      error -> {:error, error}
+    end
+  end
+
+  def complete_direct_upload(%Scope{} = scope, attrs) do
+    folder_id = attrs[:folder_id] || attrs["folder_id"]
+    name = attrs[:name] || attrs["name"]
+    content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"
+    size = attrs[:size] || attrs["size"]
+    key = attrs[:key] || attrs["key"]
+
+    with {:ok, size} <- normalize_upload_size(size),
+         :ok <- validate_upload_size(size),
+         :ok <- ensure_name_available(scope, name, folder_id, :file),
+         {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+         {:ok, object} <- Storage.head_object(key),
+         :ok <- validate_uploaded_object(object, size),
+         {:ok, result} <-
+           persist_direct_upload(scope, folder_id, name, content_type, size, key, object) do
       {:ok, result}
     else
       {:error, _} = error -> error
@@ -222,9 +281,7 @@ defmodule OpenDrive.Drive do
     end
   end
 
-  defp persist_upload(scope, folder_id, name, content_type, upload, key, body) do
-    checksum = :crypto.hash(:sha256, body) |> Base.encode16(case: :lower)
-
+  defp persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
     Repo.transaction(fn ->
       with {:ok, file_object} <-
              %FileObject{}
@@ -249,6 +306,43 @@ defmodule OpenDrive.Drive do
              })
              |> Repo.insert() do
         Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: upload.size})
+        Repo.preload(file, :file_object)
+      else
+        {:error, changeset} ->
+          Storage.delete_object(key)
+          Repo.rollback(changeset)
+      end
+    end)
+    |> normalize_transaction_result()
+  end
+
+  defp persist_direct_upload(scope, folder_id, name, content_type, size, key, object) do
+    persisted_content_type = object[:content_type] || content_type
+
+    Repo.transaction(fn ->
+      with {:ok, file_object} <-
+             %FileObject{}
+             |> FileObject.changeset(%{
+               tenant_id: Scope.tenant_id(scope),
+               bucket: Storage.bucket(),
+               key: key,
+               checksum: object[:etag],
+               content_type: persisted_content_type,
+               size: size,
+               uploaded_by_user_id: scope.user.id
+             })
+             |> Repo.insert(),
+           {:ok, file} <-
+             %DriveFile{}
+             |> DriveFile.changeset(%{
+               tenant_id: Scope.tenant_id(scope),
+               folder_id: folder_id,
+               file_object_id: file_object.id,
+               uploaded_by_user_id: scope.user.id,
+               name: name
+             })
+             |> Repo.insert() do
+        Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: size})
         Repo.preload(file, :file_object)
       else
         {:error, changeset} ->
@@ -383,6 +477,24 @@ defmodule OpenDrive.Drive do
   defp normalize_folder_id(""), do: nil
   defp normalize_folder_id(folder_id), do: folder_id
 
+  defp normalize_upload_size(size) when is_integer(size) and size >= 0, do: {:ok, size}
+
+  defp normalize_upload_size(size) when is_binary(size) do
+    case Integer.parse(size) do
+      {parsed, ""} when parsed >= 0 -> {:ok, parsed}
+      _ -> {:error, :invalid_size}
+    end
+  end
+
+  defp normalize_upload_size(_), do: {:error, :invalid_size}
+
+  defp validate_upload_size(size) when size > 0 and size <= @max_upload_file_size, do: :ok
+  defp validate_upload_size(size) when size <= 0, do: {:error, :invalid_size}
+  defp validate_upload_size(_size), do: {:error, :too_large}
+
+  defp validate_uploaded_object(%{size: size}, expected_size) when size == expected_size, do: :ok
+  defp validate_uploaded_object(_object, _expected_size), do: {:error, :size_mismatch}
+
   defp maybe_filter_by_parent(query, nil), do: where(query, [f], is_nil(f.parent_folder_id))
 
   defp maybe_filter_by_parent(query, folder_id),
@@ -400,4 +512,12 @@ defmodule OpenDrive.Drive do
 
   defp normalize_transaction_result({:ok, result}), do: {:ok, result}
   defp normalize_transaction_result({:error, reason}), do: {:error, reason}
+
+  defp checksum_file(path) do
+    path
+    |> File.stream!([], 1_048_576)
+    |> Enum.reduce(:crypto.hash_init(:sha256), &:crypto.hash_update(&2, &1))
+    |> :crypto.hash_final()
+    |> Base.encode16(case: :lower)
+  end
 end

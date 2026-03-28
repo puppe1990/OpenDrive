@@ -61,6 +61,9 @@ defmodule OpenDriveWeb.Router do
 
     post "/users/update-password", UserSessionController, :update_password
     post "/app/switch-tenant", TenantSessionController, :update
+    post "/app/uploads", DirectUploadController, :create
+    post "/app/uploads/proxy", DirectUploadController, :proxy
+    post "/app/uploads/complete", DirectUploadController, :complete
     get "/app/files/:id/download", FileDownloadController, :show
   end
 

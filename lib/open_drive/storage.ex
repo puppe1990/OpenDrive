@@ -3,14 +3,27 @@ defmodule OpenDrive.Storage do
   Storage facade for file blobs.
   """
 
-  @callback put_object(binary(), binary(), keyword()) ::
+  @type object_source :: binary() | {:file, Path.t()}
+
+  @callback put_object(binary(), object_source(), keyword()) ::
               {:ok, map()} | {:error, term()}
+  @callback presigned_upload_url(binary(), keyword()) ::
+              {:ok, %{url: binary(), headers: map()}} | {:error, term()}
+  @callback head_object(binary()) :: {:ok, map()} | {:error, term()}
   @callback delete_object(binary()) :: :ok | {:error, term()}
   @callback move_object(binary(), binary(), keyword()) :: {:ok, map()} | {:error, term()}
   @callback presigned_download_url(binary(), keyword()) :: {:ok, binary()} | {:error, term()}
 
-  def put_object(key, body, opts \\ []) do
-    adapter().put_object(key, body, opts)
+  def put_object(key, source, opts \\ []) do
+    adapter().put_object(key, source, opts)
+  end
+
+  def presigned_upload_url(key, opts \\ []) do
+    adapter().presigned_upload_url(key, opts)
+  end
+
+  def head_object(key) do
+    adapter().head_object(key)
   end
 
   def delete_object(key) do

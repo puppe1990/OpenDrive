@@ -11,6 +11,8 @@ defmodule OpenDrive.DriveTest do
   defmodule FailingStorage do
     @behaviour OpenDrive.Storage
     def put_object(_key, _body, _opts), do: {:error, :boom}
+    def presigned_upload_url(_key, _opts), do: {:error, :boom}
+    def head_object(_key), do: {:error, :boom}
     def delete_object(_key), do: :ok
     def move_object(_source_key, _destination_key, _opts), do: {:error, :boom}
     def presigned_download_url(_key, _opts), do: {:error, :boom}
@@ -65,6 +67,50 @@ defmodule OpenDrive.DriveTest do
              })
 
     assert file.name == "renamed.txt"
+  end
+
+  test "prepare_direct_upload/2 returns a storage target without reading the file" do
+    workspace = workspace_fixture()
+
+    assert {:ok, upload} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "video.mp4",
+               "content_type" => "video/mp4",
+               "size" => "1024"
+             })
+
+    assert upload.name == "video.mp4"
+    assert upload.size == 1024
+    assert upload.content_type == "video/mp4"
+    assert is_binary(upload.key)
+    assert is_binary(upload.upload_url)
+    assert is_map(upload.upload_headers)
+  end
+
+  test "complete_direct_upload/2 persists metadata after the object exists in storage" do
+    workspace = workspace_fixture()
+
+    {:ok, upload} =
+      Drive.prepare_direct_upload(workspace.scope, %{
+        "name" => "movie.mp4",
+        "content_type" => "video/mp4",
+        "size" => "5"
+      })
+
+    assert {:ok, _} = OpenDrive.Storage.put_object(upload.key, "hello", content_type: "video/mp4")
+
+    assert {:ok, file} =
+             Drive.complete_direct_upload(workspace.scope, %{
+               "folder_id" => upload.folder_id,
+               "name" => upload.name,
+               "content_type" => upload.content_type,
+               "size" => upload.size,
+               "key" => upload.key
+             })
+
+    assert file.name == "movie.mp4"
+    assert file.file_object.size == 5
+    assert file.file_object.content_type == "video/mp4"
   end
 
   test "rename_file/3 updates the database name and moves the stored object" do

@@ -5,7 +5,6 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
   import OpenDrive.AccountsFixtures
 
   alias OpenDrive.Drive
-  alias OpenDrive.Repo
 
   test "shows folders from the current tenant only", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Primary Space"})
@@ -20,33 +19,6 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     refute html =~ "Hidden Space"
   end
 
-  test "uploads a file automatically from the drive screen", %{conn: conn} do
-    workspace = workspace_fixture(%{tenant_name: "Upload Space"})
-
-    conn = log_in_user(conn, workspace.user, workspace.scope)
-    {:ok, lv, _html} = live(conn, ~p"/app")
-
-    upload =
-      file_input(lv, "#upload_form", :files, [
-        %{
-          last_modified: 1_700_000_000_000,
-          name: "notes.txt",
-          content: "hello upload",
-          size: byte_size("hello upload"),
-          type: "text/plain"
-        }
-      ])
-
-    render_upload(upload, "notes.txt")
-    html = render(lv)
-    assert html =~ "Upload complete."
-
-    [file] = Drive.list_children(workspace.scope).files
-    assert file.name == "notes.txt"
-    assert file.file_object.content_type == "text/plain"
-    assert Repo.aggregate(OpenDrive.Drive.FileObject, :count) == 1
-  end
-
   test "renders an automatic drag and drop area for the current folder", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Drop Space"})
 
@@ -57,10 +29,10 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "O upload comeca assim que voce solta o arquivo"
     assert html =~ "Voce pode soltar varios arquivos por vez"
     assert html =~ ~s(id="folder-dropzone")
-    assert html =~ ~s(phx-drop-target=)
-    assert html =~ "data-phx-auto-upload"
+    assert html =~ ~s(phx-hook="DirectUploadZone")
+    assert html =~ "data-direct-upload-input"
     assert html =~ ~s(type="file")
-    refute html =~ "Enviar arquivo"
+    assert html =~ "Fila de uploads"
   end
 
   test "renders preview markup for image and video files", %{conn: conn} do
