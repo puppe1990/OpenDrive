@@ -65,6 +65,7 @@ defmodule OpenDriveWeb.Router do
     post "/app/uploads/proxy", DirectUploadController, :proxy
     post "/app/uploads/complete", DirectUploadController, :complete
     get "/app/files/:id/download", FileDownloadController, :show
+    post "/app/files/download-zip", FileDownloadController, :zip
   end
 
   scope "/", OpenDriveWeb do

@@ -190,6 +190,43 @@ defmodule OpenDrive.Drive do
     end
   end
 
+  def bulk_download_sources(%Scope{} = scope, file_ids) do
+    file_ids = normalize_file_ids(file_ids)
+
+    files =
+      DriveFile
+      |> where(
+        [f],
+        f.tenant_id == ^Scope.tenant_id(scope) and f.id in ^file_ids and is_nil(f.deleted_at)
+      )
+      |> preload(:file_object)
+      |> Repo.all()
+
+    if files == [] do
+      {:error, :not_found}
+    else
+      sources =
+        files
+        |> Enum.sort_by(fn file ->
+          {file_position(file_ids, file.id), String.downcase(file.name)}
+        end)
+        |> Enum.reduce_while({:ok, []}, fn file, {:ok, acc} ->
+          case Storage.presigned_download_url(file.file_object.key) do
+            {:ok, url} ->
+              {:cont, {:ok, [%{id: file.id, name: file.name, url: url} | acc]}}
+
+            {:error, _} = error ->
+              {:halt, error}
+          end
+        end)
+
+      case sources do
+        {:ok, items} -> {:ok, Enum.reverse(items)}
+        {:error, _} = error -> error
+      end
+    end
+  end
+
   def soft_delete_node(%Scope{} = scope, {:file, file_id}) do
     timestamp = DateTime.utc_now(:second)
 
@@ -305,7 +342,9 @@ defmodule OpenDrive.Drive do
 
           {deleted_file_objects_count, _} =
             Repo.delete_all(
-              from(fo in FileObject, where: fo.tenant_id == ^tenant_id and fo.id in ^file_object_ids)
+              from(fo in FileObject,
+                where: fo.tenant_id == ^tenant_id and fo.id in ^file_object_ids
+              )
             )
 
           {deleted_folders_count, _} =
@@ -525,6 +564,29 @@ defmodule OpenDrive.Drive do
 
   defp normalize_folder_id(""), do: nil
   defp normalize_folder_id(folder_id), do: folder_id
+
+  defp normalize_file_ids(file_ids) do
+    file_ids
+    |> List.wrap()
+    |> Enum.map(&normalize_file_id/1)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.uniq()
+  end
+
+  defp normalize_file_id(file_id) when is_integer(file_id) and file_id > 0, do: file_id
+
+  defp normalize_file_id(file_id) when is_binary(file_id) do
+    case Integer.parse(file_id) do
+      {parsed, ""} when parsed > 0 -> parsed
+      _ -> nil
+    end
+  end
+
+  defp normalize_file_id(_file_id), do: nil
+
+  defp file_position(file_ids, file_id) do
+    Enum.find_index(file_ids, &(&1 == file_id)) || length(file_ids)
+  end
 
   defp normalize_upload_size(size) when is_integer(size) and size >= 0, do: {:ok, size}
 

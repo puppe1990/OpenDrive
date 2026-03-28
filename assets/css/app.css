@@ -107,11 +107,12 @@
 .drive-list-grid {
   display: grid;
   grid-template-columns:
+    52px
     var(--drive-col-name, minmax(260px, 1fr))
     var(--drive-col-type, 140px)
     var(--drive-col-modified, 120px)
     var(--drive-col-size, 120px)
-    110px;
+    160px;
 }
 
 .drive-list-header-cell {

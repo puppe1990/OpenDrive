@@ -20,9 +20,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
       |> assign(:editing_file_id, nil)
       |> assign(:pending_delete_file_id, nil)
+      |> assign(:confirm_bulk_delete, false)
       |> assign(:new_menu_open, true)
       |> assign(:children, %{folders: [], files: []})
       |> assign(:entries, [])
+      |> assign(:selected_entries, MapSet.new())
       |> assign(:selected_image_id, nil)
       |> assign(:selected_video_id, nil)
       |> assign(:folder_count, 0)
@@ -152,6 +154,70 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   def handle_event("delete_file", %{"id" => id}, socket) do
     {:noreply, assign(socket, :pending_delete_file_id, normalize_id(id))}
+  end
+
+  def handle_event("toggle_entry_selection", %{"key" => key}, socket) do
+    visible_keys = visible_entry_keys(socket.assigns.entries)
+
+    socket =
+      if MapSet.member?(visible_keys, key) do
+        update(socket, :selected_entries, fn selected ->
+          if MapSet.member?(selected, key),
+            do: MapSet.delete(selected, key),
+            else: MapSet.put(selected, key)
+        end)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("toggle_all_entries", %{"state" => state}, socket) do
+    visible_keys = visible_entry_keys(socket.assigns.entries)
+
+    socket =
+      case state do
+        "checked" -> assign(socket, :selected_entries, visible_keys)
+        _ -> assign(socket, :selected_entries, MapSet.new())
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("open_bulk_delete_modal", _params, socket) do
+    socket =
+      if selected_entries(socket.assigns.entries, socket.assigns.selected_entries) == [] do
+        socket
+      else
+        assign(socket, :confirm_bulk_delete, true)
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("cancel_bulk_delete", _params, socket) do
+    {:noreply, assign(socket, :confirm_bulk_delete, false)}
+  end
+
+  def handle_event("confirm_bulk_delete", _params, socket) do
+    entries = selected_entries(socket.assigns.entries, socket.assigns.selected_entries)
+
+    case bulk_delete_entries(socket.assigns.current_scope, entries) do
+      :ok ->
+        {:noreply,
+         socket
+         |> assign(:confirm_bulk_delete, false)
+         |> assign(:selected_entries, MapSet.new())
+         |> put_flash(:info, "#{length(entries)} item(ns) enviado(s) para a lixeira.")
+         |> load_drive(socket.assigns.current_folder_id)}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> assign(:confirm_bulk_delete, false)
+         |> put_flash(:error, "Nao foi possivel deletar os itens selecionados.")}
+    end
   end
 
   def handle_event("cancel_delete_file", _params, socket) do
@@ -300,6 +366,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
     assign(socket,
       entries: entries,
+      selected_entries:
+        sanitize_selected_entries(entries, socket.assigns[:selected_entries] || MapSet.new()),
       selected_image_id: selected_image_id(entries, socket.assigns[:selected_image_id]),
       selected_video_id: selected_video_id(entries, socket.assigns[:selected_video_id]),
       folder_count: length(children.folders),
@@ -320,6 +388,15 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp pending_delete_file(entries, pending_delete_file_id) do
     Enum.find(entries, &(&1.kind == :file and &1.id == pending_delete_file_id))
+  end
+
+  defp selected_entries(entries, selected_keys) do
+    selected_keys = selected_keys || MapSet.new()
+    Enum.filter(entries, &MapSet.member?(selected_keys, entry_selection_key(&1)))
+  end
+
+  defp selected_file_entries(entries, selected_keys) do
+    Enum.filter(selected_entries(entries, selected_keys), &(&1.kind == :file))
   end
 
   defp assign_controls(socket, params) do
@@ -535,6 +612,34 @@ defmodule OpenDriveWeb.DriveLive.Index do
     Enum.find(visible_videos(entries), &(&1.id == selected_video_id))
   end
 
+  defp visible_entry_keys(entries) do
+    entries
+    |> Enum.map(&entry_selection_key/1)
+    |> MapSet.new()
+  end
+
+  defp sanitize_selected_entries(entries, selected_keys) do
+    MapSet.intersection(selected_keys || MapSet.new(), visible_entry_keys(entries))
+  end
+
+  defp entry_selection_key(%{kind: kind, id: id}), do: "#{kind}:#{id}"
+
+  defp selected_all_entries?(entries, selected_keys) do
+    visible_keys = visible_entry_keys(entries)
+    MapSet.size(visible_keys) > 0 and MapSet.equal?(visible_keys, selected_keys || MapSet.new())
+  end
+
+  defp bulk_delete_entries(_scope, []), do: {:error, :empty_selection}
+
+  defp bulk_delete_entries(scope, entries) do
+    Enum.reduce_while(entries, :ok, fn entry, :ok ->
+      case Drive.soft_delete_node(scope, {entry.kind, entry.id}) do
+        {:ok, _} -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
+
   defp cycle_selected_image(socket, step) do
     images = visible_images(socket.assigns.entries)
 
@@ -597,6 +702,18 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
       |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
       |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
+      |> assign(
+        :selected_list_entries,
+        selected_entries(assigns.entries, assigns.selected_entries)
+      )
+      |> assign(
+        :selected_file_entries,
+        selected_file_entries(assigns.entries, assigns.selected_entries)
+      )
+      |> assign(
+        :all_list_entries_selected,
+        selected_all_entries?(assigns.entries, assigns.selected_entries)
+      )
       |> assign(
         :pending_delete_file,
         pending_delete_file(assigns.entries, assigns.pending_delete_file_id)
@@ -1098,7 +1215,63 @@ defmodule OpenDriveWeb.DriveLive.Index do
               data-storage-key={"drive-list-columns-#{@current_scope.tenant.id}"}
               class="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/70"
             >
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3">
+                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                  <label class="flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-slate-200">
+                    <input
+                      type="checkbox"
+                      phx-click="toggle_all_entries"
+                      phx-value-state={
+                        if @all_list_entries_selected, do: "unchecked", else: "checked"
+                      }
+                      checked={@all_list_entries_selected}
+                      class="checkbox checkbox-sm rounded-md border-slate-300"
+                    />
+                    <span>Selecionar todos</span>
+                  </label>
+                  <span class="rounded-full bg-white px-3 py-2 ring-1 ring-slate-200">
+                    Selecionados: {length(@selected_list_entries)}
+                  </span>
+                  <span
+                    :if={@selected_file_entries != []}
+                    class="rounded-full bg-sky-50 px-3 py-2 text-sky-700 ring-1 ring-sky-200"
+                  >
+                    {length(@selected_file_entries)} arquivo(s) para ZIP
+                  </span>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                  <form method="post" action={~p"/app/files/download-zip"}>
+                    <input
+                      type="hidden"
+                      name="_csrf_token"
+                      value={Phoenix.Controller.get_csrf_token()}
+                    />
+                    <%= for entry <- @selected_file_entries do %>
+                      <input type="hidden" name="file_ids[]" value={entry.id} />
+                    <% end %>
+                    <button
+                      type="submit"
+                      disabled={@selected_file_entries == []}
+                      class="rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                    >
+                      Baixar ZIP
+                    </button>
+                  </form>
+
+                  <button
+                    type="button"
+                    phx-click="open_bulk_delete_modal"
+                    disabled={@selected_list_entries == []}
+                    class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-rose-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  >
+                    Deletar selecionados
+                  </button>
+                </div>
+              </div>
+
               <div class="drive-list-grid gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <span class="flex items-center justify-center">Sel.</span>
                 <div class="drive-list-header-cell" data-resizable-column="name">
                   <button
                     type="button"
@@ -1196,6 +1369,15 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
               <%= for entry <- @entries do %>
                 <div class="drive-list-grid items-center gap-4 border-b border-slate-100 px-5 py-3 last:border-b-0">
+                  <label class="flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      phx-click="toggle_entry_selection"
+                      phx-value-key={entry_selection_key(entry)}
+                      checked={MapSet.member?(@selected_entries, entry_selection_key(entry))}
+                      class="checkbox checkbox-sm rounded-md border-slate-300"
+                    />
+                  </label>
                   <div class="flex min-w-0 overflow-hidden items-center gap-3">
                     <div class={[
                       "flex size-10 shrink-0 items-center justify-center rounded-2xl",
@@ -1401,6 +1583,57 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                       >
                         Deletar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if @confirm_bulk_delete do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+                <button
+                  type="button"
+                  phx-click="cancel_bulk_delete"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar modal de exclusao em massa"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
+                  <div class="border-b border-slate-200 px-6 py-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+                      Deletar em massa
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      Confirmar exclusao
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      {length(@selected_list_entries)} item(ns) selecionado(s) sera(ao) enviado(s) para a lixeira.
+                    </p>
+                  </div>
+
+                  <div class="space-y-5 px-6 py-6">
+                    <div class="max-h-56 space-y-2 overflow-y-auto rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+                      <%= for entry <- @selected_list_entries do %>
+                        <p>{entry.name}</p>
+                      <% end %>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_bulk_delete"
+                        class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        phx-click="confirm_bulk_delete"
+                        class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
+                      >
+                        Deletar selecionados
                       </button>
                     </div>
                   </div>
@@ -1696,7 +1929,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
                               class="video-volume-range"
                               aria-label="Volume do video"
                             />
-                            <span data-role="volume-value" class="min-w-9 text-right font-semibold text-white">
+                            <span
+                              data-role="volume-value"
+                              class="min-w-9 text-right font-semibold text-white"
+                            >
                               100%
                             </span>
                           </div>

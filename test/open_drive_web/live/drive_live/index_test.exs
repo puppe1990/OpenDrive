@@ -238,4 +238,74 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Modificado"
     assert html =~ "report.txt"
   end
+
+  test "selects rows in list mode and deletes selected items in bulk", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Bulk Action Space"})
+    first_path = Path.join(System.tmp_dir!(), "open_drive-bulk-first.txt")
+    second_path = Path.join(System.tmp_dir!(), "open_drive-bulk-second.txt")
+
+    File.write!(first_path, "first bulk file")
+    File.write!(second_path, "second bulk file")
+
+    {:ok, first_file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: first_path,
+        client_name: "first.txt",
+        content_type: "text/plain",
+        size: byte_size("first bulk file")
+      })
+
+    {:ok, second_file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: second_path,
+        client_name: "second.txt",
+        content_type: "text/plain",
+        size: byte_size("second bulk file")
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html = render_click(element(lv, "button[phx-value-view='list']"))
+    assert html =~ "Selecionar todos"
+    assert html =~ "Baixar ZIP"
+
+    html =
+      lv
+      |> element(
+        "input[phx-click='toggle_entry_selection'][phx-value-key='file:#{first_file.id}']"
+      )
+      |> render_click()
+
+    assert html =~ "Selecionados: 1"
+    assert html =~ "1 arquivo(s) para ZIP"
+
+    html =
+      lv
+      |> element(
+        "input[phx-click='toggle_entry_selection'][phx-value-key='file:#{second_file.id}']"
+      )
+      |> render_click()
+
+    assert html =~ "Selecionados: 2"
+
+    html =
+      lv
+      |> element("button[phx-click='open_bulk_delete_modal']")
+      |> render_click()
+
+    assert html =~ "Confirmar exclusao"
+    assert html =~ "first.txt"
+    assert html =~ "second.txt"
+
+    html =
+      lv
+      |> element("button[phx-click='confirm_bulk_delete']")
+      |> render_click()
+
+    assert html =~ "2 item(ns) enviado(s) para a lixeira."
+    refute html =~ "first.txt"
+    refute html =~ "second.txt"
+    assert Drive.list_children(workspace.scope).files == []
+  end
 end
