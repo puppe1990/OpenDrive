@@ -104,19 +104,15 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
     Enum.filter(entries, fn entry ->
       matches_query? = query == "" or String.contains?(String.downcase(entry.name), query)
-
-      matches_type? =
-        case type do
-          "all" -> true
-          "folders" -> entry.kind == :folder
-          "files" -> entry.kind == :file
-          "images" -> entry.preview == :image
-          "videos" -> entry.preview == :video
-        end
-
-      matches_query? and matches_type?
+      matches_query? and matches_entry_type?(entry, type)
     end)
   end
+
+  defp matches_entry_type?(_entry, "all"), do: true
+  defp matches_entry_type?(entry, "folders"), do: entry.kind == :folder
+  defp matches_entry_type?(entry, "files"), do: entry.kind == :file
+  defp matches_entry_type?(entry, "images"), do: entry.preview == :image
+  defp matches_entry_type?(entry, "videos"), do: entry.preview == :video
 
   defp sort_entries(entries, "name_asc"),
     do: Enum.sort_by(entries, &{entry_order(&1), String.downcase(&1.name)})

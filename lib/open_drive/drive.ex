@@ -240,30 +240,9 @@ defmodule OpenDrive.Drive do
       |> preload(:file_object)
       |> Repo.all()
 
-    if files == [] do
-      {:error, :not_found}
-    else
-      sources =
-        files
-        |> Enum.sort_by(fn file ->
-          {file_position(file_ids, file.id), String.downcase(file.name)}
-        end)
-        |> Enum.reduce_while({:ok, []}, fn file, {:ok, acc} ->
-          case Storage.presigned_download_url(file.file_object.key) do
-            {:ok, url} ->
-              {:cont,
-               {:ok,
-                [%{id: file.id, name: file.name, size: file.file_object.size, url: url} | acc]}}
-
-            {:error, _} = error ->
-              {:halt, error}
-          end
-        end)
-
-      case sources do
-        {:ok, items} -> {:ok, Enum.reverse(items)}
-        {:error, _} = error -> error
-      end
+    case files do
+      [] -> {:error, :not_found}
+      _ -> build_bulk_download_sources(files, file_ids)
     end
   end
 
@@ -576,16 +555,17 @@ defmodule OpenDrive.Drive do
       )
       |> maybe_filter_by_folder(parent_folder_id)
 
-    conflict? =
-      case kind do
-        :folder ->
-          exists_without?(folder_query, exclude_id) or Repo.exists?(file_query)
-
-        :file ->
-          Repo.exists?(folder_query) or exists_without?(file_query, exclude_id)
-      end
+    conflict? = conflict_exists?(kind, folder_query, file_query, exclude_id)
 
     if conflict?, do: {:error, :name_conflict}, else: :ok
+  end
+
+  defp conflict_exists?(:folder, folder_query, file_query, exclude_id) do
+    exists_without?(folder_query, exclude_id) or Repo.exists?(file_query)
+  end
+
+  defp conflict_exists?(:file, folder_query, file_query, exclude_id) do
+    Repo.exists?(folder_query) or exists_without?(file_query, exclude_id)
   end
 
   defp exists_without?(query, nil), do: Repo.exists?(query)
@@ -607,23 +587,9 @@ defmodule OpenDrive.Drive do
 
     files_to_restore = Tree.files_in_folder_ids(scope, folder_ids, deleted_only: true)
 
-    Enum.reduce_while(folders_to_restore, :ok, fn folder, :ok ->
-      case ensure_name_available(scope, folder.name, folder.parent_folder_id, :folder, folder.id) do
-        :ok -> {:cont, :ok}
-        {:error, _} = error -> {:halt, error}
-      end
-    end)
-    |> case do
-      :ok ->
-        Enum.reduce_while(files_to_restore, :ok, fn file, :ok ->
-          case ensure_name_available(scope, file.name, file.folder_id, :file, file.id) do
-            :ok -> {:cont, :ok}
-            {:error, _} = error -> {:halt, error}
-          end
-        end)
-
-      {:error, _} = error ->
-        error
+    case ensure_restore_names_available(scope, folders_to_restore, :folder) do
+      :ok -> ensure_restore_names_available(scope, files_to_restore, :file)
+      {:error, _} = error -> error
     end
   end
 
@@ -647,21 +613,7 @@ defmodule OpenDrive.Drive do
   defp persist_renamed_file(file, new_name, new_key) do
     old_key = file.file_object.key
 
-    case Repo.transaction(fn ->
-           with {:ok, file_object} <-
-                  file.file_object
-                  |> FileObject.changeset(%{key: new_key})
-                  |> Repo.update(),
-                {:ok, renamed_file} <-
-                  file
-                  |> DriveFile.changeset(%{name: new_name})
-                  |> Repo.update()
-                  |> normalize_name_conflict() do
-             %{renamed_file | file_object: file_object}
-           else
-             {:error, reason} -> Repo.rollback(reason)
-           end
-         end) do
+    case persist_renamed_file_transaction(file, new_name, new_key) do
       {:ok, renamed_file} ->
         {:ok, renamed_file}
 
@@ -669,6 +621,70 @@ defmodule OpenDrive.Drive do
         _ = Storage.move_object(new_key, old_key)
         {:error, reason}
     end
+  end
+
+  defp build_bulk_download_sources(files, file_ids) do
+    files
+    |> Enum.sort_by(fn file ->
+      {file_position(file_ids, file.id), String.downcase(file.name)}
+    end)
+    |> Enum.reduce_while({:ok, []}, &append_bulk_download_source/2)
+    |> normalize_bulk_download_sources()
+  end
+
+  defp append_bulk_download_source(file, {:ok, acc}) do
+    case Storage.presigned_download_url(file.file_object.key) do
+      {:ok, url} ->
+        source = %{id: file.id, name: file.name, size: file.file_object.size, url: url}
+        {:cont, {:ok, [source | acc]}}
+
+      {:error, _} = error ->
+        {:halt, error}
+    end
+  end
+
+  defp normalize_bulk_download_sources({:ok, items}), do: {:ok, Enum.reverse(items)}
+  defp normalize_bulk_download_sources({:error, _} = error), do: error
+
+  defp ensure_restore_names_available(scope, entries, kind) do
+    Enum.reduce_while(entries, :ok, fn entry, :ok ->
+      case restore_entry_name_available(scope, entry, kind) do
+        :ok -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp restore_entry_name_available(scope, folder, :folder) do
+    ensure_name_available(scope, folder.name, folder.parent_folder_id, :folder, folder.id)
+  end
+
+  defp restore_entry_name_available(scope, file, :file) do
+    ensure_name_available(scope, file.name, file.folder_id, :file, file.id)
+  end
+
+  defp persist_renamed_file_transaction(file, new_name, new_key) do
+    Repo.transaction(fn ->
+      with {:ok, file_object} <- update_file_object_key(file.file_object, new_key),
+           {:ok, renamed_file} <- update_file_name(file, new_name) do
+        %{renamed_file | file_object: file_object}
+      else
+        {:error, reason} -> Repo.rollback(reason)
+      end
+    end)
+  end
+
+  defp update_file_object_key(file_object, new_key) do
+    file_object
+    |> FileObject.changeset(%{key: new_key})
+    |> Repo.update()
+  end
+
+  defp update_file_name(file, new_name) do
+    file
+    |> DriveFile.changeset(%{name: new_name})
+    |> Repo.update()
+    |> normalize_name_conflict()
   end
 
   defp persist_renamed_folder(folder, new_name) do

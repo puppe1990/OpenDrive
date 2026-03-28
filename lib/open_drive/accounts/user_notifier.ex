@@ -1,8 +1,12 @@
 defmodule OpenDrive.Accounts.UserNotifier do
+  @moduledoc """
+  Delivers account-related emails.
+  """
+
   import Swoosh.Email
 
-  alias OpenDrive.Mailer
   alias OpenDrive.Accounts.User
+  alias OpenDrive.Mailer
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do

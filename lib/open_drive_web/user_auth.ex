@@ -1,4 +1,8 @@
 defmodule OpenDriveWeb.UserAuth do
+  @moduledoc """
+  Authentication helpers for plugs and LiveView mounts.
+  """
+
   use OpenDriveWeb, :verified_routes
   use Gettext, backend: OpenDriveWeb.Gettext
 

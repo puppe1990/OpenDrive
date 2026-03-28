@@ -3,8 +3,8 @@ defmodule OpenDrive.Accounts.Scope do
   Carries the authenticated user and the active tenant membership.
   """
 
-  alias OpenDrive.Tenancy.{Membership, Tenant}
   alias OpenDrive.Accounts.User
+  alias OpenDrive.Tenancy.{Membership, Tenant}
 
   defstruct user: nil, tenant: nil, membership: nil, memberships: []
 

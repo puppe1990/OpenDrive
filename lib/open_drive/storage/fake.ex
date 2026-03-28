@@ -1,4 +1,8 @@
 defmodule OpenDrive.Storage.Fake do
+  @moduledoc """
+  Local filesystem-backed storage used in development and tests.
+  """
+
   @behaviour OpenDrive.Storage
 
   def put_object(key, {:file, source_path}, _opts) do
@@ -32,16 +36,20 @@ defmodule OpenDrive.Storage.Fake do
   def head_object(key) do
     path = object_path(key)
 
-    with {:ok, %File.Stat{size: size}} <- File.stat(path) do
-      {:ok,
-       %{
-         size: size,
-         content_type: MIME.from_path(path) || "application/octet-stream",
-         etag: file_md5(path)
-       }}
-    else
-      {:error, :enoent} -> {:error, :not_found}
-      error -> error
+    case File.stat(path) do
+      {:ok, %File.Stat{size: size}} ->
+        {:ok,
+         %{
+           size: size,
+           content_type: MIME.from_path(path) || "application/octet-stream",
+           etag: file_md5(path)
+         }}
+
+      {:error, :enoent} ->
+        {:error, :not_found}
+
+      error ->
+        error
     end
   end
 

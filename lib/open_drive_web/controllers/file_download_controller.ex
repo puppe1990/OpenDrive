@@ -80,25 +80,28 @@ defmodule OpenDriveWeb.FileDownloadController do
   defp stage_zip_entries(sources, temp_dir) do
     sources
     |> Enum.with_index(1)
-    |> Enum.reduce_while({:ok, []}, fn {source, index}, {:ok, acc} ->
-      case fetch_binary(source.url) do
-        {:ok, body} ->
-          entry_name = unique_entry_name(source.name, index)
-          destination = Path.join(temp_dir, entry_name)
-
-          case File.write(destination, body) do
-            :ok -> {:cont, {:ok, [entry_name | acc]}}
-            {:error, reason} -> {:halt, {:error, reason}}
-          end
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
-    end)
+    |> Enum.reduce_while({:ok, []}, &stage_zip_entry(&1, &2, temp_dir))
     |> case do
       {:ok, entry_names} -> {:ok, Enum.reverse(entry_names)}
       {:error, _} = error -> error
     end
+  end
+
+  defp stage_zip_entry({source, index}, {:ok, acc}, temp_dir) do
+    with {:ok, body} <- fetch_binary(source.url),
+         :ok <- write_zip_entry(body, source.name, index, temp_dir) do
+      entry_name = unique_entry_name(source.name, index)
+      {:cont, {:ok, [entry_name | acc]}}
+    else
+      {:error, reason} -> {:halt, {:error, reason}}
+    end
+  end
+
+  defp write_zip_entry(body, source_name, index, temp_dir) do
+    source_name
+    |> unique_entry_name(index)
+    |> then(&Path.join(temp_dir, &1))
+    |> File.write(body)
   end
 
   defp validate_zip_limits(sources) do

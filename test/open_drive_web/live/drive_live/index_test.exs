@@ -95,7 +95,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     conn = log_in_user(conn, workspace.user, workspace.scope)
     {:ok, _lv, html} = live(conn, ~p"/app")
 
-    assert html =~ "15 B usados no workspace"
+    assert html =~ "15 B"
+    assert html =~ "Workspace overview"
   end
 
   test "renames an already uploaded file from the drive list", %{conn: conn} do

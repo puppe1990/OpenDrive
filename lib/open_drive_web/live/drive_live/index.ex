@@ -193,11 +193,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
     socket =
       if MapSet.member?(visible_keys, key) do
-        update(socket, :selected_entries, fn selected ->
-          if MapSet.member?(selected, key),
-            do: MapSet.delete(selected, key),
-            else: MapSet.put(selected, key)
-        end)
+        update(socket, :selected_entries, &toggle_selected_entry(&1, key))
       else
         socket
       end
@@ -1309,5 +1305,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
       </section>
     </Layouts.app>
     """
+  end
+
+  defp toggle_selected_entry(selected, key) do
+    if MapSet.member?(selected, key) do
+      MapSet.delete(selected, key)
+    else
+      MapSet.put(selected, key)
+    end
   end
 end
