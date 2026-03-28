@@ -56,7 +56,9 @@ defmodule OpenDriveWeb.Layouts do
             <.link navigate={~p"/app/trash"} class="btn btn-ghost">{gettext("Trash")}</.link>
             <.link href={~p"/users/settings"} class="btn btn-ghost">{gettext("Settings")}</.link>
             <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
-            <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">{gettext("Log out")}</.link>
+            <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">
+              {gettext("Log out")}
+            </.link>
           <% else %>
             <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
             <.link

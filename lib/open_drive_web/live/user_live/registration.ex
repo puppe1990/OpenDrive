@@ -19,17 +19,23 @@ defmodule OpenDriveWeb.UserLive.Registration do
               {gettext("Create your workspace with clarity from the first access.")}
             </h1>
             <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
-              {gettext("Centralize files, organize teams, and enter the right environment without washed-out screens or weak contrast.")}
+              {gettext(
+                "Centralize files, organize teams, and enter the right environment without washed-out screens or weak contrast."
+              )}
             </p>
           </div>
           <div class="grid gap-3 sm:grid-cols-2">
             <div class="rounded-3xl border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
               <p class="text-sm font-semibold text-slate-900">{gettext("Higher contrast")}</p>
-              <p class="mt-1 text-sm text-slate-600">{gettext("Fields, labels, and actions with immediate readability.")}</p>
+              <p class="mt-1 text-sm text-slate-600">
+                {gettext("Fields, labels, and actions with immediate readability.")}
+              </p>
             </div>
             <div class="rounded-3xl border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
               <p class="text-sm font-semibold text-slate-900">{gettext("Direct flow")}</p>
-              <p class="mt-1 text-sm text-slate-600">{gettext("Account and workspace created in the same step.")}</p>
+              <p class="mt-1 text-sm text-slate-600">
+                {gettext("Account and workspace created in the same step.")}
+              </p>
             </div>
           </div>
         </div>
@@ -120,7 +126,7 @@ defmodule OpenDriveWeb.UserLive.Registration do
   def handle_event("save", %{"user" => user_params}, socket) do
     case Accounts.register_user_with_tenant(user_params, %{name: user_params["tenant_name"]}) do
       {:ok, %{user: user}} ->
-      {:noreply,
+        {:noreply,
          socket
          |> put_flash(:info, gettext("Workspace created successfully."))
          |> push_navigate(to: ~p"/users/log-in", replace: true)

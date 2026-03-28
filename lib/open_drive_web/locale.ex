@@ -38,7 +38,9 @@ defmodule OpenDriveWeb.Locale do
   end
 
   def on_mount(:default, params, session, socket) do
-    locale = params["locale"] |> normalize_locale() || session["locale"] |> normalize_locale() || default_locale()
+    locale =
+      params["locale"] |> normalize_locale() || session["locale"] |> normalize_locale() ||
+        default_locale()
 
     Gettext.put_locale(Backend, locale)
 

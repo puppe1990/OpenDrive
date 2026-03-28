@@ -22,7 +22,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
                       {gettext("Adjust your access without losing workspace context.")}
                     </h1>
                     <p class="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                      {gettext("Update your email and password in a clearer panel focused on what changes your account security.")}
+                      {gettext(
+                        "Update your email and password in a clearer panel focused on what changes your account security."
+                      )}
                     </p>
                   </div>
                 </div>
@@ -76,7 +78,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
                     {gettext("Change primary address")}
                   </h2>
                   <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    {gettext("The new address will receive a confirmation link before the change takes effect.")}
+                    {gettext(
+                      "The new address will receive a confirmation link before the change takes effect."
+                    )}
                   </p>
                 </div>
                 <div class="hidden rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800 sm:block">
@@ -124,7 +128,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
                     {gettext("Set a new password")}
                   </h2>
                   <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                    {gettext("When you save, old sessions are invalidated to reduce risk on devices that are already signed in.")}
+                    {gettext(
+                      "When you save, old sessions are invalidated to reduce risk on devices that are already signed in."
+                    )}
                   </p>
                 </div>
                 <div class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 sm:block">
@@ -192,7 +198,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
               {gettext("Critical changes remain protected.")}
             </h2>
             <p class="mt-3 text-sm leading-6 text-slate-300">
-              {gettext("You can open this area at any time, but email and password changes require recent authentication to prevent improper changes.")}
+              {gettext(
+                "You can open this area at any time, but email and password changes require recent authentication to prevent improper changes."
+              )}
             </p>
 
             <div class="mt-6 space-y-3">
@@ -205,7 +213,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
               <div class="rounded-3xl border border-white/10 bg-white/5 p-4">
                 <p class="text-sm font-semibold">{gettext("Email requires confirmation")}</p>
                 <p class="mt-1 text-sm leading-6 text-slate-300">
-                  {gettext("The account only points to the new address after the link in the email is clicked.")}
+                  {gettext(
+                    "The account only points to the new address after the link in the email is clicked."
+                  )}
                 </p>
               </div>
             </div>
@@ -218,7 +228,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
             <ul class="mt-4 space-y-4 text-sm leading-6 text-slate-600">
               <li class="flex gap-3">
                 <span class="mt-1 size-2 rounded-full bg-sky-500" />
-                {gettext("Review your email before saving to avoid locking yourself out of the workspace.")}
+                {gettext(
+                  "Review your email before saving to avoid locking yourself out of the workspace."
+                )}
               </li>
               <li class="flex gap-3">
                 <span class="mt-1 size-2 rounded-full bg-sky-500" />
@@ -226,7 +238,9 @@ defmodule OpenDriveWeb.UserLive.Settings do
               </li>
               <li class="flex gap-3">
                 <span class="mt-1 size-2 rounded-full bg-sky-500" />
-                {gettext("If you are asked to re-authenticate, that is expected for sensitive changes.")}
+                {gettext(
+                  "If you are asked to re-authenticate, that is expected for sensitive changes."
+                )}
               </li>
             </ul>
           </section>

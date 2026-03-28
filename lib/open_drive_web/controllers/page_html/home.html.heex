@@ -7,7 +7,9 @@
           {gettext("Your internal multi-tenant drive built with Phoenix LiveView.")}
         </h1>
         <p class="max-w-xl text-lg leading-8 text-slate-600">
-          {gettext("Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage.")}
+          {gettext(
+            "Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage."
+          )}
         </p>
       </div>
 
@@ -15,7 +17,9 @@
         <.link navigate={~p"/users/register"} class="btn btn-primary btn-lg">
           {gettext("Create workspace")}
         </.link>
-        <.link navigate={~p"/users/log-in"} class="btn btn-outline btn-lg">{gettext("Log in")}</.link>
+        <.link navigate={~p"/users/log-in"} class="btn btn-outline btn-lg">
+          {gettext("Log in")}
+        </.link>
       </div>
     </div>
 

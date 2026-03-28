@@ -70,5 +70,5 @@ defmodule OpenDriveWeb.UserSessionController do
     conn
     |> put_flash(:info, gettext("Logged out successfully."))
     |> UserAuth.log_out_user()
-end
+  end
 end

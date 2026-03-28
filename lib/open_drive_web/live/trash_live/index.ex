@@ -61,7 +61,10 @@ defmodule OpenDriveWeb.TrashLive.Index do
   end
 
   defp load_trash(socket) do
-    assign(socket, page_title: gettext("Trash"), trash: Drive.list_trash(socket.assigns.current_scope))
+    assign(socket,
+      page_title: gettext("Trash"),
+      trash: Drive.list_trash(socket.assigns.current_scope)
+    )
   end
 
   @impl true
@@ -83,7 +86,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                       {gettext("Organized trash to recover quickly and delete with clarity.")}
                     </h1>
                     <p class="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                      {gettext("Review removed items before final disposal. Everything here can still return to the workspace until you empty the trash.")}
+                      {gettext(
+                        "Review removed items before final disposal. Everything here can still return to the workspace until you empty the trash."
+                      )}
                     </p>
                   </div>
                 </div>
@@ -94,7 +99,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                   </p>
                   <p class="mt-2 text-sm font-semibold">{trash_status(@trash)}</p>
                   <p class="mt-1 text-xs leading-5 text-slate-300">
-                    {gettext("%{count} item(s) awaiting restore or permanent removal.", count: trash_total(@trash))}
+                    {gettext("%{count} item(s) awaiting restore or permanent removal.",
+                      count: trash_total(@trash)
+                    )}
                   </p>
                 </div>
               </div>
@@ -118,7 +125,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                   <p class="mt-2 text-2xl font-black tracking-tight text-slate-950">
                     {length(@trash.files)}
                   </p>
-                  <p class="mt-1 text-sm text-slate-600">{gettext("Standalone documents still recoverable.")}</p>
+                  <p class="mt-1 text-sm text-slate-600">
+                    {gettext("Standalone documents still recoverable.")}
+                  </p>
                 </div>
                 <div class="rounded-3xl border border-rose-200 bg-rose-50/90 p-4">
                   <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-rose-700">
@@ -132,7 +141,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
 
               <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
                 <p class="max-w-2xl text-sm leading-6 text-slate-500">
-                  {gettext("Restoring preserves the item context. Emptying the trash removes the records and also deletes the objects from storage.")}
+                  {gettext(
+                    "Restoring preserves the item context. Emptying the trash removes the records and also deletes the objects from storage."
+                  )}
                 </p>
                 <button
                   type="button"
@@ -175,7 +186,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                       {gettext("No folders in trash")}
                     </h3>
                     <p class="mt-2 text-sm leading-6 text-slate-500">
-                      {gettext("When a folder is removed, it will appear here with the option to restore it.")}
+                      {gettext(
+                        "When a folder is removed, it will appear here with the option to restore it."
+                      )}
                     </p>
                   </div>
                 <% else %>
@@ -216,7 +229,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                     {gettext("Standalone documents still recoverable")}
                   </h2>
                   <p class="mt-2 text-sm leading-6 text-slate-600">
-                    {gettext("Ideal for recovering a specific item without touching the rest of the structure.")}
+                    {gettext(
+                      "Ideal for recovering a specific item without touching the rest of the structure."
+                    )}
                   </p>
                 </div>
                 <div class="hidden rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 sm:block">
@@ -276,7 +291,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
               {gettext("Recovery first, deletion only in the final step.")}
             </h2>
             <p class="mt-3 text-sm leading-6 text-slate-300">
-              {gettext("This area separates what can still be restored from what will be removed forever. The goal is to reduce human error in irreversible actions.")}
+              {gettext(
+                "This area separates what can still be restored from what will be removed forever. The goal is to reduce human error in irreversible actions."
+              )}
             </p>
 
             <div class="mt-6 space-y-3">
@@ -336,7 +353,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                     {gettext("Delete permanently?")}
                   </h2>
                   <p class="mt-2 text-sm text-slate-500">
-                    {gettext("This action permanently removes the files from the trash and deletes the objects from storage.")}
+                    {gettext(
+                      "This action permanently removes the files from the trash and deletes the objects from storage."
+                    )}
                   </p>
                 </div>
               </div>
@@ -347,7 +366,10 @@ defmodule OpenDriveWeb.TrashLive.Index do
                     {gettext("Impact of this action")}
                   </p>
                   <p class="mt-2">
-                    {gettext("%{files} file(s) and %{folders} folder(s) will be permanently removed.", files: length(@trash.files), folders: length(@trash.folders))}
+                    {gettext("%{files} file(s) and %{folders} folder(s) will be permanently removed.",
+                      files: length(@trash.files),
+                      folders: length(@trash.folders)
+                    )}
                   </p>
                 </div>
 

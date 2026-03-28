@@ -23,7 +23,11 @@ defmodule OpenDriveWeb.MembersLive.Index do
 
       {:error, :user_not_found} ->
         {:noreply,
-         put_flash(socket, :error, gettext("User must register before being added to this workspace."))}
+         put_flash(
+           socket,
+           :error,
+           gettext("User must register before being added to this workspace.")
+         )}
 
       {:error, :forbidden} ->
         {:noreply, put_flash(socket, :error, gettext("Only owners/admins can manage members."))}
@@ -47,7 +51,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
   end
 
   defp member_status(memberships) do
-    if Enum.empty?(memberships), do: gettext("Workspace without members"), else: gettext("Active team")
+    if Enum.empty?(memberships),
+      do: gettext("Workspace without members"),
+      else: gettext("Active team")
   end
 
   defp role_badge("owner"),
@@ -78,7 +84,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                       {gettext("Members with clear context to manage the workspace without noise.")}
                     </h1>
                     <p class="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-                      {gettext("Centralize who participates in the environment, quickly identify access profiles, and invite new people without losing operational control.")}
+                      {gettext(
+                        "Centralize who participates in the environment, quickly identify access profiles, and invite new people without losing operational control."
+                      )}
                     </p>
                   </div>
                 </div>
@@ -89,7 +97,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                   </p>
                   <p class="mt-2 text-sm font-semibold">{member_status(@memberships)}</p>
                   <p class="mt-1 text-xs leading-5 text-slate-300">
-                    {gettext("%{count} person(s) with access to the workspace.", count: membership_total(@memberships))}
+                    {gettext("%{count} person(s) with access to the workspace.",
+                      count: membership_total(@memberships)
+                    )}
                   </p>
                 </div>
               </div>
@@ -139,7 +149,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                   {gettext("People and access levels visible at a glance")}
                 </h2>
                 <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  {gettext("The list below highlights who administers the environment and who participates in daily operations.")}
+                  {gettext(
+                    "The list below highlights who administers the environment and who participates in daily operations."
+                  )}
                 </p>
               </div>
               <div class="hidden rounded-2xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs font-semibold text-sky-800 sm:block">
@@ -173,7 +185,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                           <%= if membership.role in ["owner", "admin"] do %>
                             {gettext("Can manage members and operate the workspace.")}
                           <% else %>
-                            {gettext("Participates in the workspace with standard operational access.")}
+                            {gettext(
+                              "Participates in the workspace with standard operational access."
+                            )}
                           <% end %>
                         </p>
                       </div>
@@ -202,7 +216,9 @@ defmodule OpenDriveWeb.MembersLive.Index do
                 {gettext("Add new member")}
               </h2>
               <p class="mt-2 text-sm leading-6 text-slate-600">
-                {gettext("Invite a person using an already registered email and define the initial responsibility level.")}
+                {gettext(
+                  "Invite a person using an already registered email and define the initial responsibility level."
+                )}
               </p>
             </div>
 
@@ -221,7 +237,12 @@ defmodule OpenDriveWeb.MembersLive.Index do
               phx-submit="add_member"
               class="space-y-4"
             >
-              <.input field={@member_form[:email]} type="email" label={gettext("User email")} required />
+              <.input
+                field={@member_form[:email]}
+                type="email"
+                label={gettext("User email")}
+                required
+              />
               <.input
                 field={@member_form[:role]}
                 type="select"
