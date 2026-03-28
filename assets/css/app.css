@@ -103,3 +103,107 @@
 [data-phx-session], [data-phx-teleported-src] { display: contents }
 
 /* This file is for your main application CSS */
+
+.video-preview-shell {
+  --video-progress: 0%;
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.24), transparent 48%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+}
+
+.video-preview-overlay {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.15) 0%, rgba(15, 23, 42, 0.22) 45%, rgba(15, 23, 42, 0.8) 100%),
+    linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, transparent 40%, rgba(14, 165, 233, 0.18) 100%);
+}
+
+.video-preview-play {
+  transform: scale(1);
+}
+
+.video-preview-shell[data-state="playing"] .video-preview-play {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
+.video-preview-shell:hover .video-preview-play,
+.video-preview-shell:focus-within .video-preview-play,
+.video-preview-shell[data-state="paused"] .video-preview-play {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.video-preview-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.4rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: linear-gradient(90deg, #7dd3fc 0%, #38bdf8 var(--video-progress), rgba(255, 255, 255, 0.14) var(--video-progress), rgba(255, 255, 255, 0.14) 100%);
+}
+
+.video-preview-scrubber {
+  padding-top: 0.35rem;
+}
+
+.video-preview-popover {
+  width: 172px;
+}
+
+.video-preview-range::-webkit-slider-runnable-track {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: transparent;
+}
+
+.video-preview-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -0.32rem;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: 9999px;
+  background: #0f172a;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+}
+
+.video-preview-range::-moz-range-track {
+  height: 0.4rem;
+  border: 0;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.video-preview-range::-moz-range-progress {
+  height: 0.4rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #7dd3fc 0%, #38bdf8 100%);
+}
+
+.video-preview-range::-moz-range-thumb {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.96);
+  border-radius: 9999px;
+  background: #0f172a;
+  box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+}
+
+.video-preview-shell:fullscreen {
+  padding: 1.5rem;
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.16), transparent 38%),
+    linear-gradient(180deg, #020617 0%, #020617 100%);
+}
+
+.video-preview-shell:fullscreen video {
+  max-height: calc(100vh - 13rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-preview-play {
+    transition: none;
+  }
+}

@@ -31,6 +31,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:children, %{folders: [], files: []})
       |> assign(:entries, [])
       |> assign(:selected_image_id, nil)
+      |> assign(:selected_video_id, nil)
       |> assign(:folder_count, 0)
       |> assign(:file_count, 0)
       |> assign(:total_size, 0)
@@ -175,6 +176,23 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, assign(socket, :selected_image_id, nil)}
   end
 
+  def handle_event("open_video", %{"id" => id}, socket) do
+    video_id = normalize_id(id)
+
+    socket =
+      if Enum.any?(visible_videos(socket.assigns.entries), &(&1.id == video_id)) do
+        assign(socket, :selected_video_id, video_id)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close_video", _params, socket) do
+    {:noreply, assign(socket, :selected_video_id, nil)}
+  end
+
   def handle_event("next_image", _params, socket) do
     {:noreply, cycle_selected_image(socket, 1)}
   end
@@ -259,6 +277,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
     assign(socket,
       entries: entries,
       selected_image_id: selected_image_id(entries, socket.assigns[:selected_image_id]),
+      selected_video_id: selected_video_id(entries, socket.assigns[:selected_video_id]),
       folder_count: length(children.folders),
       file_count: length(children.files),
       total_size: Enum.reduce(children.files, 0, &(&1.file_object.size + &2))
@@ -396,7 +415,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
   defp upload_status_label(:queued), do: "Na fila"
 
   defp upload_status_classes(:error), do: "bg-rose-100 text-rose-700 ring-1 ring-rose-200"
-  defp upload_status_classes(:complete), do: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+
+  defp upload_status_classes(:complete),
+    do: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+
   defp upload_status_classes(:uploading), do: "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
   defp upload_status_classes(:queued), do: "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
 
@@ -413,6 +435,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   defp visible_images(entries), do: Enum.filter(entries, &(&1.preview == :image))
+  defp visible_videos(entries), do: Enum.filter(entries, &(&1.preview == :video))
 
   defp selected_image_id(entries, current_id) do
     if Enum.any?(entries, &(&1.preview == :image and &1.id == current_id)),
@@ -422,6 +445,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp selected_image(entries, selected_image_id) do
     Enum.find(visible_images(entries), &(&1.id == selected_image_id))
+  end
+
+  defp selected_video_id(entries, current_id) do
+    if Enum.any?(entries, &(&1.preview == :video and &1.id == current_id)),
+      do: current_id,
+      else: nil
+  end
+
+  defp selected_video(entries, selected_video_id) do
+    Enum.find(visible_videos(entries), &(&1.id == selected_video_id))
   end
 
   defp cycle_selected_image(socket, step) do
@@ -456,6 +489,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp format_bytes(_), do: "--"
 
+  defp format_duration(seconds) when is_number(seconds) and seconds >= 0 do
+    total_seconds = trunc(seconds)
+    minutes = div(total_seconds, 60)
+    remaining_seconds = rem(total_seconds, 60)
+
+    "#{String.pad_leading(Integer.to_string(minutes), 2, "0")}:#{String.pad_leading(Integer.to_string(remaining_seconds), 2, "0")}"
+  end
+
+  defp format_duration(_), do: "--:--"
+
   defp relative_time(nil), do: "--"
 
   defp relative_time(datetime) do
@@ -474,7 +517,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
     assigns =
       assigns
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
-      |> assign(:upload_stats, upload_queue_stats(assigns.uploads.files.entries, assigns.uploads.files))
+      |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
+      |> assign(
+        :upload_stats,
+        upload_queue_stats(assigns.uploads.files.entries, assigns.uploads.files)
+      )
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -637,7 +684,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <p class="mt-1 text-xs text-slate-500">
                       O upload comeca assim que voce solta o arquivo
                     </p>
-                    <p class="mt-1 text-xs text-slate-400">Voce pode soltar varios arquivos por vez</p>
+                    <p class="mt-1 text-xs text-slate-400">
+                      Voce pode soltar varios arquivos por vez
+                    </p>
                     <p class="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">
                       Clique para escolher arquivos do dispositivo
                     </p>
@@ -682,9 +731,12 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <div class="min-w-0 flex-1">
                       <div class="flex flex-wrap items-center gap-2">
                         <span class="block truncate text-sm font-medium text-slate-800">
-                        {entry.client_name}
+                          {entry.client_name}
                         </span>
-                        <span class={["rounded-full px-2.5 py-1 text-[11px] font-semibold", upload_status_classes(status)]}>
+                        <span class={[
+                          "rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                          upload_status_classes(status)
+                        ]}>
                           {upload_status_label(status)}
                         </span>
                       </div>
@@ -697,7 +749,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
                       <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
                         <div
-                          class={["h-full rounded-full transition-all duration-300", upload_progress_classes(status)]}
+                          class={[
+                            "h-full rounded-full transition-all duration-300",
+                            upload_progress_classes(status)
+                          ]}
                           style={"width: #{entry.progress}%"}
                         >
                         </div>
@@ -912,13 +967,45 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       />
                     </button>
 
-                    <video
+                    <button
                       :if={entry.preview == :video}
-                      src={entry.href}
-                      controls
-                      preload="metadata"
-                      class="h-36 w-full rounded-[1.25rem] object-cover ring-1 ring-slate-200"
-                    />
+                      type="button"
+                      phx-click="open_video"
+                      phx-value-id={entry.id}
+                      class="video-preview-shell group relative block h-36 w-full overflow-hidden rounded-[1.25rem] text-left ring-1 ring-slate-200 transition hover:ring-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+                      aria-label={"Abrir video #{entry.name}"}
+                    >
+                      <video
+                        src={entry.href}
+                        preload="metadata"
+                        muted
+                        playsinline
+                        class="h-full w-full object-cover"
+                      />
+                      <div class="video-preview-overlay pointer-events-none absolute inset-0"></div>
+
+                      <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-3">
+                        <span class="rounded-full border border-white/20 bg-slate-950/55 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 backdrop-blur-md">
+                          Video
+                        </span>
+                        <span class="rounded-full border border-white/15 bg-white/12 px-2.5 py-1 text-[11px] font-medium text-white/85 shadow-sm backdrop-blur-md">
+                          Abrir player
+                        </span>
+                      </div>
+
+                      <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="video-preview-play flex size-14 items-center justify-center rounded-full border border-white/20 bg-white/18 text-white shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl transition duration-300 group-hover:scale-105 group-hover:bg-white/24">
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            class="ml-1 size-6"
+                            aria-hidden="true"
+                          >
+                            <path d="M8 6.82v10.36c0 .79.87 1.26 1.54.84l8.17-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82Z" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
 
                     <div
                       :if={entry.preview == :file}
@@ -991,7 +1078,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         {entry.name}
                       </.link>
                       <.link
-                        :if={entry.kind == :file and entry.preview != :image}
+                        :if={entry.kind == :file and entry.preview not in [:image, :video]}
                         href={entry.href}
                         class="block truncate font-medium text-slate-950 hover:text-sky-700"
                       >
@@ -1001,6 +1088,15 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         :if={entry.preview == :image}
                         type="button"
                         phx-click="open_image"
+                        phx-value-id={entry.id}
+                        class="block truncate font-medium text-left text-slate-950 hover:text-sky-700"
+                      >
+                        {entry.name}
+                      </button>
+                      <button
+                        :if={entry.preview == :video}
+                        type="button"
+                        phx-click="open_video"
                         phx-value-id={entry.id}
                         class="block truncate font-medium text-left text-slate-950 hover:text-sky-700"
                       >
@@ -1093,6 +1189,327 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       alt={selected.name}
                       class="max-h-[75vh] w-full rounded-[1.5rem] object-contain"
                     />
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if selected = @selected_video do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,#111827_0%,#020617_68%)] p-4 sm:p-6">
+                <button
+                  type="button"
+                  phx-click="close_video"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar player de video"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-[96rem] rounded-[2rem] border border-white/10 bg-[#060b1c]/95 p-4 text-white shadow-[0_32px_120px_rgba(2,6,23,0.7)] ring-1 ring-sky-500/10 sm:p-6">
+                  <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                    <div class="min-w-0">
+                      <p class="truncate text-base font-semibold">{selected.name}</p>
+                      <p class="text-sm text-slate-400">
+                        {selected.content_type} · {format_bytes(selected.size)}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      phx-click="close_video"
+                      class="rounded-full border border-white/15 p-2 text-white transition hover:bg-white/10"
+                      aria-label="Fechar"
+                    >
+                      <.icon name="hero-x-mark" class="size-5" />
+                    </button>
+                  </div>
+
+                  <div class="grid gap-5 bg-[radial-gradient(circle_at_top,#111827_0%,#030712_72%)] pt-4 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-start">
+                    <div
+                      id={"video-modal-#{selected.id}"}
+                      phx-hook="VideoPreview"
+                      data-video-player
+                      data-autoplay="true"
+                      data-shortcuts="true"
+                      class="video-preview-shell group relative overflow-hidden rounded-[1.75rem] border border-white/10 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                    >
+                      <div class="relative overflow-hidden rounded-[1.4rem] bg-black">
+                        <div class="aspect-video">
+                          <video
+                            src={selected.href}
+                            preload="metadata"
+                            playsinline
+                            class="h-full w-full object-contain"
+                          />
+                        </div>
+
+                        <div class="video-preview-overlay pointer-events-none absolute inset-0"></div>
+
+                        <div class="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between p-4">
+                          <div>
+                            <span class="inline-flex rounded-full border border-white/15 bg-slate-950/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75 backdrop-blur-md">
+                              OpenDrive Player
+                            </span>
+                            <p class="mt-3 text-xs text-white/45">
+                              Velocidade <span data-role="speed">1x</span>
+                            </p>
+                          </div>
+                          <span
+                            data-role="duration"
+                            class="rounded-full border border-white/15 bg-white/12 px-3 py-1 text-[11px] font-medium text-white/85 shadow-sm backdrop-blur-md"
+                          >
+                            {format_duration(0)}
+                          </span>
+                        </div>
+
+                        <div class="absolute inset-0 flex items-center justify-center">
+                          <button
+                            type="button"
+                            data-action="toggle-play"
+                            class="video-preview-play flex size-20 items-center justify-center rounded-full border border-white/20 bg-white/18 text-white shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl transition duration-300 hover:scale-105 hover:bg-white/24 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Reproduzir video"
+                          >
+                            <svg
+                              data-icon="play"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="ml-1 size-8"
+                              aria-hidden="true"
+                            >
+                              <path d="M8 6.82v10.36c0 .79.87 1.26 1.54.84l8.17-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82Z" />
+                            </svg>
+                            <svg
+                              data-icon="pause"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="hidden size-8"
+                              aria-hidden="true"
+                            >
+                              <path d="M7 5.75A.75.75 0 0 1 7.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 7 18.25V5.75Zm7 0A.75.75 0 0 1 14.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V5.75Z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      <div class="px-2 pb-2 pt-4">
+                        <div class="video-preview-scrubber relative" data-role="preview-region">
+                          <div
+                            data-role="preview-popover"
+                            class="video-preview-popover pointer-events-none absolute bottom-full left-0 z-30 mb-4 hidden -translate-x-1/2"
+                          >
+                            <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/90 shadow-[0_22px_60px_rgba(2,6,23,0.55)]">
+                              <canvas
+                                data-role="preview-canvas"
+                                width="320"
+                                height="180"
+                                class="block h-[96px] w-[172px] bg-slate-950 object-cover"
+                              >
+                              </canvas>
+                            </div>
+                            <p
+                              data-role="preview-time"
+                              class="mt-2 text-center text-[11px] font-semibold text-white/80"
+                            >
+                              {format_duration(0)}
+                            </p>
+                          </div>
+
+                          <label class="sr-only" for={"video-progress-modal-#{selected.id}"}>
+                            Progresso do video
+                          </label>
+                          <input
+                            id={"video-progress-modal-#{selected.id}"}
+                            data-role="progress"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="0"
+                            step="0.1"
+                            class="video-preview-range"
+                            aria-label="Progresso do video"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="rounded-[1.2rem] border border-white/10 bg-black/55 p-4 text-white shadow-[0_20px_40px_rgba(15,23,42,0.28)] backdrop-blur-xl">
+                        <div class="flex flex-wrap items-center gap-3">
+                          <button
+                            type="button"
+                            data-action="toggle-play"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Reproduzir video"
+                          >
+                            <svg
+                              data-icon="play"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="ml-0.5 size-4"
+                              aria-hidden="true"
+                            >
+                              <path d="M8 6.82v10.36c0 .79.87 1.26 1.54.84l8.17-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82Z" />
+                            </svg>
+                            <svg
+                              data-icon="pause"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="hidden size-4"
+                              aria-hidden="true"
+                            >
+                              <path d="M7 5.75A.75.75 0 0 1 7.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 7 18.25V5.75Zm7 0A.75.75 0 0 1 14.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V5.75Z" />
+                            </svg>
+                          </button>
+
+                          <button
+                            type="button"
+                            data-action="seek-backward"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Voltar 5 segundos"
+                          >
+                            <span class="hero-backward size-4"></span>
+                          </button>
+
+                          <button
+                            type="button"
+                            data-action="seek-forward"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Avancar 5 segundos"
+                          >
+                            <span class="hero-forward size-4"></span>
+                          </button>
+
+                          <button
+                            type="button"
+                            data-action="toggle-mute"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Silenciar video"
+                          >
+                            <svg
+                              data-icon="volume-on"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="size-4"
+                              aria-hidden="true"
+                            >
+                              <path d="M14.72 4.61a.75.75 0 0 1 1.06.08 10.1 10.1 0 0 1 0 14.62.75.75 0 0 1-1.14-.98 8.6 8.6 0 0 0 0-12.66.75.75 0 0 1 .08-1.06Z" />
+                              <path d="M12.6 7.34a.75.75 0 0 1 1.04.18 6.08 6.08 0 0 1 0 6.96.75.75 0 1 1-1.22-.88 4.58 4.58 0 0 0 0-5.2.75.75 0 0 1 .18-1.06Z" />
+                              <path d="M4 9.5A1.5 1.5 0 0 1 5.5 8H8l3.38-2.7A1 1 0 0 1 13 6.08v11.84a1 1 0 0 1-1.62.78L8 16H5.5A1.5 1.5 0 0 1 4 14.5v-5Z" />
+                            </svg>
+                            <svg
+                              data-icon="volume-off"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              class="hidden size-4"
+                              aria-hidden="true"
+                            >
+                              <path d="M14.5 6.08a1 1 0 0 0-1.62-.78L9.5 8H7a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 7 16h2.5l3.38 2.7a1 1 0 0 0 1.62-.78V6.08Z" />
+                              <path d="M17.78 8.22a.75.75 0 0 0-1.06 1.06L18.44 11l-1.72 1.72a.75.75 0 1 0 1.06 1.06L19.5 12.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L20.56 11l1.72-1.72a.75.75 0 1 0-1.06-1.06L19.5 9.94l-1.72-1.72Z" />
+                            </svg>
+                          </button>
+
+                          <div class="min-w-0 grow">
+                            <p class="text-sm font-medium text-white/92">
+                              <span data-role="current-time">{format_duration(0)}</span>
+                              <span class="text-white/35"> / </span>
+                              <span data-role="duration-inline">{format_duration(0)}</span>
+                            </p>
+                          </div>
+
+                          <div class="flex items-center gap-2 rounded-full bg-white/6 px-3 py-1.5 text-sm text-white/75">
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                              Speed
+                            </span>
+                            <button
+                              type="button"
+                              data-action="speed-down"
+                              class="rounded-full px-2 py-1 transition hover:bg-white/10"
+                              aria-label="Diminuir velocidade"
+                            >
+                              -
+                            </button>
+                            <span
+                              data-role="speed-badge"
+                              class="min-w-8 text-center font-semibold text-white"
+                            >
+                              1x
+                            </span>
+                            <button
+                              type="button"
+                              data-action="speed-up"
+                              class="rounded-full px-2 py-1 transition hover:bg-white/10"
+                              aria-label="Aumentar velocidade"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            data-action="toggle-fullscreen"
+                            class="flex size-10 items-center justify-center rounded-full bg-white/6 text-white/80 transition hover:bg-white/12 hover:text-white focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                            aria-label="Ativar tela cheia"
+                          >
+                            <span class="hero-arrows-pointing-out size-4" data-icon="fullscreen-enter">
+                            </span>
+                            <span
+                              class="hero-arrows-pointing-in hidden size-4"
+                              data-icon="fullscreen-exit"
+                            >
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <aside class="space-y-5">
+                      <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
+                        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
+                          Atalhos do teclado
+                        </p>
+
+                        <div class="mt-5 space-y-4 text-sm text-white/72">
+                          <div class="flex items-center justify-between gap-4">
+                            <span>Play / Pause</span>
+                            <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                              Espaço
+                            </kbd>
+                          </div>
+                          <div class="flex items-center justify-between gap-4">
+                            <span>Pular 5s</span>
+                            <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                              Setas Esquerda/Direita
+                            </kbd>
+                          </div>
+                          <div class="flex items-center justify-between gap-4">
+                            <span>Velocidade +/-</span>
+                            <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                              Setas Cima/Baixo
+                            </kbd>
+                          </div>
+                          <div class="flex items-center justify-between gap-4">
+                            <span>Resetar velocidade</span>
+                            <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                              R
+                            </kbd>
+                          </div>
+                          <div class="flex items-center justify-between gap-4">
+                            <span>Fullscreen</span>
+                            <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                              F
+                            </kbd>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
+                        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
+                          Sobre o player
+                        </p>
+                        <p class="mt-5 text-base leading-8 text-white/62">
+                          O OpenDrive Player usa aceleracao nativa do navegador para reproducao suave.
+                          MP4, WebM e OGG continuam privados no app, com controles dedicados para
+                          fullscreen, velocidade e navegacao rapida por teclado.
+                        </p>
+                      </section>
+                    </aside>
                   </div>
                 </div>
               </div>

@@ -92,7 +92,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
 
     assert html =~ ~s(src="/app/files/)
     assert html =~ "<img"
-    assert html =~ "<video"
+    assert html =~ ~s(phx-click="open_video")
+    assert html =~ "Abrir player"
   end
 
   test "opens the image carousel and advances to the next visible photo", %{conn: conn} do
@@ -147,6 +148,44 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> render_keydown("image_keydown", %{"key" => "ArrowRight"})
 
     assert html =~ "second.webp"
+  end
+
+  test "opens the video in a modal player", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Video Modal Space"})
+    video_path = Path.join(System.tmp_dir!(), "open_drive-modal-video.mp4")
+    File.write!(video_path, "fake video")
+
+    {:ok, video} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: video_path,
+        client_name: "demo.mp4",
+        content_type: "video/mp4",
+        size: byte_size("fake video")
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='open_video'][phx-value-id='#{video.id}']")
+      |> render_click()
+
+    assert html =~ "OpenDrive Player"
+    assert html =~ "demo.mp4"
+    assert html =~ ~s(id="video-modal-#{video.id}")
+    assert html =~ "Atalhos do teclado"
+    assert html =~ "Play / Pause"
+    assert html =~ "Fullscreen"
+    assert html =~ ~s(data-role="preview-popover")
+    assert html =~ ~s(data-role="preview-canvas")
+
+    html =
+      lv
+      |> element("button[phx-click='close_video'][aria-label='Fechar']")
+      |> render_click()
+
+    refute html =~ "OpenDrive Player"
   end
 
   test "filters and switches between grid and list controls", %{conn: conn} do
