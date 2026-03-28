@@ -104,7 +104,7 @@ defmodule OpenDrive.Accounts do
 
     case Repo.one(query) do
       {user, inserted_at} ->
-        {user_with_authenticated_at(user, inserted_at), inserted_at}
+        {user, inserted_at}
 
       nil ->
         nil
