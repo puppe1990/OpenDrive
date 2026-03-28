@@ -137,22 +137,14 @@ defmodule OpenDrive.Accounts do
     user_attrs_with_tenant = put_tenant_name(user_attrs, tenant_attrs)
     registration_changeset = change_user_registration_with_tenant(%User{}, user_attrs_with_tenant)
 
-    if registration_changeset.valid? do
-      Repo.transaction(fn ->
-        with {:ok, user} <- register_user(user_attrs),
-             {:ok, tenant} <- Tenancy.create_tenant_with_owner(user, tenant_attrs) do
-          %{user: user, tenant: tenant}
-        else
-          {:error, %Ecto.Changeset{} = changeset} ->
-            Repo.rollback(remap_registration_error(user_attrs_with_tenant, changeset))
+    case registration_changeset.valid? do
+      true ->
+        user_attrs_with_tenant
+        |> register_user_with_tenant_transaction(user_attrs, tenant_attrs)
+        |> normalize_transaction_result()
 
-          {:error, reason} ->
-            Repo.rollback(reason)
-        end
-      end)
-      |> normalize_transaction_result()
-    else
-      {:error, %{registration_changeset | action: :insert}}
+      false ->
+        {:error, %{registration_changeset | action: :insert}}
     end
   end
 
@@ -166,15 +158,32 @@ defmodule OpenDrive.Accounts do
 
   defp update_user_and_delete_all_tokens(changeset) do
     Repo.transaction(fn ->
-      with {:ok, user} <- Repo.update(changeset) do
-        tokens = Repo.all(from(UserToken, where: [user_id: ^user.id]))
-        Repo.delete_all(from(UserToken, where: [user_id: ^user.id]))
-        {user, tokens}
-      else
-        {:error, changeset} -> Repo.rollback(changeset)
+      case Repo.update(changeset) do
+        {:ok, user} ->
+          tokens = Repo.all(from(UserToken, where: [user_id: ^user.id]))
+          Repo.delete_all(from(UserToken, where: [user_id: ^user.id]))
+          {user, tokens}
+
+        {:error, changeset} ->
+          Repo.rollback(changeset)
       end
     end)
     |> normalize_transaction_result()
+  end
+
+  defp register_user_with_tenant_transaction(user_attrs_with_tenant, user_attrs, tenant_attrs) do
+    Repo.transaction(fn ->
+      with {:ok, user} <- register_user(user_attrs),
+           {:ok, tenant} <- Tenancy.create_tenant_with_owner(user, tenant_attrs) do
+        %{user: user, tenant: tenant}
+      else
+        {:error, %Ecto.Changeset{} = changeset} ->
+          Repo.rollback(remap_registration_error(user_attrs_with_tenant, changeset))
+
+        {:error, reason} ->
+          Repo.rollback(reason)
+      end
+    end)
   end
 
   defp user_with_authenticated_at(user, inserted_at) do

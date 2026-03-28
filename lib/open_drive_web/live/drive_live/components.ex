@@ -742,15 +742,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
   defp preview_icon(:file), do: "hero-document"
 
   defp sort_icon(sort, field) do
-    case {field, sort} do
-      {"name", "name_asc"} -> "hero-chevron-up"
-      {"name", "name_desc"} -> "hero-chevron-down"
-      {"type", "type_asc"} -> "hero-chevron-up"
-      {"type", "type_desc"} -> "hero-chevron-down"
-      {"modified", "modified_asc"} -> "hero-chevron-up"
-      {"modified", "modified_desc"} -> "hero-chevron-down"
-      {"size", "size_asc"} -> "hero-chevron-up"
-      {"size", "size_desc"} -> "hero-chevron-down"
+    case sort do
+      sort when sort == field <> "_asc" -> "hero-chevron-up"
+      sort when sort == field <> "_desc" -> "hero-chevron-down"
       _ -> "hero-chevron-up-down"
     end
   end

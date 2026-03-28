@@ -39,7 +39,19 @@ Then open [http://localhost:4000](http://localhost:4000).
 ```bash
 mix format
 mix test
+mix credo --strict
+mix precommit
 ```
+
+## Quality gate before push
+
+Use the project hook to block pushes when formatting, lint, or tests fail:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The same gate also runs in GitHub Actions on `push` and `pull_request` via `mix precommit`.
 
 ## Storage configuration
 

@@ -296,22 +296,25 @@ defmodule OpenDriveWeb.UserLive.Settings do
     %{"user" => user_params} = params
     user = socket.assigns.current_scope.user
 
-    with :ok <- ensure_sudo_mode(user) do
-      case Accounts.change_user_email(user, user_params) do
-        %{valid?: true} = changeset ->
-          Accounts.deliver_user_update_email_instructions(
-            Ecto.Changeset.apply_action!(changeset, :insert),
-            user.email,
-            &url(~p"/users/settings/confirm-email/#{&1}")
-          )
+    case ensure_sudo_mode(user) do
+      :ok ->
+        case Accounts.change_user_email(user, user_params) do
+          %{valid?: true} = changeset ->
+            Accounts.deliver_user_update_email_instructions(
+              Ecto.Changeset.apply_action!(changeset, :insert),
+              user.email,
+              &url(~p"/users/settings/confirm-email/#{&1}")
+            )
 
-          info = gettext("A link to confirm your email change has been sent to the new address.")
-          {:noreply, socket |> put_flash(:info, info)}
+            info =
+              gettext("A link to confirm your email change has been sent to the new address.")
 
-        changeset ->
-          {:noreply, assign(socket, :email_form, to_form(changeset, action: :insert))}
-      end
-    else
+            {:noreply, socket |> put_flash(:info, info)}
+
+          changeset ->
+            {:noreply, assign(socket, :email_form, to_form(changeset, action: :insert))}
+        end
+
       {:error, message} ->
         {:noreply, socket |> put_flash(:error, message) |> redirect(to: ~p"/users/log-in")}
     end
@@ -333,15 +336,16 @@ defmodule OpenDriveWeb.UserLive.Settings do
     %{"user" => user_params} = params
     user = socket.assigns.current_scope.user
 
-    with :ok <- ensure_sudo_mode(user) do
-      case Accounts.change_user_password(user, user_params) do
-        %{valid?: true} = changeset ->
-          {:noreply, assign(socket, trigger_submit: true, password_form: to_form(changeset))}
+    case ensure_sudo_mode(user) do
+      :ok ->
+        case Accounts.change_user_password(user, user_params) do
+          %{valid?: true} = changeset ->
+            {:noreply, assign(socket, trigger_submit: true, password_form: to_form(changeset))}
 
-        changeset ->
-          {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
-      end
-    else
+          changeset ->
+            {:noreply, assign(socket, password_form: to_form(changeset, action: :insert))}
+        end
+
       {:error, message} ->
         {:noreply, socket |> put_flash(:error, message) |> redirect(to: ~p"/users/log-in")}
     end

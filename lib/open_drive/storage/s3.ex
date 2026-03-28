@@ -1,11 +1,17 @@
 defmodule OpenDrive.Storage.S3 do
+  @moduledoc """
+  S3-backed implementation of the storage behaviour.
+  """
+
   @behaviour OpenDrive.Storage
+
+  alias ExAws.S3.Upload
 
   def put_object(key, {:file, path}, opts) do
     content_type = Keyword.get(opts, :content_type, "application/octet-stream")
 
     path
-    |> ExAws.S3.Upload.stream_file()
+    |> Upload.stream_file()
     |> ExAws.S3.upload(OpenDrive.Storage.bucket(), key, content_type: content_type)
     |> ExAws.request()
   end

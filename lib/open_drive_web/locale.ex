@@ -1,4 +1,8 @@
 defmodule OpenDriveWeb.Locale do
+  @moduledoc """
+  Resolves the active locale from params, session, and request headers.
+  """
+
   @behaviour Plug
 
   import Plug.Conn
