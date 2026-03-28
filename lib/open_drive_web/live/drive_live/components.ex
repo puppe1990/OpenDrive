@@ -157,64 +157,6 @@ defmodule OpenDriveWeb.DriveLive.Components do
   def main_content(assigns) do
     ~H"""
     <div class="space-y-5">
-      <header class="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.28),transparent_28%),linear-gradient(135deg,#ffffff_0%,#f4f8ff_54%,#eef6ff_100%)] p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] ring-1 ring-white/70">
-        <div class="flex flex-wrap items-start justify-between gap-6">
-          <div class="max-w-3xl">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-700/70">
-              {gettext("Internal Drive")}
-            </p>
-            <div class="mt-3 flex items-center gap-2">
-              <h1 class="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-                {gettext("My Drive")}
-              </h1>
-              <.icon name="hero-chevron-down" class="size-4 text-slate-400" />
-            </div>
-            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              {gettext(
-                "Browse folders, manage uploads, and keep your workspace organized without leaving this view."
-              )}
-            </p>
-            <nav class="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <.link
-                navigate={~p"/app"}
-                class="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 shadow-sm ring-1 ring-slate-200/70"
-              >
-                {gettext("Root")}
-              </.link>
-              <%= for folder <- @view.breadcrumbs do %>
-                <span>/</span>
-                <.link
-                  navigate={~p"/app/folders/#{folder.id}"}
-                  class="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 shadow-sm ring-1 ring-slate-200/70"
-                >
-                  {folder.name}
-                </.link>
-              <% end %>
-            </nav>
-          </div>
-
-          <div class="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[31rem]">
-            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
-              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Folders")}</p>
-              <p class="mt-1 text-xl font-semibold text-slate-950">{@view.folder_count}</p>
-              <p class="mt-2 text-xs text-slate-500">{gettext("Structured spaces for teams")}</p>
-            </div>
-            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
-              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Files")}</p>
-              <p class="mt-1 text-xl font-semibold text-slate-950">{@view.file_count}</p>
-              <p class="mt-2 text-xs text-slate-500">{gettext("Documents, media, and exports")}</p>
-            </div>
-            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
-              <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Size")}</p>
-              <p class="mt-1 text-xl font-semibold text-slate-950">
-                {format_bytes(@view.total_size)}
-              </p>
-              <p class="mt-2 text-xs text-slate-500">{gettext("Current folder footprint")}</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <section
         id="folder-dropzone"
         phx-hook="DirectUploadZone"
