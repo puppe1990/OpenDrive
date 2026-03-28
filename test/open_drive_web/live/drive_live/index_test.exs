@@ -139,6 +139,35 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert String.contains?(renamed_file.file_object.key, "final")
   end
 
+  test "renames a folder from the drive list using a modal", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Rename Folder Space"})
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Drafts"})
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='start_rename_folder'][phx-value-id='#{folder.id}']")
+      |> render_click()
+
+    assert html =~ "Renomear pasta"
+    assert html =~ "O novo nome sera exibido imediatamente para este workspace."
+    assert html =~ "Salvar"
+
+    html =
+      lv
+      |> element("form[phx-submit='rename_folder']")
+      |> render_submit(%{"folder_id" => "#{folder.id}", "rename" => %{"name" => "Approved"}})
+
+    assert html =~ "Folder renamed."
+    assert html =~ "Approved"
+
+    [renamed_folder] = Drive.list_children(workspace.scope).folders
+    assert renamed_folder.id == folder.id
+    assert renamed_folder.name == "Approved"
+  end
+
   test "asks for confirmation before deleting a folder", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Folder Delete Space"})
     {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Invoices"})

@@ -151,6 +151,27 @@ defmodule OpenDrive.DriveTest do
     assert File.exists?(new_path)
   end
 
+  test "rename_folder/3 updates the folder name within the same directory" do
+    workspace = workspace_fixture()
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Drafts"})
+
+    assert {:ok, renamed_folder} =
+             Drive.rename_folder(workspace.scope, folder.id, %{name: "Approved"})
+
+    assert renamed_folder.name == "Approved"
+    assert [%{id: listed_id, name: "Approved"}] = Drive.list_children(workspace.scope).folders
+    assert listed_id == folder.id
+  end
+
+  test "rename_folder/3 enforces unique names within the same directory" do
+    workspace = workspace_fixture()
+    {:ok, _folder} = Drive.create_folder(workspace.scope, %{name: "Finance"})
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Legal"})
+
+    assert {:error, :name_conflict} =
+             Drive.rename_folder(workspace.scope, folder.id, %{name: "Finance"})
+  end
+
   test "upload_file/3 persists files inside an existing folder" do
     workspace = workspace_fixture()
     {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Fotos"})
@@ -251,7 +272,12 @@ defmodule OpenDrive.DriveTest do
     {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Temporary"})
 
     storage_path =
-      Path.join([System.tmp_dir!(), "open_drive_storage", OpenDrive.Storage.bucket(), file.file_object.key])
+      Path.join([
+        System.tmp_dir!(),
+        "open_drive_storage",
+        OpenDrive.Storage.bucket(),
+        file.file_object.key
+      ])
 
     other_storage_path =
       Path.join([

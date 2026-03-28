@@ -18,6 +18,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:rename_form, to_form(%{"name" => ""}, as: "rename"))
       |> assign(:controls, @default_controls)
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
+      |> assign(:editing_folder_id, nil)
       |> assign(:editing_file_id, nil)
       |> assign(:pending_delete_folder_id, nil)
       |> assign(:pending_delete_file_id, nil)
@@ -170,6 +171,21 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, assign(socket, :pending_delete_file_id, normalize_id(id))}
   end
 
+  def handle_event("start_rename_folder", %{"id" => id}, socket) do
+    folder_id = normalize_id(id)
+
+    case Enum.find(socket.assigns.children.folders, &(&1.id == folder_id)) do
+      nil ->
+        {:noreply, socket}
+
+      folder ->
+        {:noreply,
+         socket
+         |> assign(:editing_folder_id, folder_id)
+         |> assign(:rename_form, to_form(%{"name" => folder.name}, as: "rename"))}
+    end
+  end
+
   def handle_event("toggle_entry_selection", %{"key" => key}, socket) do
     visible_keys = visible_entry_keys(socket.assigns.entries)
 
@@ -264,6 +280,33 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   def handle_event("cancel_rename_file", _params, socket) do
     {:noreply, clear_rename_state(socket)}
+  end
+
+  def handle_event("cancel_rename_folder", _params, socket) do
+    {:noreply, clear_rename_state(socket)}
+  end
+
+  def handle_event("rename_folder", %{"folder_id" => id, "rename" => %{"name" => name}}, socket) do
+    case Drive.rename_folder(socket.assigns.current_scope, normalize_id(id), %{name: name}) do
+      {:ok, _folder} ->
+        {:noreply,
+         socket
+         |> clear_rename_state()
+         |> put_flash(:info, "Folder renamed.")
+         |> load_drive(socket.assigns.current_folder_id)}
+
+      {:error, :name_conflict} ->
+        {:noreply, put_flash(socket, :error, "Name already used in this folder.")}
+
+      {:error, :not_found} ->
+        {:noreply,
+         socket
+         |> clear_rename_state()
+         |> put_flash(:error, "Folder not found.")}
+
+      {:error, _reason} ->
+        {:noreply, put_flash(socket, :error, "Unable to rename folder.")}
+    end
   end
 
   def handle_event("rename_file", %{"file_id" => id, "rename" => %{"name" => name}}, socket) do
@@ -393,8 +436,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp clear_rename_state(socket) do
     socket
+    |> assign(:editing_folder_id, nil)
     |> assign(:editing_file_id, nil)
     |> assign(:rename_form, to_form(%{"name" => ""}, as: "rename"))
+  end
+
+  defp editing_folder(entries, editing_folder_id) do
+    Enum.find(entries, &(&1.kind == :folder and &1.id == editing_folder_id))
   end
 
   defp editing_file(entries, editing_file_id) do
@@ -720,6 +768,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       assigns
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
       |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
+      |> assign(:editing_folder, editing_folder(assigns.entries, assigns.editing_folder_id))
       |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
       |> assign(
         :selected_list_entries,
@@ -1084,8 +1133,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
             >
               <%= for entry <- @entries do %>
                 <article class="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
-                  <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-                    <div class="flex min-w-0 items-center gap-3">
+                  <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
                       <div class={[
                         "flex size-10 items-center justify-center rounded-2xl",
                         entry.kind == :folder && "bg-sky-100 text-sky-700",
@@ -1108,31 +1157,41 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         <p class="text-xs text-slate-400">{relative_time(entry.updated_at)}</p>
                       </div>
                     </div>
-                    <button
-                      :if={entry.kind == :folder}
-                      phx-click="delete_folder"
-                      phx-value-id={entry.id}
-                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
-                    >
-                      <.icon name="hero-trash" class="size-4" />
-                    </button>
-                    <button
-                      :if={entry.kind == :file}
-                      phx-click="start_rename_file"
-                      phx-value-id={entry.id}
-                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-sky-600"
-                    >
-                      <.icon name="hero-pencil-square" class="size-4" />
-                    </button>
-                    <button
-                      :if={entry.kind == :file}
-                      type="button"
-                      phx-click="delete_file"
-                      phx-value-id={entry.id}
-                      class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
-                    >
-                      <.icon name="hero-trash" class="size-4" />
-                    </button>
+                    <div class="flex shrink-0 items-center gap-1">
+                      <button
+                        :if={entry.kind == :folder}
+                        phx-click="start_rename_folder"
+                        phx-value-id={entry.id}
+                        class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-sky-600"
+                      >
+                        <.icon name="hero-pencil-square" class="size-4" />
+                      </button>
+                      <button
+                        :if={entry.kind == :folder}
+                        phx-click="delete_folder"
+                        phx-value-id={entry.id}
+                        class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
+                      >
+                        <.icon name="hero-trash" class="size-4" />
+                      </button>
+                      <button
+                        :if={entry.kind == :file}
+                        phx-click="start_rename_file"
+                        phx-value-id={entry.id}
+                        class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-sky-600"
+                      >
+                        <.icon name="hero-pencil-square" class="size-4" />
+                      </button>
+                      <button
+                        :if={entry.kind == :file}
+                        type="button"
+                        phx-click="delete_file"
+                        phx-value-id={entry.id}
+                        class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
+                      >
+                        <.icon name="hero-trash" class="size-4" />
+                      </button>
+                    </div>
                   </div>
 
                   <div class="bg-[linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] p-4">
@@ -1472,6 +1531,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     </.link>
                     <button
                       :if={entry.kind == :folder}
+                      phx-click="start_rename_folder"
+                      phx-value-id={entry.id}
+                      class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-sky-600"
+                    >
+                      <.icon name="hero-pencil-square" class="size-4" />
+                    </button>
+                    <button
+                      :if={entry.kind == :folder}
                       phx-click="delete_folder"
                       phx-value-id={entry.id}
                       class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
@@ -1546,6 +1613,68 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       <button
                         type="button"
                         phx-click="cancel_rename_file"
+                        class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                      >
+                        Salvar
+                      </button>
+                    </div>
+                  </.form>
+                </div>
+              </div>
+            <% end %>
+
+            <%= if selected = @editing_folder do %>
+              <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4">
+                <button
+                  type="button"
+                  phx-click="cancel_rename_folder"
+                  class="absolute inset-0 cursor-default"
+                  aria-label="Fechar modal de renomear pasta"
+                >
+                </button>
+
+                <div class="relative z-10 w-full max-w-xl overflow-hidden rounded-[2rem] bg-white shadow-2xl ring-1 ring-slate-200">
+                  <div class="border-b border-slate-200 px-6 py-5">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-sky-600">
+                      Renomear pasta
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      {selected.name}
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      O novo nome sera exibido imediatamente para este workspace.
+                    </p>
+                  </div>
+
+                  <.form for={@rename_form} phx-submit="rename_folder" class="space-y-5 px-6 py-6">
+                    <input type="hidden" name="folder_id" value={selected.id} />
+
+                    <div>
+                      <label class="block text-sm font-medium text-slate-700">Novo nome</label>
+                      <input
+                        type="text"
+                        name={@rename_form[:name].name}
+                        value={@rename_form[:name].value}
+                        class="mt-2 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-950 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-2 focus:ring-sky-200"
+                        required
+                        autofocus
+                      />
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500 ring-1 ring-slate-200">
+                      Pasta · atualizada neste nivel do Drive
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_rename_folder"
                         class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
                       >
                         Cancelar

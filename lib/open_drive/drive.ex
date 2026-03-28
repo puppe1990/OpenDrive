@@ -183,6 +183,29 @@ defmodule OpenDrive.Drive do
     end
   end
 
+  def rename_folder(%Scope{} = scope, folder_id, attrs) do
+    new_name = attrs[:name] || attrs["name"]
+
+    with %Folder{} = folder <-
+           Folder
+           |> where(
+             [f],
+             f.tenant_id == ^Scope.tenant_id(scope) and f.id == ^folder_id and
+               is_nil(f.deleted_at)
+           )
+           |> Repo.one(),
+         :ok <-
+           ensure_name_available(scope, new_name, folder.parent_folder_id, :folder, folder.id),
+         {:ok, renamed_folder} <- persist_renamed_folder(folder, new_name) do
+      Audit.log(scope, "folder.renamed", "folder", renamed_folder.id, %{name: renamed_folder.name})
+
+      {:ok, renamed_folder}
+    else
+      nil -> {:error, :not_found}
+      {:error, _} = error -> error
+    end
+  end
+
   def download_url(%Scope{} = scope, file_id) do
     file =
       DriveFile
@@ -559,6 +582,12 @@ defmodule OpenDrive.Drive do
         _ = Storage.move_object(new_key, old_key)
         {:error, reason}
     end
+  end
+
+  defp persist_renamed_folder(folder, new_name) do
+    folder
+    |> Folder.changeset(%{name: new_name})
+    |> Repo.update()
   end
 
   defp do_breadcrumbs(%Folder{parent_folder_id: nil} = folder, _scope, acc), do: [folder | acc]
