@@ -14,7 +14,12 @@ defmodule OpenDriveWeb.DriveLive.Index do
   def mount(_params, _session, socket) do
     socket =
       socket
-      |> allow_upload(:files, accept: :any, max_entries: 5)
+      |> allow_upload(:files,
+        accept: :any,
+        max_entries: 5,
+        auto_upload: true,
+        progress: &handle_progress/3
+      )
       |> assign(:folder_form, to_form(%{"name" => ""}, as: "folder"))
       |> assign(:controls, @default_controls)
       |> assign(:controls_form, to_form(@default_controls, as: "controls"))
@@ -54,11 +59,45 @@ defmodule OpenDriveWeb.DriveLive.Index do
   def handle_event("set_sidebar_preset", %{"preset" => preset}, socket) do
     controls =
       case preset do
-        "my_drive" -> %{"query" => "", "type" => "all", "sort" => "modified_desc", "view" => current_view(socket)}
-        "recent" -> %{"query" => "", "type" => "all", "sort" => "modified_desc", "view" => current_view(socket)}
-        "images" -> %{"query" => "", "type" => "images", "sort" => "modified_desc", "view" => current_view(socket)}
-        "videos" -> %{"query" => "", "type" => "videos", "sort" => "modified_desc", "view" => current_view(socket)}
-        "folders" -> %{"query" => "", "type" => "folders", "sort" => "name_asc", "view" => current_view(socket)}
+        "my_drive" ->
+          %{
+            "query" => "",
+            "type" => "all",
+            "sort" => "modified_desc",
+            "view" => current_view(socket)
+          }
+
+        "recent" ->
+          %{
+            "query" => "",
+            "type" => "all",
+            "sort" => "modified_desc",
+            "view" => current_view(socket)
+          }
+
+        "images" ->
+          %{
+            "query" => "",
+            "type" => "images",
+            "sort" => "modified_desc",
+            "view" => current_view(socket)
+          }
+
+        "videos" ->
+          %{
+            "query" => "",
+            "type" => "videos",
+            "sort" => "modified_desc",
+            "view" => current_view(socket)
+          }
+
+        "folders" ->
+          %{
+            "query" => "",
+            "type" => "folders",
+            "sort" => "name_asc",
+            "view" => current_view(socket)
+          }
       end
 
     socket =
@@ -100,42 +139,6 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, socket}
   end
 
-  def handle_event("upload", _params, socket) do
-    case uploaded_entries(socket, :files) do
-      {[], []} ->
-        {:noreply, put_flash(socket, :error, "Select a file and wait for it to finish loading.")}
-
-      {[], _in_progress} ->
-        {:noreply, put_flash(socket, :error, "Upload still in progress. Wait a moment and try again.")}
-
-      {_completed, _in_progress} ->
-        results =
-          consume_uploaded_entries(socket, :files, fn %{path: path}, entry ->
-            upload = %{
-              path: path,
-              client_name: entry.client_name,
-              content_type: entry.client_type,
-              size: entry.client_size
-            }
-
-            Drive.upload_file(
-              socket.assigns.current_scope,
-              %{folder_id: socket.assigns.current_folder_id},
-              upload
-            )
-          end)
-
-        error? = Enum.any?(results, &match?({:error, _}, &1))
-
-        socket =
-          if error?,
-            do: put_flash(socket, :error, "Upload failed for at least one file."),
-            else: put_flash(socket, :info, "Upload complete.")
-
-        {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
-    end
-  end
-
   def handle_event("delete_folder", %{"id" => id}, socket) do
     {:ok, _} = Drive.soft_delete_node(socket.assigns.current_scope, {:folder, id})
     {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
@@ -144,6 +147,39 @@ defmodule OpenDriveWeb.DriveLive.Index do
   def handle_event("delete_file", %{"id" => id}, socket) do
     {:ok, _} = Drive.soft_delete_node(socket.assigns.current_scope, {:file, id})
     {:noreply, load_drive(socket, socket.assigns.current_folder_id)}
+  end
+
+  defp handle_progress(:files, entry, socket) do
+    if entry.done? do
+      result =
+        consume_uploaded_entry(socket, entry, fn %{path: path} ->
+          upload = %{
+            path: path,
+            client_name: entry.client_name,
+            content_type: entry.client_type,
+            size: entry.client_size
+          }
+
+          Drive.upload_file(
+            socket.assigns.current_scope,
+            %{folder_id: socket.assigns.current_folder_id},
+            upload
+          )
+        end)
+
+      case result do
+        %Drive.File{} ->
+          {:noreply,
+           socket
+           |> put_flash(:info, "Upload complete.")
+           |> load_drive(socket.assigns.current_folder_id)}
+
+        {:error, _reason} ->
+          {:noreply, put_flash(socket, :error, "Upload failed for this file.")}
+      end
+    else
+      {:noreply, socket}
+    end
   end
 
   defp load_drive(socket, folder_id) do
@@ -289,9 +325,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
   defp video_file?(file), do: String.starts_with?(file.file_object.content_type || "", "video/")
 
   defp format_bytes(bytes) when is_integer(bytes) and bytes < 1024, do: "#{bytes} B"
-  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_048_576, do: "#{Float.round(bytes / 1024, 1)} KB"
-  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_073_741_824, do: "#{Float.round(bytes / 1_048_576, 1)} MB"
-  defp format_bytes(bytes) when is_integer(bytes), do: "#{Float.round(bytes / 1_073_741_824, 1)} GB"
+
+  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_048_576,
+    do: "#{Float.round(bytes / 1024, 1)} KB"
+
+  defp format_bytes(bytes) when is_integer(bytes) and bytes < 1_073_741_824,
+    do: "#{Float.round(bytes / 1_048_576, 1)} MB"
+
+  defp format_bytes(bytes) when is_integer(bytes),
+    do: "#{Float.round(bytes / 1_073_741_824, 1)} GB"
+
   defp format_bytes(_), do: "--"
 
   defp relative_time(nil), do: "--"
@@ -327,24 +370,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
               />
             </button>
 
-            <div :if={@new_menu_open} class="space-y-4 rounded-[1.5rem] bg-slate-50 p-3 ring-1 ring-slate-200">
+            <div
+              :if={@new_menu_open}
+              class="space-y-4 rounded-[1.5rem] bg-slate-50 p-3 ring-1 ring-slate-200"
+            >
               <.form for={@folder_form} phx-submit="create_folder" class="space-y-2">
                 <.input field={@folder_form[:name]} type="text" label="Nova pasta" required />
                 <.button class="btn btn-primary w-full">Criar pasta</.button>
-              </.form>
-
-              <.form
-                for={%{}}
-                id="upload_form"
-                phx-change="validate_upload"
-                phx-submit="upload"
-                class="space-y-2"
-              >
-                <.live_file_input
-                  upload={@uploads.files}
-                  class="file-input file-input-bordered w-full bg-white"
-                />
-                <.button class="btn btn-outline w-full">Enviar arquivo</.button>
               </.form>
             </div>
 
@@ -414,7 +446,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <.icon name="hero-chevron-down" class="size-4 text-slate-400" />
                   </div>
                   <nav class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-                    <.link navigate={~p"/app"} class="rounded-full bg-slate-100 px-3 py-1.5">Root</.link>
+                    <.link navigate={~p"/app"} class="rounded-full bg-slate-100 px-3 py-1.5">
+                      Root
+                    </.link>
                     <%= for folder <- @breadcrumbs do %>
                       <span>/</span>
                       <.link
@@ -438,13 +472,44 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   </div>
                   <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
                     <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Tamanho</p>
-                    <p class="mt-1 text-xl font-semibold text-slate-950">{format_bytes(@total_size)}</p>
+                    <p class="mt-1 text-xl font-semibold text-slate-950">
+                      {format_bytes(@total_size)}
+                    </p>
                   </div>
                 </div>
               </div>
             </header>
 
-            <section class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
+            <section
+              id="folder-dropzone"
+              phx-drop-target={@uploads.files.ref}
+              class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70 transition phx-drop-target-active:bg-sky-50/80 phx-drop-target-active:ring-2 phx-drop-target-active:ring-sky-400"
+            >
+              <form id="upload_form" phx-change="validate_upload" class="hidden">
+                <.live_file_input upload={@uploads.files} class="hidden" />
+              </form>
+
+              <div class="mb-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-center">
+                <p class="text-sm font-semibold text-slate-900">Arraste arquivos para esta pasta</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  O upload comeca assim que voce solta o arquivo
+                </p>
+                <p class="mt-1 text-xs text-slate-400">Voce pode soltar ate 5 arquivos por vez</p>
+              </div>
+
+              <div
+                :if={@uploads.files.entries != []}
+                class="mb-4 space-y-1 rounded-2xl bg-white p-3 ring-1 ring-slate-200"
+              >
+                <div
+                  :for={entry <- @uploads.files.entries}
+                  class="flex items-center justify-between gap-3 text-xs text-slate-600"
+                >
+                  <span class="truncate font-medium text-slate-700">{entry.client_name}</span>
+                  <span>{entry.progress}%</span>
+                </div>
+              </div>
+
               <.form
                 for={@controls_form}
                 id="controls_form"
@@ -486,7 +551,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   class="select rounded-2xl bg-slate-100 px-4"
                 />
 
-                <input type="hidden" name={@controls_form[:view].name} value={@controls_form[:view].value} />
+                <input
+                  type="hidden"
+                  name={@controls_form[:view].name}
+                  value={@controls_form[:view].value}
+                />
               </.form>
 
               <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
@@ -494,7 +563,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   <span class="rounded-full bg-slate-100 px-3 py-1.5">
                     {length(@entries)} resultados
                   </span>
-                  <span :if={@controls["type"] != "all"} class="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700">
+                  <span
+                    :if={@controls["type"] != "all"}
+                    class="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"
+                  >
                     filtro: {@controls["type"]}
                   </span>
                 </div>
@@ -628,7 +700,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   <div class="flex items-center justify-between px-4 py-3 text-sm">
                     <div>
                       <p class="text-slate-500">{entry.content_type}</p>
-                      <p :if={entry.kind == :file} class="text-xs text-slate-400">{format_bytes(entry.size)}</p>
+                      <p :if={entry.kind == :file} class="text-xs text-slate-400">
+                        {format_bytes(entry.size)}
+                      </p>
                     </div>
                     <.link
                       :if={entry.kind == :file}

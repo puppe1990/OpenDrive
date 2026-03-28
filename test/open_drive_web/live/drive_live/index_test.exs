@@ -20,7 +20,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     refute html =~ "Hidden Space"
   end
 
-  test "uploads a file from the drive screen", %{conn: conn} do
+  test "uploads a file automatically from the drive screen", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Upload Space"})
 
     conn = log_in_user(conn, workspace.user, workspace.scope)
@@ -37,13 +37,29 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
         }
       ])
 
-    assert render_upload(upload, "notes.txt") =~ "100%"
-    assert render_submit(form(lv, "#upload_form", %{})) =~ "Upload complete."
+    render_upload(upload, "notes.txt")
+    html = render(lv)
+    assert html =~ "Upload complete."
 
     [file] = Drive.list_children(workspace.scope).files
     assert file.name == "notes.txt"
     assert file.file_object.content_type == "text/plain"
     assert Repo.aggregate(OpenDrive.Drive.FileObject, :count) == 1
+  end
+
+  test "renders an automatic drag and drop area for the current folder", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Drop Space"})
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, _lv, html} = live(conn, ~p"/app")
+
+    assert html =~ "Arraste arquivos para esta pasta"
+    assert html =~ "O upload comeca assim que voce solta o arquivo"
+    assert html =~ ~s(id="folder-dropzone")
+    assert html =~ ~s(phx-drop-target=)
+    assert html =~ "data-phx-auto-upload"
+    assert html =~ ~s(type="file")
+    refute html =~ "Enviar arquivo"
   end
 
   test "renders preview markup for image and video files", %{conn: conn} do
