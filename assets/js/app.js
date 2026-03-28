@@ -627,6 +627,8 @@ const Hooks = {
     mounted() {
       this.video = this.el.querySelector("video");
       this.progress = this.el.querySelector('[data-role="progress"]');
+      this.volume = this.el.querySelector('[data-role="volume"]');
+      this.volumeValueLabel = this.el.querySelector('[data-role="volume-value"]');
       this.currentTimeLabel = this.el.querySelector(
         '[data-role="current-time"]',
       );
@@ -677,12 +679,16 @@ const Hooks = {
       this.boundSyncMeta = () => this.syncMeta();
       this.boundHandleEnded = () => this.handleEnded();
       this.boundSeek = (event) => this.seek(event);
+      this.boundSetVolume = (event) => this.setVolume(event);
       this.boundPreviewMove = (event) => this.updatePreview(event);
       this.boundPreviewLeave = () => this.hidePreview();
       this.boundKeydown = (event) => this.handleKeydown(event);
       this.boundFullscreenChange = () => this.syncMeta();
 
       if (!this.video || !this.progress) return;
+
+      this.lastVolume =
+        this.video.volume > 0 ? this.video.volume : Number(this.volume?.value || 100) / 100;
 
       this.playButtons.forEach((button) =>
         button.addEventListener("click", this.boundTogglePlay),
@@ -697,6 +703,7 @@ const Hooks = {
         this.boundToggleFullscreen,
       );
       this.progress.addEventListener("input", this.boundSeek);
+      this.volume?.addEventListener("input", this.boundSetVolume);
       this.progress.addEventListener("mousemove", this.boundPreviewMove);
       this.progress.addEventListener("mouseenter", this.boundPreviewMove);
       this.progress.addEventListener("mouseleave", this.boundPreviewLeave);
@@ -761,6 +768,7 @@ const Hooks = {
         this.boundToggleFullscreen,
       );
       this.progress?.removeEventListener("input", this.boundSeek);
+      this.volume?.removeEventListener("input", this.boundSetVolume);
       this.progress?.removeEventListener("mousemove", this.boundPreviewMove);
       this.progress?.removeEventListener("mouseenter", this.boundPreviewMove);
       this.progress?.removeEventListener("mouseleave", this.boundPreviewLeave);
@@ -794,7 +802,36 @@ const Hooks = {
     toggleMute() {
       if (!this.video) return;
 
+      if (!this.video.muted && this.video.volume > 0) {
+        this.lastVolume = this.video.volume;
+      }
+
       this.video.muted = !this.video.muted;
+
+      if (!this.video.muted && this.video.volume === 0) {
+        this.video.volume = this.lastVolume || 1;
+      }
+
+      if (this.video.muted && this.volume) {
+        this.volume.value = "0";
+      }
+
+      this.syncMeta();
+    },
+
+    setVolume(event) {
+      if (!this.video) return;
+
+      const value = Math.min(100, Math.max(0, Number(event.target.value || 0)));
+      const normalized = value / 100;
+
+      this.video.volume = normalized;
+      this.video.muted = normalized === 0;
+
+      if (normalized > 0) {
+        this.lastVolume = normalized;
+      }
+
       this.syncMeta();
     },
 
@@ -917,6 +954,7 @@ const Hooks = {
         : 0;
       const playing = !this.video.paused && !this.video.ended;
       const muted = this.video.muted;
+      const volume = muted ? 0 : this.video.volume;
       const playbackRate = this.video.playbackRate || 1;
       const fullscreen = document.fullscreenElement === this.el;
 
@@ -928,6 +966,10 @@ const Hooks = {
         (this.speedLabel.textContent = this.formatSpeed(playbackRate));
       this.speedBadge &&
         (this.speedBadge.textContent = this.formatSpeed(playbackRate));
+      this.volume &&
+        (this.volume.value = `${Math.round(volume * 100)}`);
+      this.volumeValueLabel &&
+        (this.volumeValueLabel.textContent = `${Math.round(volume * 100)}%`);
       this.el.dataset.state = playing ? "playing" : "paused";
 
       this.playButtons?.forEach((button) => {

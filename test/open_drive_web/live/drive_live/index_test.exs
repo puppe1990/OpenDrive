@@ -192,6 +192,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Fullscreen"
     assert html =~ ~s(data-role="preview-popover")
     assert html =~ ~s(data-role="preview-canvas")
+    assert html =~ ~s(data-role="volume")
+    assert html =~ "Volume do video"
 
     html =
       lv

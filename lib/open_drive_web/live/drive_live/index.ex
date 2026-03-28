@@ -1678,6 +1678,29 @@ defmodule OpenDriveWeb.DriveLive.Index do
                             </svg>
                           </button>
 
+                          <div class="flex min-w-[11rem] items-center gap-3 rounded-full bg-white/6 px-3 py-2 text-sm text-white/80">
+                            <label class="sr-only" for={"video-volume-modal-#{selected.id}"}>
+                              Volume do video
+                            </label>
+                            <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                              Volume
+                            </span>
+                            <input
+                              id={"video-volume-modal-#{selected.id}"}
+                              data-role="volume"
+                              type="range"
+                              min="0"
+                              max="100"
+                              value="100"
+                              step="1"
+                              class="video-volume-range"
+                              aria-label="Volume do video"
+                            />
+                            <span data-role="volume-value" class="min-w-9 text-right font-semibold text-white">
+                              100%
+                            </span>
+                          </div>
+
                           <div class="min-w-0 grow">
                             <p class="text-sm font-medium text-white/92">
                               <span data-role="current-time">{format_duration(0)}</span>
