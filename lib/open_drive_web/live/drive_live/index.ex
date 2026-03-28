@@ -4,6 +4,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
   alias OpenDrive.Drive
 
   @max_upload_entries 1_000
+  @max_upload_file_size 250_000_000
 
   @default_controls %{
     "query" => "",
@@ -19,6 +20,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> allow_upload(:files,
         accept: :any,
         max_entries: @max_upload_entries,
+        max_file_size: @max_upload_file_size,
         auto_upload: true,
         progress: &handle_progress/3
       )
@@ -140,6 +142,10 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   def handle_event("validate_upload", _params, socket) do
     {:noreply, socket}
+  end
+
+  def handle_event("cancel_upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :files, ref)}
   end
 
   def handle_event("delete_folder", %{"id" => id}, socket) do
@@ -363,6 +369,49 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp current_view(socket), do: socket.assigns.controls["view"] || "grid"
 
+  defp translate_upload_error(:too_large),
+    do: "Arquivo excede o limite de 250 MB."
+
+  defp translate_upload_error(:not_accepted),
+    do: "Tipo de arquivo nao aceito."
+
+  defp translate_upload_error(:too_many_files),
+    do: "Voce selecionou arquivos demais de uma vez."
+
+  defp translate_upload_error(error),
+    do: "Falha ao preparar o upload (#{inspect(error)})."
+
+  defp upload_status(entry, errors) do
+    cond do
+      errors != [] -> :error
+      entry.progress >= 100 -> :complete
+      entry.progress > 0 -> :uploading
+      true -> :queued
+    end
+  end
+
+  defp upload_status_label(:error), do: "Falhou"
+  defp upload_status_label(:complete), do: "Concluido"
+  defp upload_status_label(:uploading), do: "Enviando"
+  defp upload_status_label(:queued), do: "Na fila"
+
+  defp upload_status_classes(:error), do: "bg-rose-100 text-rose-700 ring-1 ring-rose-200"
+  defp upload_status_classes(:complete), do: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+  defp upload_status_classes(:uploading), do: "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+  defp upload_status_classes(:queued), do: "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+
+  defp upload_progress_classes(:error), do: "bg-rose-400"
+  defp upload_progress_classes(:complete), do: "bg-emerald-400"
+  defp upload_progress_classes(:uploading), do: "bg-sky-500"
+  defp upload_progress_classes(:queued), do: "bg-slate-300"
+
+  defp upload_queue_stats(entries, uploads) do
+    Enum.reduce(entries, %{queued: 0, uploading: 0, complete: 0, error: 0}, fn entry, acc ->
+      status = upload_status(entry, upload_errors(uploads, entry))
+      Map.update!(acc, status, &(&1 + 1))
+    end)
+  end
+
   defp visible_images(entries), do: Enum.filter(entries, &(&1.preview == :image))
 
   defp selected_image_id(entries, current_id) do
@@ -423,7 +472,9 @@ defmodule OpenDriveWeb.DriveLive.Index do
   @impl true
   def render(assigns) do
     assigns =
-      assign(assigns, :selected_image, selected_image(assigns.entries, assigns.selected_image_id))
+      assigns
+      |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
+      |> assign(:upload_stats, upload_queue_stats(assigns.uploads.files.entries, assigns.uploads.files))
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
@@ -559,28 +610,131 @@ defmodule OpenDriveWeb.DriveLive.Index do
               class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70 transition phx-drop-target-active:bg-sky-50/80 phx-drop-target-active:ring-2 phx-drop-target-active:ring-sky-400"
             >
               <form id="upload_form" phx-change="validate_upload" class="hidden">
-                <.live_file_input upload={@uploads.files} class="hidden" />
+                <.live_file_input
+                  upload={@uploads.files}
+                  id="folder-upload-input"
+                  class="hidden"
+                />
               </form>
 
-              <div class="mb-4 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50/80 px-4 py-4 text-center">
-                <p class="text-sm font-semibold text-slate-900">Arraste arquivos para esta pasta</p>
-                <p class="mt-1 text-xs text-slate-500">
-                  O upload comeca assim que voce solta o arquivo
-                </p>
-                <p class="mt-1 text-xs text-slate-400">Voce pode soltar varios arquivos por vez</p>
+              <div
+                id="folder-upload-trigger"
+                phx-hook="FilePickerTrigger"
+                data-file-input="#folder-upload-input"
+                role="button"
+                tabindex="0"
+                aria-label="Selecionar arquivos do dispositivo"
+                class="mb-4 block cursor-pointer overflow-hidden rounded-[1.5rem] border border-dashed border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(239,246,255,0.9))] px-4 py-5 text-center transition hover:border-sky-300 hover:bg-sky-50/70 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+              >
+                <div class="flex flex-col items-center justify-center gap-3 sm:flex-row sm:text-left">
+                  <div class="flex size-12 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm ring-1 ring-sky-100">
+                    <.icon name="hero-arrow-up-tray" class="size-6" />
+                  </div>
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">
+                      Arraste arquivos para esta pasta
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      O upload comeca assim que voce solta o arquivo
+                    </p>
+                    <p class="mt-1 text-xs text-slate-400">Voce pode soltar varios arquivos por vez</p>
+                    <p class="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">
+                      Clique para escolher arquivos do dispositivo
+                    </p>
+                  </div>
+                </div>
               </div>
 
               <div
                 :if={@uploads.files.entries != []}
-                class="mb-4 space-y-1 rounded-2xl bg-white p-3 ring-1 ring-slate-200"
+                class="mb-4 overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200"
               >
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+                  <div>
+                    <p class="text-sm font-semibold text-slate-900">Fila de uploads</p>
+                    <p class="text-xs text-slate-500">
+                      Acompanhe o progresso de cada arquivo em tempo real
+                    </p>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-2 text-[11px] font-medium">
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-slate-600 ring-1 ring-slate-200">
+                      {@upload_stats.queued} na fila
+                    </span>
+                    <span class="rounded-full bg-sky-100 px-3 py-1 text-sky-700 ring-1 ring-sky-200">
+                      {@upload_stats.uploading} enviando
+                    </span>
+                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-emerald-700 ring-1 ring-emerald-200">
+                      {@upload_stats.complete} concluidos
+                    </span>
+                    <span class="rounded-full bg-rose-100 px-3 py-1 text-rose-700 ring-1 ring-rose-200">
+                      {@upload_stats.error} com erro
+                    </span>
+                  </div>
+                </div>
+
                 <div
                   :for={entry <- @uploads.files.entries}
-                  class="flex items-center justify-between gap-3 text-xs text-slate-600"
+                  class="border-t border-slate-100 px-4 py-3 first:border-t-0"
                 >
-                  <span class="truncate font-medium text-slate-700">{entry.client_name}</span>
-                  <span>{entry.progress}%</span>
+                  <% errors = upload_errors(@uploads.files, entry) %>
+                  <% status = upload_status(entry, errors) %>
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0 flex-1">
+                      <div class="flex flex-wrap items-center gap-2">
+                        <span class="block truncate text-sm font-medium text-slate-800">
+                        {entry.client_name}
+                        </span>
+                        <span class={["rounded-full px-2.5 py-1 text-[11px] font-semibold", upload_status_classes(status)]}>
+                          {upload_status_label(status)}
+                        </span>
+                      </div>
+
+                      <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
+                        <span>{format_bytes(entry.client_size)}</span>
+                        <span class="text-slate-300">•</span>
+                        <span>{entry.progress}% enviado</span>
+                      </div>
+
+                      <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          class={["h-full rounded-full transition-all duration-300", upload_progress_classes(status)]}
+                          style={"width: #{entry.progress}%"}
+                        >
+                        </div>
+                      </div>
+
+                      <div :if={errors != []} class="mt-2 space-y-1">
+                        <p
+                          :for={error <- errors}
+                          class="text-[11px] font-medium text-rose-600"
+                        >
+                          {translate_upload_error(error)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="flex shrink-0 items-center gap-3">
+                      <button
+                        type="button"
+                        phx-click="cancel_upload"
+                        phx-value-ref={entry.ref}
+                        class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                        aria-label={"Remover #{entry.client_name}"}
+                      >
+                        <.icon name="hero-x-mark" class="size-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              </div>
+
+              <div
+                :if={upload_errors(@uploads.files) != []}
+                class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"
+              >
+                <p :for={error <- upload_errors(@uploads.files)}>
+                  {translate_upload_error(error)}
+                </p>
               </div>
 
               <.form

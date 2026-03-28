@@ -26,6 +26,34 @@ import {hooks as colocatedHooks} from "phoenix-colocated/open_drive"
 import topbar from "../vendor/topbar"
 
 const Hooks = {
+  FilePickerTrigger: {
+    mounted() {
+      this.handleClick = event => {
+        if (event.target.closest("input, button, a, textarea, select")) return
+
+        const selector = this.el.dataset.fileInput
+        const input = selector ? document.querySelector(selector) : null
+
+        input?.click()
+      }
+
+      this.handleKeydown = event => {
+        if (event.key !== "Enter" && event.key !== " ") return
+
+        event.preventDefault()
+        this.handleClick(event)
+      }
+
+      this.el.addEventListener("click", this.handleClick)
+      this.el.addEventListener("keydown", this.handleKeydown)
+    },
+
+    destroyed() {
+      this.el.removeEventListener("click", this.handleClick)
+      this.el.removeEventListener("keydown", this.handleKeydown)
+    },
+  },
+
   PasswordVisibility: {
     mounted() {
       this.input = this.el.querySelector("input")
