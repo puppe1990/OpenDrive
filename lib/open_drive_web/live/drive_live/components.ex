@@ -9,89 +9,144 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def sidebar(assigns) do
     ~H"""
-    <aside class="space-y-5 rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
-      <button
-        phx-click="toggle_new_menu"
-        class="flex w-full items-center justify-between rounded-2xl bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
-      >
-        <span class="flex items-center gap-3">
-          <.icon name="hero-plus" class="size-5" /> {gettext("New")}
-        </span>
-        <.icon
-          name={if @view.new_menu_open, do: "hero-chevron-up", else: "hero-chevron-down"}
-          class="size-4"
-        />
-      </button>
-
-      <div
-        :if={@view.new_menu_open}
-        class="space-y-4 rounded-[1.5rem] bg-slate-50 p-3 ring-1 ring-slate-200"
-      >
-        <.form for={@view.folder_form} phx-submit="create_folder" class="space-y-2">
-          <.input
-            field={@view.folder_form[:name]}
-            type="text"
-            label={gettext("New folder")}
-            required
-          />
-          <.button class="btn btn-primary w-full">{gettext("Create folder")}</.button>
-        </.form>
-      </div>
-
-      <nav class="space-y-1">
-        <button
-          phx-click="set_sidebar_preset"
-          phx-value-preset="my_drive"
-          class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-home" class="size-5 text-slate-500" /> {gettext("My Drive")}
-        </button>
-        <button
-          phx-click="set_sidebar_preset"
-          phx-value-preset="recent"
-          class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-clock" class="size-5 text-slate-500" /> {gettext("Recent")}
-        </button>
-        <button
-          phx-click="set_sidebar_preset"
-          phx-value-preset="images"
-          class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-photo" class="size-5 text-slate-500" /> {gettext("Images")}
-        </button>
-        <button
-          phx-click="set_sidebar_preset"
-          phx-value-preset="videos"
-          class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-film" class="size-5 text-slate-500" /> {gettext("Videos")}
-        </button>
-        <button
-          phx-click="set_sidebar_preset"
-          phx-value-preset="folders"
-          class="flex w-full items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-folder" class="size-5 text-slate-500" /> {gettext("Folders")}
-        </button>
-        <.link
-          navigate={~p"/app/trash"}
-          class="flex items-center gap-3 rounded-2xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-100"
-        >
-          <.icon name="hero-trash" class="size-5 text-slate-500" /> {gettext("Trash")}
-        </.link>
-      </nav>
-
-      <div class="rounded-[1.5rem] bg-slate-950 p-4 text-white">
-        <p class="text-xs uppercase tracking-[0.28em] text-slate-400">{gettext("Workspace")}</p>
-        <p class="mt-2 text-lg font-semibold">{@view.current_scope.tenant.name}</p>
-        <p class="mt-1 text-sm text-slate-400">{@view.current_scope.user.email}</p>
-        <div class="mt-4 h-2 overflow-hidden rounded-full bg-slate-800">
-          <div class="h-full w-full rounded-full bg-sky-400"></div>
+    <aside class="space-y-5 lg:sticky lg:top-6">
+      <div class="overflow-hidden rounded-[1.9rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.98))] p-4 shadow-[0_24px_70px_rgba(148,163,184,0.14)] ring-1 ring-white/70 backdrop-blur">
+        <div class="mb-5 border-b border-slate-200/80 pb-4">
+          <div class="flex items-start gap-3">
+            <div class="flex size-11 items-center justify-center rounded-[1.2rem] bg-slate-950 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,0.22)]">
+              OD
+            </div>
+            <div class="min-w-0">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">
+                {gettext("Workspace")}
+              </p>
+              <p class="mt-2 truncate text-lg font-black tracking-tight text-slate-950">
+                {@view.current_scope.tenant.name}
+              </p>
+              <p class="mt-1 truncate text-sm text-slate-500">{@view.current_scope.user.email}</p>
+            </div>
+          </div>
         </div>
-        <p class="mt-2 text-xs text-slate-400">
-          {gettext("%{size} used in workspace", size: format_bytes(@view.workspace_used_size))}
-        </p>
+
+        <button
+          phx-click="toggle_new_menu"
+          class="flex w-full items-center justify-between rounded-[1.35rem] bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+        >
+          <span class="flex items-center gap-3">
+            <span class="flex size-8 items-center justify-center rounded-xl bg-white/10">
+              <.icon name="hero-plus" class="size-4" />
+            </span>
+            {gettext("New")}
+          </span>
+          <.icon
+            name={if @view.new_menu_open, do: "hero-chevron-up", else: "hero-chevron-down"}
+            class="size-4"
+          />
+        </button>
+
+        <div
+          :if={@view.new_menu_open}
+          class="mt-3 space-y-4 rounded-[1.35rem] border border-slate-200/80 bg-slate-50/90 p-3"
+        >
+          <.form for={@view.folder_form} phx-submit="create_folder" class="space-y-2">
+            <.input
+              field={@view.folder_form[:name]}
+              type="text"
+              label={gettext("New folder")}
+              required
+            />
+            <.button class="btn btn-primary w-full">{gettext("Create folder")}</.button>
+          </.form>
+        </div>
+
+        <div class="mt-5">
+          <p class="px-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
+            {gettext("Browse")}
+          </p>
+          <nav class="mt-3 space-y-1">
+            <button
+              phx-click="set_sidebar_preset"
+              phx-value-preset="my_drive"
+              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-slate-950 text-white">
+                <.icon name="hero-home" class="size-4.5" />
+              </span>
+              {gettext("My Drive")}
+            </button>
+            <button
+              phx-click="set_sidebar_preset"
+              phx-value-preset="recent"
+              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-slate-100 text-slate-600">
+                <.icon name="hero-clock" class="size-4.5" />
+              </span>
+              {gettext("Recent")}
+            </button>
+            <button
+              phx-click="set_sidebar_preset"
+              phx-value-preset="images"
+              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-sky-50 text-sky-700">
+                <.icon name="hero-photo" class="size-4.5" />
+              </span>
+              {gettext("Images")}
+            </button>
+            <button
+              phx-click="set_sidebar_preset"
+              phx-value-preset="videos"
+              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-violet-50 text-violet-700">
+                <.icon name="hero-film" class="size-4.5" />
+              </span>
+              {gettext("Videos")}
+            </button>
+            <button
+              phx-click="set_sidebar_preset"
+              phx-value-preset="folders"
+              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-amber-50 text-amber-700">
+                <.icon name="hero-folder" class="size-4.5" />
+              </span>
+              {gettext("Folders")}
+            </button>
+            <.link
+              navigate={~p"/app/trash"}
+              class="flex items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+            >
+              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-rose-50 text-rose-700">
+                <.icon name="hero-trash" class="size-4.5" />
+              </span>
+              {gettext("Trash")}
+            </.link>
+          </nav>
+        </div>
+
+        <div class="mt-5 border-t border-slate-200/80 pt-4">
+          <div class="flex items-center justify-between gap-3 rounded-[1.2rem] bg-slate-50 px-3 py-3">
+            <div>
+              <p class="text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-400">
+                {gettext("Storage")}
+              </p>
+              <p class="mt-1 text-base font-semibold text-slate-950">
+                {format_bytes(@view.workspace_used_size)}
+              </p>
+            </div>
+            <p class="text-sm font-medium text-slate-500">
+              {@view.folder_count + @view.file_count} {gettext("items")}
+            </p>
+          </div>
+          <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
+            <div class="h-full w-2/3 rounded-full bg-slate-950"></div>
+          </div>
+          <p class="mt-2 px-1 text-xs text-slate-400">
+            {gettext("Workspace overview")}
+          </p>
+        </div>
       </div>
     </aside>
     """
@@ -101,23 +156,36 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def main_content(assigns) do
     ~H"""
-    <div class="space-y-4">
-      <header class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div class="flex items-center gap-2">
-              <h1 class="text-3xl font-black tracking-tight text-slate-950">{gettext("My Drive")}</h1>
+    <div class="space-y-5">
+      <header class="overflow-hidden rounded-[2rem] border border-slate-200/70 bg-[radial-gradient(circle_at_top_right,rgba(125,211,252,0.28),transparent_28%),linear-gradient(135deg,#ffffff_0%,#f4f8ff_54%,#eef6ff_100%)] p-5 shadow-[0_24px_70px_rgba(148,163,184,0.14)] ring-1 ring-white/70">
+        <div class="flex flex-wrap items-start justify-between gap-6">
+          <div class="max-w-3xl">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.34em] text-sky-700/70">
+              {gettext("Internal Drive")}
+            </p>
+            <div class="mt-3 flex items-center gap-2">
+              <h1 class="text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                {gettext("My Drive")}
+              </h1>
               <.icon name="hero-chevron-down" class="size-4 text-slate-400" />
             </div>
-            <nav class="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-500">
-              <.link navigate={~p"/app"} class="rounded-full bg-slate-100 px-3 py-1.5">
+            <p class="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
+              {gettext(
+                "Browse folders, manage uploads, and keep your workspace organized without leaving this view."
+              )}
+            </p>
+            <nav class="mt-4 flex flex-wrap items-center gap-2 text-sm text-slate-500">
+              <.link
+                navigate={~p"/app"}
+                class="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 shadow-sm ring-1 ring-slate-200/70"
+              >
                 {gettext("Root")}
               </.link>
               <%= for folder <- @view.breadcrumbs do %>
                 <span>/</span>
                 <.link
                   navigate={~p"/app/folders/#{folder.id}"}
-                  class="rounded-full bg-slate-100 px-3 py-1.5"
+                  class="rounded-full border border-white/80 bg-white/85 px-3 py-1.5 shadow-sm ring-1 ring-slate-200/70"
                 >
                   {folder.name}
                 </.link>
@@ -125,20 +193,23 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </nav>
           </div>
 
-          <div class="grid gap-2 sm:grid-cols-3">
-            <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+          <div class="grid w-full gap-3 sm:grid-cols-3 xl:w-auto xl:min-w-[31rem]">
+            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
               <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Folders")}</p>
               <p class="mt-1 text-xl font-semibold text-slate-950">{@view.folder_count}</p>
+              <p class="mt-2 text-xs text-slate-500">{gettext("Structured spaces for teams")}</p>
             </div>
-            <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
               <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Files")}</p>
               <p class="mt-1 text-xl font-semibold text-slate-950">{@view.file_count}</p>
+              <p class="mt-2 text-xs text-slate-500">{gettext("Documents, media, and exports")}</p>
             </div>
-            <div class="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+            <div class="rounded-[1.5rem] border border-white/80 bg-white/80 px-4 py-4 shadow-sm ring-1 ring-slate-200/70 backdrop-blur">
               <p class="text-xs uppercase tracking-[0.2em] text-slate-400">{gettext("Size")}</p>
               <p class="mt-1 text-xl font-semibold text-slate-950">
                 {format_bytes(@view.total_size)}
               </p>
+              <p class="mt-2 text-xs text-slate-500">{gettext("Current folder footprint")}</p>
             </div>
           </div>
         </div>
@@ -153,7 +224,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
         data-folder-id={@view.current_folder_id || ""}
         data-max-file-size={Drive.max_upload_file_size()}
         data-backend-fallback-size={Drive.backend_upload_fallback_size()}
-        class="rounded-[1.75rem] bg-white/90 p-4 shadow-sm ring-1 ring-slate-200/70 transition phx-drop-target-active:bg-sky-50/80 phx-drop-target-active:ring-2 phx-drop-target-active:ring-sky-400"
+        class="rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,250,255,0.98))] p-4 shadow-[0_20px_60px_rgba(148,163,184,0.14)] ring-1 ring-white/70 transition phx-drop-target-active:bg-sky-50/80 phx-drop-target-active:ring-2 phx-drop-target-active:ring-sky-400"
       >
         <input
           id="folder-upload-input"
@@ -169,7 +240,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
           role="button"
           tabindex="0"
           aria-label={gettext("Select files from device")}
-          class="mb-4 block cursor-pointer overflow-hidden rounded-[1.5rem] border border-dashed border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.95),rgba(239,246,255,0.9))] px-4 py-5 text-center transition hover:border-sky-300 hover:bg-sky-50/70 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+          class="mb-4 block cursor-pointer overflow-hidden rounded-[1.65rem] border border-dashed border-slate-200 bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_35%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(239,246,255,0.94))] px-4 py-6 text-center transition hover:border-sky-300 hover:bg-sky-50/70 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
         >
           <div class="flex flex-col items-center justify-center gap-3 sm:flex-row sm:text-left">
             <div class="flex size-12 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm ring-1 ring-sky-100">
@@ -196,7 +267,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
           id="direct-upload-queue"
           data-direct-upload-queue
           phx-update="ignore"
-          class="mb-4 overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200"
+          class="mb-4 overflow-hidden rounded-[1.65rem] bg-white shadow-sm ring-1 ring-slate-200"
           hidden
         >
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
@@ -250,9 +321,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
           for={@view.controls_form}
           id="controls_form"
           phx-change="update_controls"
-          class="flex flex-wrap items-center gap-3"
+          class="flex flex-wrap items-center gap-3 rounded-[1.6rem] border border-slate-200/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
         >
-          <label class="flex min-w-[220px] flex-1 items-center gap-3 rounded-2xl bg-slate-100 px-4 py-3">
+          <label class="flex min-w-[220px] flex-1 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
             <.icon name="hero-magnifying-glass" class="size-5 text-slate-400" />
             <input
               type="text"
@@ -301,18 +372,18 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
         <div class="mt-4 flex items-center justify-between gap-3 border-t border-slate-200 pt-4">
           <div class="flex items-center gap-2 text-sm text-slate-500">
-            <span class="rounded-full bg-slate-100 px-3 py-1.5">
+            <span class="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
               {gettext("%{count} results", count: length(@view.entries))}
             </span>
             <span
               :if={@view.controls["type"] != "all"}
-              class="rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"
+              class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sky-700"
             >
               {gettext("filter: %{value}", value: @view.controls["type"])}
             </span>
           </div>
 
-          <div class="inline-flex rounded-2xl bg-slate-100 p-1">
+          <div class="inline-flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
             <button
               phx-click="set_view"
               phx-value-view="grid"
@@ -352,8 +423,8 @@ defmodule OpenDriveWeb.DriveLive.Components do
     ~H"""
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       <%= for entry <- @view.entries do %>
-        <article class="overflow-hidden rounded-[1.5rem] bg-white shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-md">
-          <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3">
+        <article class="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_18px_55px_rgba(148,163,184,0.14)] ring-1 ring-white/80 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_26px_70px_rgba(148,163,184,0.22)]">
+          <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-4">
             <div class="flex min-w-0 flex-1 items-center gap-3">
               <div class={[
                 "flex size-10 items-center justify-center rounded-2xl",
@@ -404,7 +475,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </div>
           </div>
 
-          <div class="bg-[linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] p-4">
+          <div class="bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.12),transparent_36%),linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] p-4">
             <.link
               :if={entry.kind == :folder}
               navigate={entry.href}
@@ -472,7 +543,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </div>
           </div>
 
-          <div class="flex items-center justify-between px-4 py-3 text-sm">
+          <div class="flex items-center justify-between px-4 py-4 text-sm">
             <div>
               <p class="text-slate-500">{entry.content_type}</p>
               <p :if={entry.kind == :file} class="text-xs text-slate-400">
@@ -501,9 +572,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
       id="drive-list-view"
       phx-hook="ResizableListColumns"
       data-storage-key={"drive-list-columns-#{@view.current_scope.tenant.id}"}
-      class="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/70"
+      class="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_24px_70px_rgba(148,163,184,0.14)] ring-1 ring-white/70"
     >
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/70 px-5 py-3">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.96),rgba(241,245,249,0.88))] px-5 py-4">
         <div class="flex flex-wrap items-center gap-3 text-sm text-slate-500">
           <label class="flex items-center gap-2 rounded-full bg-white px-3 py-2 ring-1 ring-slate-200">
             <input
@@ -568,7 +639,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
       </div>
 
       <%= for entry <- @view.entries do %>
-        <div class="drive-list-grid items-center gap-4 border-b border-slate-100 px-5 py-3 last:border-b-0">
+        <div class="drive-list-grid items-center gap-4 border-b border-slate-100 px-5 py-3 transition hover:bg-slate-50/70 last:border-b-0">
           <label class="flex items-center justify-center">
             <input
               type="checkbox"
@@ -677,12 +748,12 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def empty_state(assigns) do
     ~H"""
-    <section class="rounded-[1.75rem] border border-dashed border-slate-300 bg-white/80 px-8 py-16 text-center">
-      <div class="mx-auto flex size-16 items-center justify-center rounded-full bg-slate-100">
-        <.icon name="hero-folder-open" class="size-8 text-slate-400" />
+    <section class="overflow-hidden rounded-[2rem] border border-dashed border-slate-300 bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] px-8 py-16 text-center shadow-[0_20px_60px_rgba(148,163,184,0.12)]">
+      <div class="mx-auto flex size-18 items-center justify-center rounded-[1.6rem] bg-white shadow-sm ring-1 ring-slate-200">
+        <.icon name="hero-folder-open" class="size-8 text-sky-500" />
       </div>
       <h2 class="mt-5 text-2xl font-semibold text-slate-950">{gettext("Nothing here yet")}</h2>
-      <p class="mt-2 text-sm text-slate-500">
+      <p class="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
         {gettext("Create a folder, upload a file, or adjust the filters to find what you need.")}
       </p>
     </section>
