@@ -3,6 +3,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   alias OpenDrive.Drive
 
+  @max_upload_entries 1_000
+
   @default_controls %{
     "query" => "",
     "type" => "all",
@@ -16,7 +18,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       socket
       |> allow_upload(:files,
         accept: :any,
-        max_entries: 5,
+        max_entries: @max_upload_entries,
         auto_upload: true,
         progress: &handle_progress/3
       )
@@ -565,7 +567,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                 <p class="mt-1 text-xs text-slate-500">
                   O upload comeca assim que voce solta o arquivo
                 </p>
-                <p class="mt-1 text-xs text-slate-400">Voce pode soltar ate 5 arquivos por vez</p>
+                <p class="mt-1 text-xs text-slate-400">Voce pode soltar varios arquivos por vez</p>
               </div>
 
               <div

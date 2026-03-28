@@ -55,6 +55,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
 
     assert html =~ "Arraste arquivos para esta pasta"
     assert html =~ "O upload comeca assim que voce solta o arquivo"
+    assert html =~ "Voce pode soltar varios arquivos por vez"
     assert html =~ ~s(id="folder-dropzone")
     assert html =~ ~s(phx-drop-target=)
     assert html =~ "data-phx-auto-upload"
