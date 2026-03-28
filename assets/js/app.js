@@ -26,6 +26,124 @@ import { hooks as colocatedHooks } from "phoenix-colocated/open_drive";
 import topbar from "../vendor/topbar";
 
 const Hooks = {
+  ResizableListColumns: {
+    mounted() {
+      this.storageKey =
+        this.el.dataset.storageKey || "open-drive:list-column-widths";
+      this.widths = this.loadWidths();
+      this.activeHandle = null;
+      this.dragState = null;
+
+      this.handlePointerDown = this.handlePointerDown.bind(this);
+      this.handlePointerMove = this.handlePointerMove.bind(this);
+      this.handlePointerUp = this.handlePointerUp.bind(this);
+
+      this.el.addEventListener("pointerdown", this.handlePointerDown);
+      this.applyWidths();
+    },
+
+    updated() {
+      this.applyWidths();
+    },
+
+    destroyed() {
+      this.stopDragging();
+      this.el.removeEventListener("pointerdown", this.handlePointerDown);
+    },
+
+    loadWidths() {
+      try {
+        return JSON.parse(localStorage.getItem(this.storageKey) || "{}");
+      } catch (_error) {
+        return {};
+      }
+    },
+
+    saveWidths() {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.widths));
+    },
+
+    applyWidths() {
+      ["name", "type", "modified", "size"].forEach((key) => {
+        const value = this.widths[key];
+
+        if (value) {
+          this.el.style.setProperty(`--drive-col-${key}`, value);
+        } else {
+          this.el.style.removeProperty(`--drive-col-${key}`);
+        }
+      });
+    },
+
+    handlePointerDown(event) {
+      const handle = event.target.closest("[data-column-resizer]");
+      if (!handle || !this.el.contains(handle)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const key = handle.dataset.columnResizer;
+      const minWidth = Number(handle.dataset.minWidth || 100);
+      const maxWidth = Number(handle.dataset.maxWidth || 640);
+      const headerCell = this.el.querySelector(`[data-resizable-column="${key}"]`);
+      const startWidth = Math.round(
+        headerCell?.getBoundingClientRect().width || minWidth,
+      );
+
+      this.dragState = {
+        key,
+        minWidth,
+        maxWidth,
+        startWidth,
+        startX: event.clientX,
+      };
+
+      this.activeHandle = handle;
+      this.activeHandle.dataset.resizing = "true";
+      document.body.classList.add("column-resize-active");
+
+      window.addEventListener("pointermove", this.handlePointerMove);
+      window.addEventListener("pointerup", this.handlePointerUp);
+      window.addEventListener("pointercancel", this.handlePointerUp);
+    },
+
+    handlePointerMove(event) {
+      if (!this.dragState) return;
+
+      const nextWidth = Math.round(
+        this.dragState.startWidth + (event.clientX - this.dragState.startX),
+      );
+      const clampedWidth = Math.max(
+        this.dragState.minWidth,
+        Math.min(this.dragState.maxWidth, nextWidth),
+      );
+
+      this.widths[this.dragState.key] = `${clampedWidth}px`;
+      this.applyWidths();
+    },
+
+    handlePointerUp() {
+      if (!this.dragState) return;
+
+      this.saveWidths();
+      this.stopDragging();
+    },
+
+    stopDragging() {
+      window.removeEventListener("pointermove", this.handlePointerMove);
+      window.removeEventListener("pointerup", this.handlePointerUp);
+      window.removeEventListener("pointercancel", this.handlePointerUp);
+
+      if (this.activeHandle) {
+        delete this.activeHandle.dataset.resizing;
+        this.activeHandle = null;
+      }
+
+      this.dragState = null;
+      document.body.classList.remove("column-resize-active");
+    },
+  },
+
   DirectUploadZone: {
     mounted() {
       this.csrfToken = document

@@ -116,6 +116,17 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, socket}
   end
 
+  def handle_event("toggle_sort", %{"field" => field}, socket) do
+    sort = next_sort(socket.assigns.controls["sort"], field)
+
+    socket =
+      socket
+      |> assign_controls(%{"sort" => sort})
+      |> refresh_entries()
+
+    {:noreply, socket}
+  end
+
   def handle_event("create_folder", %{"folder" => attrs}, socket) do
     attrs = Map.put(attrs, "parent_folder_id", socket.assigns.current_folder_id)
 
@@ -321,7 +332,20 @@ defmodule OpenDriveWeb.DriveLive.Index do
         if type in ["all", "folders", "files", "images", "videos"], do: type, else: "all"
       end)
       |> Map.update!("sort", fn sort ->
-        if sort in ["modified_desc", "name_asc", "size_desc"], do: sort, else: "modified_desc"
+        if sort in [
+             "modified_desc",
+             "modified_asc",
+             "name_asc",
+             "name_desc",
+             "type_asc",
+             "type_desc",
+             "size_desc",
+             "size_asc"
+           ] do
+          sort
+        else
+          "modified_desc"
+        end
       end)
 
     socket
@@ -389,8 +413,47 @@ defmodule OpenDriveWeb.DriveLive.Index do
   defp sort_entries(entries, "name_asc"),
     do: Enum.sort_by(entries, &{entry_order(&1), String.downcase(&1.name)})
 
+  defp sort_entries(entries, "name_desc"),
+    do: Enum.sort_by(entries, &{entry_order(&1), String.downcase(&1.name)}, :desc)
+
+  defp sort_entries(entries, "type_asc"),
+    do:
+      Enum.sort_by(
+        entries,
+        &{entry_order(&1), String.downcase(&1.content_type || ""), String.downcase(&1.name)}
+      )
+
+  defp sort_entries(entries, "type_desc"),
+    do:
+      Enum.sort_by(
+        entries,
+        &{entry_order(&1), String.downcase(&1.content_type || ""), String.downcase(&1.name)},
+        :desc
+      )
+
   defp sort_entries(entries, "size_desc"),
     do: Enum.sort_by(entries, &{entry_order(&1), -(&1.size || -1), String.downcase(&1.name)})
+
+  defp sort_entries(entries, "size_asc"),
+    do: Enum.sort_by(entries, &{entry_order(&1), &1.size || -1, String.downcase(&1.name)})
+
+  defp sort_entries(entries, "modified_asc") do
+    Enum.sort(entries, fn left, right ->
+      cond do
+        entry_order(left) != entry_order(right) ->
+          entry_order(left) <= entry_order(right)
+
+        DateTime.compare(left.updated_at, right.updated_at) == :lt ->
+          true
+
+        DateTime.compare(left.updated_at, right.updated_at) == :gt ->
+          false
+
+        true ->
+          String.downcase(left.name) <= String.downcase(right.name)
+      end
+    end)
+  end
 
   defp sort_entries(entries, _sort) do
     Enum.sort(entries, fn left, right ->
@@ -412,6 +475,40 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   defp entry_order(%{kind: :folder}), do: 0
   defp entry_order(%{kind: :file}), do: 1
+
+  defp next_sort(current_sort, "name") when current_sort == "name_asc", do: "name_desc"
+  defp next_sort(_current_sort, "name"), do: "name_asc"
+
+  defp next_sort(current_sort, "type") when current_sort == "type_asc", do: "type_desc"
+  defp next_sort(_current_sort, "type"), do: "type_asc"
+
+  defp next_sort(current_sort, "modified") when current_sort == "modified_desc",
+    do: "modified_asc"
+
+  defp next_sort(_current_sort, "modified"), do: "modified_desc"
+
+  defp next_sort(current_sort, "size") when current_sort == "size_desc", do: "size_asc"
+  defp next_sort(_current_sort, "size"), do: "size_desc"
+
+  defp sort_icon(sort, field) do
+    case {field, sort} do
+      {"name", "name_asc"} -> "hero-chevron-up"
+      {"name", "name_desc"} -> "hero-chevron-down"
+      {"type", "type_asc"} -> "hero-chevron-up"
+      {"type", "type_desc"} -> "hero-chevron-down"
+      {"modified", "modified_asc"} -> "hero-chevron-up"
+      {"modified", "modified_desc"} -> "hero-chevron-down"
+      {"size", "size_asc"} -> "hero-chevron-up"
+      {"size", "size_desc"} -> "hero-chevron-down"
+      _ -> "hero-chevron-up-down"
+    end
+  end
+
+  defp active_sort?(sort, "name"), do: sort in ["name_asc", "name_desc"]
+  defp active_sort?(sort, "type"), do: sort in ["type_asc", "type_desc"]
+  defp active_sort?(sort, "modified"), do: sort in ["modified_asc", "modified_desc"]
+  defp active_sort?(sort, "size"), do: sort in ["size_asc", "size_desc"]
+  defp active_sort?(_sort, _field), do: false
 
   defp current_view(socket), do: socket.assigns.controls["view"] || "grid"
 
@@ -770,8 +867,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   type="select"
                   options={[
                     {"Modificado", "modified_desc"},
+                    {"Modificado mais antigo", "modified_asc"},
                     {"Nome", "name_asc"},
-                    {"Maior tamanho", "size_desc"}
+                    {"Nome Z-A", "name_desc"},
+                    {"Tipo", "type_asc"},
+                    {"Tipo Z-A", "type_desc"},
+                    {"Maior tamanho", "size_desc"},
+                    {"Menor tamanho", "size_asc"}
                   ]}
                   class="select rounded-2xl bg-slate-100 px-4"
                 />
@@ -991,18 +1093,110 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
             <section
               :if={@entries != [] and @controls["view"] == "list"}
+              id="drive-list-view"
+              phx-hook="ResizableListColumns"
+              data-storage-key={"drive-list-columns-#{@current_scope.tenant.id}"}
               class="overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/70"
             >
-              <div class="grid grid-cols-[minmax(0,1fr)_120px_120px_110px] gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                <span>Nome</span>
-                <span>Tipo</span>
-                <span>Modificado</span>
+              <div class="drive-list-grid gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div class="drive-list-header-cell" data-resizable-column="name">
+                  <button
+                    type="button"
+                    phx-click="toggle_sort"
+                    phx-value-field="name"
+                    class={[
+                      "drive-list-header-button flex min-w-0 items-center gap-2 text-left transition hover:text-slate-700",
+                      active_sort?(@controls["sort"], "name") && "text-slate-700"
+                    ]}
+                  >
+                    <span>Nome</span>
+                    <.icon name={sort_icon(@controls["sort"], "name")} class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="drive-list-resizer"
+                    data-column-resizer="name"
+                    data-min-width="260"
+                    data-max-width="820"
+                    aria-label="Redimensionar coluna Nome"
+                  >
+                  </button>
+                </div>
+                <div class="drive-list-header-cell" data-resizable-column="type">
+                  <button
+                    type="button"
+                    phx-click="toggle_sort"
+                    phx-value-field="type"
+                    class={[
+                      "drive-list-header-button flex min-w-0 items-center gap-2 text-left transition hover:text-slate-700",
+                      active_sort?(@controls["sort"], "type") && "text-slate-700"
+                    ]}
+                  >
+                    <span>Tipo</span>
+                    <.icon name={sort_icon(@controls["sort"], "type")} class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="drive-list-resizer"
+                    data-column-resizer="type"
+                    data-min-width="120"
+                    data-max-width="320"
+                    aria-label="Redimensionar coluna Tipo"
+                  >
+                  </button>
+                </div>
+                <div class="drive-list-header-cell" data-resizable-column="modified">
+                  <button
+                    type="button"
+                    phx-click="toggle_sort"
+                    phx-value-field="modified"
+                    class={[
+                      "drive-list-header-button flex min-w-0 items-center gap-2 text-left transition hover:text-slate-700",
+                      active_sort?(@controls["sort"], "modified") && "text-slate-700"
+                    ]}
+                  >
+                    <span>Modificado</span>
+                    <.icon name={sort_icon(@controls["sort"], "modified")} class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="drive-list-resizer"
+                    data-column-resizer="modified"
+                    data-min-width="110"
+                    data-max-width="280"
+                    aria-label="Redimensionar coluna Modificado"
+                  >
+                  </button>
+                </div>
+                <div class="drive-list-header-cell" data-resizable-column="size">
+                  <button
+                    type="button"
+                    phx-click="toggle_sort"
+                    phx-value-field="size"
+                    class={[
+                      "drive-list-header-button flex min-w-0 items-center gap-2 text-left transition hover:text-slate-700",
+                      active_sort?(@controls["sort"], "size") && "text-slate-700"
+                    ]}
+                  >
+                    <span>Tamanho</span>
+                    <.icon name={sort_icon(@controls["sort"], "size")} class="size-4" />
+                  </button>
+                  <button
+                    type="button"
+                    class="drive-list-resizer"
+                    data-column-resizer="size"
+                    data-min-width="110"
+                    data-max-width="280"
+                    aria-label="Redimensionar coluna Tamanho"
+                  >
+                  </button>
+                </div>
                 <span></span>
               </div>
 
               <%= for entry <- @entries do %>
-                <div class="grid grid-cols-[minmax(0,1fr)_120px_120px_110px] items-center gap-4 border-b border-slate-100 px-5 py-3 last:border-b-0">
-                  <div class="flex min-w-0 items-center gap-3">
+                <div class="drive-list-grid items-center gap-4 border-b border-slate-100 px-5 py-3 last:border-b-0">
+                  <div class="flex min-w-0 overflow-hidden items-center gap-3">
                     <div class={[
                       "flex size-10 shrink-0 items-center justify-center rounded-2xl",
                       entry.kind == :folder && "bg-sky-100 text-sky-700",
@@ -1021,18 +1215,18 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       />
                     </div>
 
-                    <div class="min-w-0">
+                    <div class="min-w-0 overflow-hidden">
                       <.link
                         :if={entry.kind == :folder}
                         navigate={entry.href}
-                        class="block truncate font-medium text-slate-950 hover:text-sky-700"
+                        class="block w-full truncate whitespace-nowrap font-medium text-slate-950 hover:text-sky-700"
                       >
                         {entry.name}
                       </.link>
                       <.link
                         :if={entry.kind == :file and entry.preview not in [:image, :video]}
                         href={entry.href}
-                        class="block truncate font-medium text-slate-950 hover:text-sky-700"
+                        class="block w-full truncate whitespace-nowrap font-medium text-slate-950 hover:text-sky-700"
                       >
                         {entry.name}
                       </.link>
@@ -1041,7 +1235,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         type="button"
                         phx-click="open_image"
                         phx-value-id={entry.id}
-                        class="block truncate font-medium text-left text-slate-950 hover:text-sky-700"
+                        class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
                       >
                         {entry.name}
                       </button>
@@ -1050,14 +1244,19 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         type="button"
                         phx-click="open_video"
                         phx-value-id={entry.id}
-                        class="block truncate font-medium text-left text-slate-950 hover:text-sky-700"
+                        class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
                       >
                         {entry.name}
                       </button>
                     </div>
                   </div>
-                  <span class="text-sm text-slate-500">{entry.content_type}</span>
-                  <span class="text-sm text-slate-500">{relative_time(entry.updated_at)}</span>
+                  <span class="min-w-0 truncate text-sm text-slate-500">{entry.content_type}</span>
+                  <span class="min-w-0 truncate text-sm text-slate-500">
+                    {relative_time(entry.updated_at)}
+                  </span>
+                  <span class="min-w-0 truncate text-sm text-slate-500">
+                    {format_bytes(entry.size)}
+                  </span>
                   <div class="flex items-center justify-end gap-2">
                     <.link
                       :if={entry.kind == :file}
@@ -1177,7 +1376,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       Tem certeza?
                     </h2>
                     <p class="mt-2 text-sm text-slate-500">
-                      O arquivo <span class="font-semibold text-slate-700">{selected.name}</span> sera enviado para a lixeira.
+                      O arquivo <span class="font-semibold text-slate-700">{selected.name}</span>
+                      sera enviado para a lixeira.
                     </p>
                   </div>
 
