@@ -59,6 +59,39 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
     assert [%{name: "demo.txt"}] = Drive.list_children(workspace.scope).files
   end
 
+  test "rejects completing a direct upload after switching workspace", %{conn: conn} do
+    workspace = workspace_fixture()
+    other_workspace = workspace_fixture(%{user: workspace.user, tenant_name: "Other Workspace"})
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> post(~p"/app/uploads", %{
+        "upload" => %{
+          "name" => "demo.txt",
+          "content_type" => "text/plain",
+          "size" => "5"
+        }
+      })
+
+    %{"token" => token} = json_response(conn, 200)
+
+    {:ok, upload} =
+      Phoenix.Token.verify(OpenDriveWeb.Endpoint, "direct-upload", token, max_age: 3600)
+
+    assert {:ok, _} =
+             OpenDrive.Storage.put_object(upload.key, "hello", content_type: "text/plain")
+
+    conn =
+      build_conn()
+      |> log_in_user(workspace.user, other_workspace.scope)
+      |> post(~p"/app/uploads/complete", %{"token" => token})
+
+    assert %{"error" => error} = json_response(conn, 403)
+    assert error =~ "different workspace or user"
+    assert [] = Drive.list_children(other_workspace.scope).files
+  end
+
   test "proxies a small upload through the backend", %{conn: conn} do
     workspace = workspace_fixture()
 

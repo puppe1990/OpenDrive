@@ -12,7 +12,13 @@ defmodule OpenDriveWeb.DirectUploadController do
           Phoenix.Token.sign(
             OpenDriveWeb.Endpoint,
             @token_salt,
-            Map.take(upload, [:key, :name, :folder_id, :content_type, :size])
+            Map.merge(
+              Map.take(upload, [:key, :name, :folder_id, :content_type, :size]),
+              %{
+                tenant_id: conn.assigns.current_scope.tenant.id,
+                prepared_by_user_id: conn.assigns.current_scope.user.id
+              }
+            )
           )
 
         json(conn, %{
@@ -49,6 +55,7 @@ defmodule OpenDriveWeb.DirectUploadController do
   def complete(conn, %{"token" => token}) do
     with {:ok, upload} <-
            Phoenix.Token.verify(OpenDriveWeb.Endpoint, @token_salt, token, max_age: 3600),
+         :ok <- validate_upload_context(conn.assigns.current_scope, upload),
          {:ok, _file} <- Drive.complete_direct_upload(conn.assigns.current_scope, upload) do
       json(conn, %{ok: true})
     else
@@ -102,6 +109,14 @@ defmodule OpenDriveWeb.DirectUploadController do
     |> json(%{error: gettext("Upload session expired. Select the file again.")})
   end
 
+  defp render_error(conn, :forbidden) do
+    conn
+    |> put_status(:forbidden)
+    |> json(%{
+      error: gettext("Upload session belongs to a different workspace or user. Start again.")
+    })
+  end
+
   defp render_error(conn, _reason) do
     conn
     |> put_status(:internal_server_error)
@@ -114,4 +129,17 @@ defmodule OpenDriveWeb.DirectUploadController do
       _ -> 0
     end
   end
+
+  defp validate_upload_context(scope, %{
+         tenant_id: tenant_id,
+         prepared_by_user_id: prepared_by_user_id
+       }) do
+    if scope.tenant.id == tenant_id and scope.user.id == prepared_by_user_id do
+      :ok
+    else
+      {:error, :forbidden}
+    end
+  end
+
+  defp validate_upload_context(_scope, _upload), do: {:error, :invalid_token}
 end

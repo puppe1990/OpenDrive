@@ -8,7 +8,7 @@ defmodule OpenDrive.Drive do
   alias OpenDrive.Accounts.Scope
   alias OpenDrive.Audit
   alias OpenDrive.Drive.File, as: DriveFile
-  alias OpenDrive.Drive.{FileObject, Folder}
+  alias OpenDrive.Drive.{FileObject, Folder, Tree}
   alias OpenDrive.Repo
   alias OpenDrive.Storage
 
@@ -41,11 +41,15 @@ defmodule OpenDrive.Drive do
       folders:
         Folder
         |> where([f], f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+        |> join(:left, [f], parent in Folder, on: parent.id == f.parent_folder_id)
+        |> where([_f, parent], is_nil(parent.id) or is_nil(parent.deleted_at))
         |> order_by([f], desc: f.deleted_at)
         |> Repo.all(),
       files:
         DriveFile
         |> where([f], f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+        |> join(:left, [f], folder in Folder, on: folder.id == f.folder_id)
+        |> where([_f, folder], is_nil(folder.id) or is_nil(folder.deleted_at))
         |> preload(:file_object)
         |> order_by([f], desc: f.deleted_at)
         |> Repo.all()
@@ -85,6 +89,7 @@ defmodule OpenDrive.Drive do
         name: attrs[:name] || attrs["name"]
       })
       |> Repo.insert()
+      |> normalize_name_conflict()
       |> tap_audit(scope, "folder.created", "folder")
     end
   end
@@ -246,7 +251,9 @@ defmodule OpenDrive.Drive do
         |> Enum.reduce_while({:ok, []}, fn file, {:ok, acc} ->
           case Storage.presigned_download_url(file.file_object.key) do
             {:ok, url} ->
-              {:cont, {:ok, [%{id: file.id, name: file.name, url: url} | acc]}}
+              {:cont,
+               {:ok,
+                [%{id: file.id, name: file.name, size: file.file_object.size, url: url} | acc]}}
 
             {:error, _} = error ->
               {:halt, error}
@@ -286,19 +293,22 @@ defmodule OpenDrive.Drive do
 
     Repo.transaction(fn ->
       folder = get_folder!(scope, folder_id)
-
-      Repo.update!(Folder.changeset(folder, %{deleted_at: timestamp}))
+      folder_ids = Tree.subtree_folder_ids(scope, folder_id)
 
       Repo.update_all(
         from(f in Folder,
-          where: f.tenant_id == ^Scope.tenant_id(scope) and f.parent_folder_id == ^folder_id
+          where:
+            f.tenant_id == ^Scope.tenant_id(scope) and f.id in ^folder_ids and
+              is_nil(f.deleted_at)
         ),
         set: [deleted_at: timestamp]
       )
 
       Repo.update_all(
         from(f in DriveFile,
-          where: f.tenant_id == ^Scope.tenant_id(scope) and f.folder_id == ^folder_id
+          where:
+            f.tenant_id == ^Scope.tenant_id(scope) and f.folder_id in ^folder_ids and
+              is_nil(f.deleted_at)
         ),
         set: [deleted_at: timestamp]
       )
@@ -319,10 +329,12 @@ defmodule OpenDrive.Drive do
            )
            |> preload(:file_object)
            |> Repo.one(),
+         :ok <- validate_restore_target_parent(scope, file.folder_id),
          :ok <- ensure_name_available(scope, file.name, file.folder_id, :file, file.id) do
       file
       |> DriveFile.changeset(%{deleted_at: nil})
       |> Repo.update()
+      |> normalize_name_conflict()
       |> tap_audit(scope, "file.restored", "file")
     else
       nil -> {:error, :not_found}
@@ -339,11 +351,32 @@ defmodule OpenDrive.Drive do
                not is_nil(f.deleted_at)
            )
            |> Repo.one(),
-         :ok <-
-           ensure_name_available(scope, folder.name, folder.parent_folder_id, :folder, folder.id) do
-      folder
-      |> Folder.changeset(%{deleted_at: nil})
-      |> Repo.update()
+         :ok <- validate_restore_target_parent(scope, folder.parent_folder_id),
+         :ok <- validate_subtree_restore(scope, folder_id) do
+      Repo.transaction(fn ->
+        folder_ids = Tree.subtree_folder_ids(scope, folder_id)
+
+        Repo.update_all(
+          from(f in Folder,
+            where:
+              f.tenant_id == ^Scope.tenant_id(scope) and f.id in ^folder_ids and
+                not is_nil(f.deleted_at)
+          ),
+          set: [deleted_at: nil]
+        )
+
+        Repo.update_all(
+          from(f in DriveFile,
+            where:
+              f.tenant_id == ^Scope.tenant_id(scope) and f.folder_id in ^folder_ids and
+                not is_nil(f.deleted_at)
+          ),
+          set: [deleted_at: nil]
+        )
+
+        folder
+      end)
+      |> normalize_transaction_result()
       |> tap_audit(scope, "folder.restored", "folder")
     else
       nil -> {:error, :not_found}
@@ -353,19 +386,23 @@ defmodule OpenDrive.Drive do
 
   def empty_trash(%Scope{} = scope) do
     tenant_id = Scope.tenant_id(scope)
+    trashed_root_folder_ids = Tree.deleted_root_folder_ids(scope)
+    purged_folder_ids = expand_folder_ids(scope, trashed_root_folder_ids)
 
     trashed_files =
-      DriveFile
-      |> where([f], f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
-      |> preload(:file_object)
-      |> Repo.all()
+      (deleted_root_files(scope) ++ Tree.files_in_folder_ids(scope, purged_folder_ids))
+      |> Enum.uniq_by(& &1.id)
 
     case delete_trashed_objects(trashed_files) do
       :ok ->
         Repo.transaction(fn ->
           {deleted_files_count, _} =
             Repo.delete_all(
-              from(f in DriveFile, where: f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+              from(f in DriveFile,
+                where:
+                  f.tenant_id == ^tenant_id and
+                    (not is_nil(f.deleted_at) or f.folder_id in ^purged_folder_ids)
+              )
             )
 
           file_object_ids =
@@ -382,7 +419,11 @@ defmodule OpenDrive.Drive do
 
           {deleted_folders_count, _} =
             Repo.delete_all(
-              from(f in Folder, where: f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+              from(f in Folder,
+                where:
+                  f.tenant_id == ^tenant_id and
+                    (not is_nil(f.deleted_at) or f.id in ^purged_folder_ids)
+              )
             )
 
           result = %{
@@ -425,13 +466,14 @@ defmodule OpenDrive.Drive do
                uploaded_by_user_id: scope.user.id,
                name: name
              })
-             |> Repo.insert() do
+             |> Repo.insert()
+             |> normalize_name_conflict() do
         Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: upload.size})
         Repo.preload(file, :file_object)
       else
-        {:error, changeset} ->
+        {:error, reason} ->
           Storage.delete_object(key)
-          Repo.rollback(changeset)
+          Repo.rollback(reason)
       end
     end)
     |> normalize_transaction_result()
@@ -462,13 +504,14 @@ defmodule OpenDrive.Drive do
                uploaded_by_user_id: scope.user.id,
                name: name
              })
-             |> Repo.insert() do
+             |> Repo.insert()
+             |> normalize_name_conflict() do
         Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: size})
         Repo.preload(file, :file_object)
       else
-        {:error, changeset} ->
+        {:error, reason} ->
           Storage.delete_object(key)
-          Repo.rollback(changeset)
+          Repo.rollback(reason)
       end
     end)
     |> normalize_transaction_result()
@@ -502,6 +545,15 @@ defmodule OpenDrive.Drive do
          ) do
       %Folder{} = folder -> {:ok, folder.id}
       nil -> {:error, :invalid_parent_folder}
+    end
+  end
+
+  defp validate_restore_target_parent(_scope, nil), do: :ok
+
+  defp validate_restore_target_parent(scope, folder_id) do
+    case validate_parent_folder(scope, folder_id) do
+      {:ok, _folder_id} -> :ok
+      {:error, :invalid_parent_folder} -> {:error, :invalid_parent_folder}
     end
   end
 
@@ -541,6 +593,40 @@ defmodule OpenDrive.Drive do
   defp exists_without?(query, exclude_id),
     do: Repo.exists?(from q in query, where: q.id != ^exclude_id)
 
+  defp validate_subtree_restore(scope, folder_id) do
+    folder_ids = Tree.subtree_folder_ids(scope, folder_id)
+
+    folders_to_restore =
+      Folder
+      |> where(
+        [f],
+        f.tenant_id == ^Scope.tenant_id(scope) and f.id in ^folder_ids and
+          not is_nil(f.deleted_at)
+      )
+      |> Repo.all()
+
+    files_to_restore = Tree.files_in_folder_ids(scope, folder_ids, deleted_only: true)
+
+    Enum.reduce_while(folders_to_restore, :ok, fn folder, :ok ->
+      case ensure_name_available(scope, folder.name, folder.parent_folder_id, :folder, folder.id) do
+        :ok -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+    |> case do
+      :ok ->
+        Enum.reduce_while(files_to_restore, :ok, fn file, :ok ->
+          case ensure_name_available(scope, file.name, file.folder_id, :file, file.id) do
+            :ok -> {:cont, :ok}
+            {:error, _} = error -> {:halt, error}
+          end
+        end)
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp object_key(scope, name) do
     stem =
       name
@@ -569,10 +655,11 @@ defmodule OpenDrive.Drive do
                 {:ok, renamed_file} <-
                   file
                   |> DriveFile.changeset(%{name: new_name})
-                  |> Repo.update() do
+                  |> Repo.update()
+                  |> normalize_name_conflict() do
              %{renamed_file | file_object: file_object}
            else
-             {:error, changeset} -> Repo.rollback(changeset)
+             {:error, reason} -> Repo.rollback(reason)
            end
          end) do
       {:ok, renamed_file} ->
@@ -588,6 +675,7 @@ defmodule OpenDrive.Drive do
     folder
     |> Folder.changeset(%{name: new_name})
     |> Repo.update()
+    |> normalize_name_conflict()
   end
 
   defp do_breadcrumbs(%Folder{parent_folder_id: nil} = folder, _scope, acc), do: [folder | acc]
@@ -653,6 +741,22 @@ defmodule OpenDrive.Drive do
   defp maybe_filter_by_folder(query, nil), do: where(query, [f], is_nil(f.folder_id))
   defp maybe_filter_by_folder(query, folder_id), do: where(query, [f], f.folder_id == ^folder_id)
 
+  defp deleted_root_files(%Scope{} = scope) do
+    tenant_id = Scope.tenant_id(scope)
+
+    DriveFile
+    |> where([f], f.tenant_id == ^tenant_id and not is_nil(f.deleted_at))
+    |> join(:left, [f], folder in Folder, on: folder.id == f.folder_id)
+    |> where([_f, folder], is_nil(folder.id) or is_nil(folder.deleted_at))
+    |> preload(:file_object)
+    |> Repo.all()
+  end
+
+  defp expand_folder_ids(_scope, []), do: []
+
+  defp expand_folder_ids(scope, folder_ids),
+    do: folder_ids |> Enum.flat_map(&Tree.subtree_folder_ids(scope, &1)) |> Enum.uniq()
+
   defp delete_trashed_objects(files) do
     Enum.reduce_while(files, :ok, fn file, :ok ->
       case Storage.delete_object(file.file_object.key) do
@@ -668,6 +772,16 @@ defmodule OpenDrive.Drive do
   end
 
   defp tap_audit(error, _scope, _action, _resource_type), do: error
+
+  defp normalize_name_conflict({:error, %Ecto.Changeset{} = changeset}) do
+    if Keyword.has_key?(changeset.errors, :name) do
+      {:error, :name_conflict}
+    else
+      {:error, changeset}
+    end
+  end
+
+  defp normalize_name_conflict(result), do: result
 
   defp normalize_transaction_result({:ok, result}), do: {:ok, result}
   defp normalize_transaction_result({:error, reason}), do: {:error, reason}

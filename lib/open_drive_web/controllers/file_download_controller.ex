@@ -3,6 +3,9 @@ defmodule OpenDriveWeb.FileDownloadController do
 
   alias OpenDrive.Drive
 
+  @max_zip_entries 100
+  @max_zip_total_bytes 500 * 1024 * 1024
+
   def show(conn, %{"id" => id}) do
     case Drive.download_url(conn.assigns.current_scope, id) do
       {:ok, url} ->
@@ -17,8 +20,8 @@ defmodule OpenDriveWeb.FileDownloadController do
 
   def zip(conn, params) do
     case build_zip(conn.assigns.current_scope, params["file_ids"]) do
-      {:ok, filename, zip_binary} ->
-        send_download(conn, {:binary, zip_binary},
+      {:ok, filename, zip_path, _cleanup_dir} ->
+        send_download(conn, {:file, zip_path},
           filename: filename,
           content_type: "application/zip"
         )
@@ -26,6 +29,14 @@ defmodule OpenDriveWeb.FileDownloadController do
       {:error, :not_found} ->
         conn
         |> put_flash(:error, gettext("No valid file was selected."))
+        |> redirect(to: ~p"/app")
+
+      {:error, :zip_limit_exceeded} ->
+        conn
+        |> put_flash(
+          :error,
+          gettext("ZIP download is limited to 100 files and 500 MB per request.")
+        )
         |> redirect(to: ~p"/app")
 
       {:error, _reason} ->
@@ -37,32 +48,68 @@ defmodule OpenDriveWeb.FileDownloadController do
 
   defp build_zip(scope, file_ids) do
     with {:ok, sources} <- Drive.bulk_download_sources(scope, file_ids),
-         {:ok, entries} <- build_zip_entries(sources) do
-      filename = "opendrive-selecionados-#{Date.utc_today()}.zip"
+         :ok <- validate_zip_limits(sources),
+         {:ok, filename, zip_path, cleanup_dir} <- build_zip_file(sources),
+         true <- File.exists?(zip_path) do
+      {:ok, filename, zip_path, cleanup_dir}
+    else
+      false -> {:error, :zip_not_created}
+      {:error, _} = error -> error
+    end
+  end
 
-      case :zip.create(String.to_charlist(filename), entries, [:memory]) do
-        {:ok, {_name, zip_binary}} -> {:ok, filename, zip_binary}
+  defp build_zip_file(sources) do
+    filename = "opendrive-selecionados-#{Date.utc_today()}.zip"
+
+    temp_dir =
+      Path.join(System.tmp_dir!(), "open_drive_zip_#{System.unique_integer([:positive])}")
+
+    zip_path = Path.join(temp_dir, filename)
+
+    with :ok <- File.mkdir_p(temp_dir),
+         {:ok, entry_names} <- stage_zip_entries(sources, temp_dir) do
+      case :zip.create(String.to_charlist(zip_path), Enum.map(entry_names, &String.to_charlist/1),
+             cwd: String.to_charlist(temp_dir)
+           ) do
+        {:ok, _zip_name} -> {:ok, filename, zip_path, temp_dir}
         {:error, reason} -> {:error, reason}
       end
     end
   end
 
-  defp build_zip_entries(sources) do
+  defp stage_zip_entries(sources, temp_dir) do
     sources
     |> Enum.with_index(1)
     |> Enum.reduce_while({:ok, []}, fn {source, index}, {:ok, acc} ->
       case fetch_binary(source.url) do
         {:ok, body} ->
           entry_name = unique_entry_name(source.name, index)
-          {:cont, {:ok, [{String.to_charlist(entry_name), body} | acc]}}
+          destination = Path.join(temp_dir, entry_name)
+
+          case File.write(destination, body) do
+            :ok -> {:cont, {:ok, [entry_name | acc]}}
+            {:error, reason} -> {:halt, {:error, reason}}
+          end
 
         {:error, reason} ->
           {:halt, {:error, reason}}
       end
     end)
     |> case do
-      {:ok, entries} -> {:ok, Enum.reverse(entries)}
+      {:ok, entry_names} -> {:ok, Enum.reverse(entry_names)}
       {:error, _} = error -> error
+    end
+  end
+
+  defp validate_zip_limits(sources) do
+    entry_count = length(sources)
+    total_bytes = Enum.reduce(sources, 0, &(&1.size + &2))
+
+    cond do
+      entry_count == 0 -> {:error, :not_found}
+      entry_count > @max_zip_entries -> {:error, :zip_limit_exceeded}
+      total_bytes > @max_zip_total_bytes -> {:error, :zip_limit_exceeded}
+      true -> :ok
     end
   end
 

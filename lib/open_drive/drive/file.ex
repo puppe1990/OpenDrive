@@ -30,5 +30,6 @@ defmodule OpenDrive.Drive.File do
     ])
     |> validate_required([:tenant_id, :file_object_id, :name])
     |> validate_length(:name, min: 1, max: 120)
+    |> unique_constraint(:name, name: :files_active_name_unique)
   end
 end

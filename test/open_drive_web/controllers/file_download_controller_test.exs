@@ -57,4 +57,36 @@ defmodule OpenDriveWeb.FileDownloadControllerTest do
     assert File.read!(Path.join(extract_dir, "first-1.txt")) == "zip first"
     assert File.read!(Path.join(extract_dir, "second-2.txt")) == "zip second"
   end
+
+  test "rejects zip downloads above the synchronous size limit", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Zip Limit Space"})
+    path = Path.join(System.tmp_dir!(), "open_drive-zip-limit.bin")
+    File.write!(path, "small")
+
+    {:ok, first_file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "first.bin",
+        content_type: "application/octet-stream",
+        size: 300 * 1024 * 1024
+      })
+
+    {:ok, second_file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "second.bin",
+        content_type: "application/octet-stream",
+        size: 300 * 1024 * 1024
+      })
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> post(~p"/app/files/download-zip", %{
+        "file_ids" => [Integer.to_string(first_file.id), Integer.to_string(second_file.id)]
+      })
+
+    assert redirected_to(conn) == ~p"/app"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "100 files and 500 MB"
+  end
 end

@@ -21,5 +21,6 @@ defmodule OpenDrive.Drive.Folder do
     |> cast(attrs, [:tenant_id, :parent_folder_id, :created_by_user_id, :name, :deleted_at])
     |> validate_required([:tenant_id, :name])
     |> validate_length(:name, min: 1, max: 120)
+    |> unique_constraint(:name, name: :folders_active_name_unique)
   end
 end

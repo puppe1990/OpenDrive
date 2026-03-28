@@ -3,7 +3,7 @@ defmodule OpenDrive.DriveTest do
 
   alias OpenDrive.Drive
   alias OpenDrive.Drive.File, as: DriveFile
-  alias OpenDrive.Drive.FileObject
+  alias OpenDrive.Drive.{FileObject, Folder}
   alias OpenDrive.Repo
 
   import OpenDrive.AccountsFixtures
@@ -245,6 +245,133 @@ defmodule OpenDrive.DriveTest do
       })
 
     assert {:error, :name_conflict} = Drive.restore_node(workspace.scope, {:file, file.id})
+  end
+
+  test "soft deleting a folder marks the entire subtree and restoring it restores descendants" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-tree-restore.txt")
+    File.write!(path, "hello")
+
+    {:ok, root} = Drive.create_folder(workspace.scope, %{name: "Projects"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: root.id})
+
+    {:ok, nested_file} =
+      Drive.upload_file(workspace.scope, %{folder_id: child.id}, %{
+        path: path,
+        client_name: "plan.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, root.id})
+    assert [] = Drive.list_children(workspace.scope).folders
+    assert [%{id: root_id}] = Drive.list_trash(workspace.scope).folders
+    assert root_id == root.id
+    assert [] = Drive.list_trash(workspace.scope).files
+
+    assert {:ok, _} = Drive.restore_node(workspace.scope, {:folder, root.id})
+    assert [%{id: restored_root_id}] = Drive.list_children(workspace.scope).folders
+    assert restored_root_id == root.id
+    assert [%{id: restored_child_id}] = Drive.list_children(workspace.scope, root.id).folders
+    assert restored_child_id == child.id
+    assert [%{id: restored_file_id}] = Drive.list_children(workspace.scope, child.id).files
+    assert restored_file_id == nested_file.id
+  end
+
+  test "restoring a folder fails atomically when a descendant name conflicts" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-tree-conflict.txt")
+    File.write!(path, "hello")
+
+    {:ok, root} = Drive.create_folder(workspace.scope, %{name: "Projects"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: root.id})
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{folder_id: child.id}, %{
+        path: path,
+        client_name: "plan.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, root.id})
+    assert {:ok, _} = Drive.create_folder(workspace.scope, %{name: "Projects"})
+
+    {:ok, replacement_root} =
+      Drive.list_children(workspace.scope).folders |> List.first() |> then(&{:ok, &1})
+
+    {:ok, replacement_child} =
+      Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: replacement_root.id})
+
+    assert {:ok, _replacement_file} =
+             Drive.upload_file(workspace.scope, %{folder_id: replacement_child.id}, %{
+               path: path,
+               client_name: "plan.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert {:error, :name_conflict} = Drive.restore_node(workspace.scope, {:folder, root.id})
+    assert [%{id: trashed_root_id}] = Drive.list_trash(workspace.scope).folders
+    assert trashed_root_id == root.id
+    assert [] = Drive.list_children(workspace.scope, child.id).files
+    assert Repo.get!(DriveFile, file.id).deleted_at
+  end
+
+  test "empty_trash removes files from nested trashed folders" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-empty-trash-tree.txt")
+    File.write!(path, "hello")
+
+    {:ok, root} = Drive.create_folder(workspace.scope, %{name: "Archive"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "Invoices", parent_folder_id: root.id})
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{folder_id: child.id}, %{
+        path: path,
+        client_name: "invoice.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    storage_path =
+      Path.join([
+        System.tmp_dir!(),
+        "open_drive_storage",
+        OpenDrive.Storage.bucket(),
+        file.file_object.key
+      ])
+
+    assert File.exists?(storage_path)
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, root.id})
+    assert {:ok, result} = Drive.empty_trash(workspace.scope)
+    assert result.files_deleted == 1
+    assert result.folders_deleted == 2
+    refute File.exists?(storage_path)
+    assert Repo.aggregate(DriveFile, :count) == 0
+    assert Repo.aggregate(Folder, :count) == 0
+  end
+
+  test "database constraints reject duplicate active folder names in the same directory" do
+    workspace = workspace_fixture()
+
+    assert {:ok, _} = Drive.create_folder(workspace.scope, %{name: "Contracts"})
+
+    assert {:error, changeset} =
+             %Folder{}
+             |> Folder.changeset(%{
+               tenant_id: workspace.tenant.id,
+               name: "Contracts"
+             })
+             |> Repo.insert()
+
+    assert "has already been taken" in errors_on(changeset).name
   end
 
   test "empty_trash/1 permanently deletes trashed files from storage and keeps other tenants isolated" do
