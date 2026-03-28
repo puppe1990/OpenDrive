@@ -6,7 +6,7 @@ defmodule OpenDriveWeb.UserLive.LoginTest do
   test "renders the password login form", %{conn: conn} do
     {:ok, _lv, html} = live(conn, ~p"/users/log-in")
 
-    assert html =~ "Entrar no workspace"
+    assert html =~ "Acesse seu workspace"
     assert html =~ "Senha"
   end
 end

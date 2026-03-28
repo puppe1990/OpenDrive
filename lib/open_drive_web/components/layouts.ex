@@ -35,15 +35,15 @@ defmodule OpenDriveWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.16),_transparent_28%),linear-gradient(180deg,_#f8fbff,_#eef7ff_45%,_#ffffff_100%)]">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#f7fbff_0%,_#edf4ff_48%,_#f8fbff_100%)] text-slate-950">
       <header class="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
         <a href="/" class="flex items-center gap-3">
           <div class="flex size-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-black text-white">
             OD
           </div>
           <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-500">OpenDrive</p>
-            <p class="text-xs text-slate-400">Phoenix LiveView</p>
+            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-700">OpenDrive</p>
+            <p class="text-xs text-slate-500">Phoenix LiveView</p>
           </div>
         </a>
 
@@ -56,8 +56,18 @@ defmodule OpenDriveWeb.Layouts do
             <.link href={~p"/users/settings"} class="btn btn-ghost">Settings</.link>
             <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">Log out</.link>
           <% else %>
-            <.link navigate={~p"/users/log-in"} class="btn btn-ghost">Log in</.link>
-            <.link navigate={~p"/users/register"} class="btn btn-primary">Create workspace</.link>
+            <.link
+              navigate={~p"/users/log-in"}
+              class="inline-flex h-11 items-center rounded-2xl px-4 text-sm font-semibold text-slate-700 transition hover:bg-white/80 hover:text-slate-950"
+            >
+              Log in
+            </.link>
+            <.link
+              navigate={~p"/users/register"}
+              class="inline-flex h-11 items-center rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+            >
+              Create workspace
+            </.link>
           <% end %>
         </div>
       </header>

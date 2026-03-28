@@ -233,13 +233,17 @@ defmodule OpenDriveWeb.CoreComponents do
 
   def input(%{type: "select"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-2 space-y-1.5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="mb-1 block text-sm font-medium text-slate-700">{@label}</span>
         <select
           id={@id}
           name={@name}
-          class={[@class || "w-full select", @errors != [] && (@error_class || "select-error")]}
+          class={[
+            @class ||
+              "w-full min-h-13 rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            @errors != [] && (@error_class || "select-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
+          ]}
           multiple={@multiple}
           {@rest}
         >
@@ -254,15 +258,16 @@ defmodule OpenDriveWeb.CoreComponents do
 
   def input(%{type: "textarea"} = assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-2 space-y-1.5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="mb-1 block text-sm font-medium text-slate-700">{@label}</span>
         <textarea
           id={@id}
           name={@name}
           class={[
-            @class || "w-full textarea",
-            @errors != [] && (@error_class || "textarea-error")
+            @class ||
+              "w-full min-h-32 rounded-2xl border border-slate-300 bg-white px-4 py-3 text-base leading-6 text-slate-950 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            @errors != [] && (@error_class || "textarea-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
           ]}
           {@rest}
         >{Phoenix.HTML.Form.normalize_value("textarea", @value)}</textarea>
@@ -275,17 +280,18 @@ defmodule OpenDriveWeb.CoreComponents do
   # All other inputs text, datetime-local, url, password, etc. are handled here...
   def input(assigns) do
     ~H"""
-    <div class="fieldset mb-2">
+    <div class="fieldset mb-2 space-y-1.5">
       <label for={@id}>
-        <span :if={@label} class="label mb-1">{@label}</span>
+        <span :if={@label} class="mb-1 block text-sm font-medium text-slate-700">{@label}</span>
         <input
           type={@type}
           name={@name}
           id={@id}
           value={Phoenix.HTML.Form.normalize_value(@type, @value)}
           class={[
-            @class || "w-full input",
-            @errors != [] && (@error_class || "input-error")
+            @class ||
+              "w-full min-h-13 rounded-2xl border border-slate-300 bg-white px-4 text-base text-slate-950 placeholder:text-slate-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100",
+            @errors != [] && (@error_class || "input-error border-rose-400 focus:border-rose-500 focus:ring-rose-100")
           ]}
           {@rest}
         />
@@ -316,10 +322,10 @@ defmodule OpenDriveWeb.CoreComponents do
     ~H"""
     <header class={[@actions != [] && "flex items-center justify-between gap-6", "pb-4"]}>
       <div>
-        <h1 class="text-lg font-semibold leading-8">
+        <h1 class="text-lg font-semibold leading-8 text-slate-950">
           {render_slot(@inner_block)}
         </h1>
-        <p :if={@subtitle != []} class="text-sm text-base-content/70">
+        <p :if={@subtitle != []} class="text-sm text-slate-600">
           {render_slot(@subtitle)}
         </p>
       </div>
