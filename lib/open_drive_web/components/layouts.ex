@@ -51,12 +51,36 @@ defmodule OpenDriveWeb.Layouts do
         <div class="flex items-center gap-3">
           <%= if @current_scope && @current_scope.user do %>
             <.tenant_switcher current_scope={@current_scope} />
-            <.link navigate={~p"/app"} class="btn btn-ghost">{gettext("Drive")}</.link>
-            <.link navigate={~p"/app/members"} class="btn btn-ghost">{gettext("Members")}</.link>
-            <.link navigate={~p"/app/trash"} class="btn btn-ghost">{gettext("Trash")}</.link>
-            <.link href={~p"/users/settings"} class="btn btn-ghost">{gettext("Settings")}</.link>
+            <.link
+              navigate={~p"/app"}
+              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+            >
+              {gettext("Drive")}
+            </.link>
+            <.link
+              navigate={~p"/app/members"}
+              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+            >
+              {gettext("Members")}
+            </.link>
+            <.link
+              navigate={~p"/app/trash"}
+              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+            >
+              {gettext("Trash")}
+            </.link>
+            <.link
+              href={~p"/users/settings"}
+              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+            >
+              {gettext("Settings")}
+            </.link>
             <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
-            <.link href={~p"/users/log-out"} method="delete" class="btn btn-outline">
+            <.link
+              href={~p"/users/log-out"}
+              method="delete"
+              class="inline-flex h-11 items-center rounded-2xl border border-slate-900 px-7 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-slate-950 hover:text-white"
+            >
               {gettext("Log out")}
             </.link>
           <% else %>
@@ -96,7 +120,7 @@ defmodule OpenDriveWeb.Layouts do
       <.link
         href="?locale=pt-BR"
         class={[
-          "rounded-[1rem] px-4 py-2 text-sm font-semibold tracking-[0.02em] transition",
+          "rounded-[1rem] px-4 py-2 text-[0.95rem] font-semibold tracking-[-0.02em] transition",
           @locale == "pt_BR" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
           @locale != "pt_BR" && "text-slate-500 hover:text-slate-800"
         ]}
@@ -106,7 +130,7 @@ defmodule OpenDriveWeb.Layouts do
       <.link
         href="?locale=en"
         class={[
-          "rounded-[1rem] px-4 py-2 text-sm font-semibold tracking-[0.02em] transition",
+          "rounded-[1rem] px-4 py-2 text-[0.95rem] font-semibold tracking-[-0.02em] transition",
           @locale == "en" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
           @locale != "en" && "text-slate-500 hover:text-slate-800"
         ]}
