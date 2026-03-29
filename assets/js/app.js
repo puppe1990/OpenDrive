@@ -85,7 +85,9 @@ const Hooks = {
       const key = handle.dataset.columnResizer;
       const minWidth = Number(handle.dataset.minWidth || 100);
       const maxWidth = Number(handle.dataset.maxWidth || 640);
-      const headerCell = this.el.querySelector(`[data-resizable-column="${key}"]`);
+      const headerCell = this.el.querySelector(
+        `[data-resizable-column="${key}"]`,
+      );
       const startWidth = Math.round(
         headerCell?.getBoundingClientRect().width || minWidth,
       );
@@ -628,7 +630,9 @@ const Hooks = {
       this.video = this.el.querySelector("video");
       this.progress = this.el.querySelector('[data-role="progress"]');
       this.volume = this.el.querySelector('[data-role="volume"]');
-      this.volumeValueLabel = this.el.querySelector('[data-role="volume-value"]');
+      this.volumeValueLabel = this.el.querySelector(
+        '[data-role="volume-value"]',
+      );
       this.currentTimeLabel = this.el.querySelector(
         '[data-role="current-time"]',
       );
@@ -688,7 +692,9 @@ const Hooks = {
       if (!this.video || !this.progress) return;
 
       this.lastVolume =
-        this.video.volume > 0 ? this.video.volume : Number(this.volume?.value || 100) / 100;
+        this.video.volume > 0
+          ? this.video.volume
+          : Number(this.volume?.value || 100) / 100;
 
       this.playButtons.forEach((button) =>
         button.addEventListener("click", this.boundTogglePlay),
@@ -966,8 +972,7 @@ const Hooks = {
         (this.speedLabel.textContent = this.formatSpeed(playbackRate));
       this.speedBadge &&
         (this.speedBadge.textContent = this.formatSpeed(playbackRate));
-      this.volume &&
-        (this.volume.value = `${Math.round(volume * 100)}`);
+      this.volume && (this.volume.value = `${Math.round(volume * 100)}`);
       this.volumeValueLabel &&
         (this.volumeValueLabel.textContent = `${Math.round(volume * 100)}%`);
       this.el.dataset.state = playing ? "playing" : "paused";
@@ -1082,6 +1087,446 @@ const Hooks = {
         case "F":
           event.preventDefault();
           this.toggleFullscreen();
+          break;
+      }
+    },
+  },
+
+  AudioPreview: {
+    mounted() {
+      this.audio = this.el.querySelector("audio");
+      this.progress = this.el.querySelector('[data-role="progress"]');
+      this.volume = this.el.querySelector('[data-role="volume"]');
+      this.volumeValueLabel = this.el.querySelector(
+        '[data-role="volume-value"]',
+      );
+      this.currentTimeLabel = this.el.querySelector(
+        '[data-role="current-time"]',
+      );
+      this.durationLabel = this.el.querySelector('[data-role="duration"]');
+      this.inlineDurationLabel = this.el.querySelector(
+        '[data-role="duration-inline"]',
+      );
+      this.speedLabel = this.el.querySelector('[data-role="speed"]');
+      this.speedBadge = this.el.querySelector('[data-role="speed-badge"]');
+      this.currentNameLabel = this.el.querySelector(
+        '[data-role="current-name"]',
+      );
+      this.playlistPositionLabel = this.el.querySelector(
+        '[data-role="playlist-position"]',
+      );
+      this.playButtons = this.el.querySelectorAll(
+        '[data-action="toggle-play"]',
+      );
+      this.skipBackButton = this.el.querySelector(
+        '[data-action="seek-backward"]',
+      );
+      this.skipForwardButton = this.el.querySelector(
+        '[data-action="seek-forward"]',
+      );
+      this.speedDownButton = this.el.querySelector(
+        '[data-action="speed-down"]',
+      );
+      this.speedUpButton = this.el.querySelector('[data-action="speed-up"]');
+      this.muteButton = this.el.querySelector('[data-action="toggle-mute"]');
+      this.repeatButton = this.el.querySelector('[data-action="cycle-repeat"]');
+      this.repeatMode = null;
+      this.playlist = this.parsePlaylist(this.el.dataset.playlist);
+      this.currentIndex = Number(this.el.dataset.playlistIndex || 0);
+      this.boundTogglePlay = () => this.togglePlay();
+      this.boundToggleMute = () => this.toggleMute();
+      this.boundSeekBackward = () => this.skipBy(-10);
+      this.boundSeekForward = () => this.skipBy(10);
+      this.boundSpeedDown = () => this.adjustSpeed(-0.25);
+      this.boundSpeedUp = () => this.adjustSpeed(0.25);
+      this.boundCycleRepeat = () => this.cycleRepeatMode();
+      this.boundSyncProgress = () => this.syncProgress();
+      this.boundSyncMeta = () => this.syncMeta();
+      this.boundHandleEnded = () => this.handleEnded();
+      this.boundSeek = (event) => this.seek(event);
+      this.boundSetVolume = (event) => this.setVolume(event);
+      this.boundKeydown = (event) => this.handleKeydown(event);
+
+      if (!this.audio || !this.progress) return;
+
+      this.lastVolume =
+        this.audio.volume > 0
+          ? this.audio.volume
+          : Number(this.volume?.value || 100) / 100;
+
+      this.playButtons.forEach((button) =>
+        button.addEventListener("click", this.boundTogglePlay),
+      );
+      this.muteButton?.addEventListener("click", this.boundToggleMute);
+      this.skipBackButton?.addEventListener("click", this.boundSeekBackward);
+      this.skipForwardButton?.addEventListener("click", this.boundSeekForward);
+      this.speedDownButton?.addEventListener("click", this.boundSpeedDown);
+      this.speedUpButton?.addEventListener("click", this.boundSpeedUp);
+      this.repeatButton?.addEventListener("click", this.boundCycleRepeat);
+      this.progress.addEventListener("input", this.boundSeek);
+      this.volume?.addEventListener("input", this.boundSetVolume);
+      this.audio.addEventListener("timeupdate", this.boundSyncProgress);
+      this.audio.addEventListener("loadedmetadata", this.boundSyncMeta);
+      this.audio.addEventListener("durationchange", this.boundSyncMeta);
+      this.audio.addEventListener("play", this.boundSyncMeta);
+      this.audio.addEventListener("pause", this.boundSyncMeta);
+      this.audio.addEventListener("volumechange", this.boundSyncMeta);
+      this.audio.addEventListener("ratechange", this.boundSyncMeta);
+      this.audio.addEventListener("ended", this.boundHandleEnded);
+
+      if (this.el.dataset.shortcuts === "true") {
+        window.addEventListener("keydown", this.boundKeydown);
+      }
+
+      this.syncTrackMeta();
+      this.syncMeta();
+      this.syncProgress();
+
+      if (this.el.dataset.autoplay === "true") {
+        this.audio.muted = false;
+        this.audio.play().catch(() => {});
+      }
+    },
+
+    updated() {
+      this.syncTrackMeta?.();
+      this.syncMeta?.();
+      this.syncProgress?.();
+    },
+
+    destroyed() {
+      this.audio?.pause();
+      this.playButtons?.forEach((button) =>
+        button.removeEventListener("click", this.boundTogglePlay),
+      );
+      this.muteButton?.removeEventListener("click", this.boundToggleMute);
+      this.skipBackButton?.removeEventListener("click", this.boundSeekBackward);
+      this.skipForwardButton?.removeEventListener(
+        "click",
+        this.boundSeekForward,
+      );
+      this.speedDownButton?.removeEventListener("click", this.boundSpeedDown);
+      this.speedUpButton?.removeEventListener("click", this.boundSpeedUp);
+      this.repeatButton?.removeEventListener("click", this.boundCycleRepeat);
+      this.progress?.removeEventListener("input", this.boundSeek);
+      this.volume?.removeEventListener("input", this.boundSetVolume);
+      this.audio?.removeEventListener("timeupdate", this.boundSyncProgress);
+      this.audio?.removeEventListener("loadedmetadata", this.boundSyncMeta);
+      this.audio?.removeEventListener("durationchange", this.boundSyncMeta);
+      this.audio?.removeEventListener("play", this.boundSyncMeta);
+      this.audio?.removeEventListener("pause", this.boundSyncMeta);
+      this.audio?.removeEventListener("volumechange", this.boundSyncMeta);
+      this.audio?.removeEventListener("ratechange", this.boundSyncMeta);
+      this.audio?.removeEventListener("ended", this.boundHandleEnded);
+      window.removeEventListener("keydown", this.boundKeydown);
+    },
+
+    togglePlay() {
+      if (!this.audio) return;
+
+      if (this.audio.paused) {
+        this.audio.play().catch(() => {});
+      } else {
+        this.audio.pause();
+      }
+    },
+
+    toggleMute() {
+      if (!this.audio) return;
+
+      if (!this.audio.muted && this.audio.volume > 0) {
+        this.lastVolume = this.audio.volume;
+      }
+
+      this.audio.muted = !this.audio.muted;
+
+      if (!this.audio.muted && this.audio.volume === 0) {
+        this.audio.volume = this.lastVolume || 1;
+      }
+
+      if (this.audio.muted && this.volume) {
+        this.volume.value = "0";
+      }
+
+      this.syncMeta();
+    },
+
+    setVolume(event) {
+      if (!this.audio) return;
+
+      const value = Math.min(100, Math.max(0, Number(event.target.value || 0)));
+      const normalized = value / 100;
+
+      this.audio.volume = normalized;
+      this.audio.muted = normalized === 0;
+
+      if (normalized > 0) {
+        this.lastVolume = normalized;
+      }
+
+      this.syncMeta();
+    },
+
+    skipBy(seconds) {
+      if (!this.audio) return;
+
+      const duration = Number.isFinite(this.audio.duration)
+        ? this.audio.duration
+        : null;
+      const targetTime = this.audio.currentTime + seconds;
+
+      if (duration === null) {
+        this.audio.currentTime = Math.max(0, targetTime);
+      } else {
+        this.audio.currentTime = Math.min(duration, Math.max(0, targetTime));
+      }
+
+      this.syncProgress();
+    },
+
+    adjustSpeed(delta) {
+      if (!this.audio) return;
+
+      const nextRate = Math.min(
+        2,
+        Math.max(0.25, this.audio.playbackRate + delta),
+      );
+      this.audio.playbackRate = Number(nextRate.toFixed(2));
+      this.syncMeta();
+    },
+
+    resetSpeed() {
+      if (!this.audio) return;
+
+      this.audio.playbackRate = 1;
+      this.syncMeta();
+    },
+
+    seek(event) {
+      if (!this.audio || !Number.isFinite(this.audio.duration)) return;
+
+      const percentage = Number(event.target.value || 0);
+      this.audio.currentTime = (percentage / 100) * this.audio.duration;
+      this.syncProgress();
+    },
+
+    handleEnded() {
+      if (!this.audio) return;
+
+      if (this.repeatMode === "track") {
+        this.audio.currentTime = 0;
+        this.audio.play().catch(() => {});
+        this.syncProgress();
+        this.syncMeta();
+        return;
+      }
+
+      if (this.repeatMode === "playlist" && this.playlist.length > 0) {
+        const nextIndex = this.currentIndex + 1;
+        const targetIndex = nextIndex < this.playlist.length ? nextIndex : 0;
+        this.loadTrack(targetIndex, true);
+        return;
+      }
+
+      this.audio.currentTime = 0;
+      this.syncProgress();
+      this.syncMeta();
+    },
+
+    syncMeta() {
+      if (!this.audio) return;
+
+      const duration = Number.isFinite(this.audio.duration)
+        ? this.audio.duration
+        : 0;
+      const playing = !this.audio.paused && !this.audio.ended;
+      const muted = this.audio.muted;
+      const volume = muted ? 0 : this.audio.volume;
+      const playbackRate = this.audio.playbackRate || 1;
+
+      this.durationLabel &&
+        (this.durationLabel.textContent = this.formatTime(duration));
+      this.inlineDurationLabel &&
+        (this.inlineDurationLabel.textContent = this.formatTime(duration));
+      this.speedLabel &&
+        (this.speedLabel.textContent = this.formatSpeed(playbackRate));
+      this.speedBadge &&
+        (this.speedBadge.textContent = this.formatSpeed(playbackRate));
+      this.volume && (this.volume.value = `${Math.round(volume * 100)}`);
+      this.volumeValueLabel &&
+        (this.volumeValueLabel.textContent = `${Math.round(volume * 100)}%`);
+      this.el.dataset.state = playing ? "playing" : "paused";
+      this.syncRepeatButtons();
+      this.syncTrackMeta();
+
+      this.playButtons?.forEach((button) => {
+        button.setAttribute(
+          "aria-label",
+          playing ? "Pausar audio" : "Reproduzir audio",
+        );
+
+        const playIcon = button.querySelector('[data-icon="play"]');
+        const pauseIcon = button.querySelector('[data-icon="pause"]');
+
+        playIcon?.classList.toggle("hidden", playing);
+        pauseIcon?.classList.toggle("hidden", !playing);
+      });
+
+      if (this.muteButton) {
+        this.muteButton.setAttribute(
+          "aria-label",
+          muted ? "Ativar som" : "Silenciar audio",
+        );
+        this.muteButton
+          .querySelector('[data-icon="volume-on"]')
+          ?.classList.toggle("hidden", muted);
+        this.muteButton
+          .querySelector('[data-icon="volume-off"]')
+          ?.classList.toggle("hidden", !muted);
+      }
+    },
+
+    cycleRepeatMode() {
+      this.repeatMode =
+        this.repeatMode === null
+          ? "track"
+          : this.repeatMode === "track"
+            ? "playlist"
+            : null;
+      this.syncRepeatButtons();
+    },
+
+    syncRepeatButtons() {
+      if (!this.repeatButton) return;
+
+      const active = this.repeatMode !== null;
+      const label = this.repeatMode
+        ? this.repeatMode === "track"
+          ? this.el.dataset.repeatTrackLabel
+          : this.el.dataset.repeatPlaylistLabel
+        : this.el.dataset.repeatOffLabel;
+
+      this.repeatButton.textContent = label;
+      this.repeatButton.setAttribute("aria-pressed", active ? "true" : "false");
+      this.repeatButton.classList.toggle("bg-sky-400/20", active);
+      this.repeatButton.classList.toggle("border-sky-300/60", active);
+      this.repeatButton.classList.toggle("text-white", active);
+      this.repeatButton.classList.toggle(
+        "shadow-[0_10px_30px_rgba(56,189,248,0.18)]",
+        active,
+      );
+      this.repeatButton.classList.toggle("bg-transparent", !active);
+      this.repeatButton.classList.toggle("border-white/10", !active);
+      this.repeatButton.classList.toggle("text-white/60", !active);
+    },
+
+    parsePlaylist(rawValue) {
+      try {
+        const parsed = JSON.parse(rawValue || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (_) {
+        return [];
+      }
+    },
+
+    syncTrackMeta() {
+      const currentTrack = this.playlist[this.currentIndex];
+      const total = this.playlist.length;
+
+      if (currentTrack?.name && this.currentNameLabel) {
+        this.currentNameLabel.textContent = currentTrack.name;
+      }
+
+      if (this.playlistPositionLabel && total > 0) {
+        this.playlistPositionLabel.textContent = `Faixa ${this.currentIndex + 1} de ${total}`;
+      }
+
+      this.el.dataset.currentId = currentTrack?.id
+        ? String(currentTrack.id)
+        : "";
+      this.el.dataset.playlistIndex = String(this.currentIndex);
+      this.el.dataset.playlistCount = String(total);
+    },
+
+    loadTrack(index, autoplay = false) {
+      if (!this.audio || index < 0 || index >= this.playlist.length) return;
+
+      const track = this.playlist[index];
+      this.currentIndex = index;
+      this.audio.src = track.href;
+      this.audio.load();
+      this.audio.currentTime = 0;
+      this.syncTrackMeta();
+      this.syncProgress();
+      this.syncMeta();
+
+      if (autoplay) {
+        this.audio.play().catch(() => {});
+      }
+    },
+
+    syncProgress() {
+      if (!this.audio || !this.progress) return;
+
+      const duration = Number.isFinite(this.audio.duration)
+        ? this.audio.duration
+        : 0;
+      const currentTime = Number.isFinite(this.audio.currentTime)
+        ? this.audio.currentTime
+        : 0;
+      const percentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+      this.progress.value = String(percentage);
+      this.progress.style.setProperty("--video-progress", `${percentage}%`);
+
+      if (this.currentTimeLabel) {
+        this.currentTimeLabel.textContent = this.formatTime(currentTime);
+      }
+    },
+
+    formatTime(value) {
+      const totalSeconds = Math.max(0, Math.floor(value || 0));
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    },
+
+    formatSpeed(value) {
+      const normalized = Number(value || 1);
+      return `${normalized % 1 === 0 ? normalized.toFixed(0) : normalized.toFixed(2).replace(/0$/, "")}x`;
+    },
+
+    handleKeydown(event) {
+      const activeTag = document.activeElement?.tagName;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) return;
+
+      switch (event.key) {
+        case " ":
+        case "Spacebar":
+          event.preventDefault();
+          this.togglePlay();
+          break;
+        case "ArrowLeft":
+          event.preventDefault();
+          this.skipBy(-10);
+          break;
+        case "ArrowRight":
+          event.preventDefault();
+          this.skipBy(10);
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          this.adjustSpeed(0.25);
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          this.adjustSpeed(-0.25);
+          break;
+        case "r":
+        case "R":
+          event.preventDefault();
+          this.resetSpeed();
           break;
       }
     },

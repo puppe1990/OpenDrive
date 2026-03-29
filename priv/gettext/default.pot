@@ -1010,9 +1010,19 @@ msgstr ""
 msgid "Open player"
 msgstr ""
 
+#: lib/open_drive_web/live/drive_live/components.ex:505
+#, elixir-autogen, elixir-format
+msgid "Open audio player"
+msgstr ""
+
 #: lib/open_drive_web/live/drive_live/index.ex:1236
 #, elixir-autogen, elixir-format
 msgid "Open video %{name}"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:497
+#, elixir-autogen, elixir-format
+msgid "Open audio %{name}"
 msgstr ""
 
 #: lib/open_drive_web/live/drive_live/index.ex:2247
@@ -1346,6 +1356,52 @@ msgstr ""
 #: lib/open_drive_web/live/drive_live/index.ex:2138
 #, elixir-autogen, elixir-format
 msgid "Video volume"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1491
+#: lib/open_drive_web/live/drive_live/index.ex:1505
+#, elixir-autogen, elixir-format
+msgid "Audio volume"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1460
+#, elixir-autogen, elixir-format
+msgid "Skip 10s"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1605
+#, elixir-autogen, elixir-format
+msgid "Repeat track"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1616
+#, elixir-autogen, elixir-format
+msgid "Repeat playlist"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1411
+#, elixir-autogen, elixir-format
+msgid "Track %{position} of %{total}"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1616
+#, elixir-autogen, elixir-format
+msgid "Loop"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1640
+#, elixir-autogen, elixir-format
+msgid "Loop off"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1379
+#, elixir-autogen, elixir-format
+msgid "Looping track"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/index.ex:1380
+#, elixir-autogen, elixir-format
+msgid "Looping playlist"
 msgstr ""
 
 #: lib/open_drive_web/live/drive_live/index.ex:856

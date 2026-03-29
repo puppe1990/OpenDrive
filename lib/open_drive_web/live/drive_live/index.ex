@@ -31,6 +31,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:selected_entries, MapSet.new())
       |> assign(:selected_image_id, nil)
       |> assign(:selected_video_id, nil)
+      |> assign(:selected_audio_id, nil)
       |> assign(:workspace_used_size, 0)
       |> assign(:folder_count, 0)
       |> assign(:file_count, 0)
@@ -378,6 +379,23 @@ defmodule OpenDriveWeb.DriveLive.Index do
     {:noreply, assign(socket, :selected_video_id, nil)}
   end
 
+  def handle_event("open_audio", %{"id" => id}, socket) do
+    audio_id = normalize_id(id)
+
+    socket =
+      if Enum.any?(Entries.visible_audios(socket.assigns.entries), &(&1.id == audio_id)) do
+        assign(socket, :selected_audio_id, audio_id)
+      else
+        socket
+      end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close_audio", _params, socket) do
+    {:noreply, assign(socket, :selected_audio_id, nil)}
+  end
+
   def handle_event("next_image", _params, socket) do
     {:noreply, cycle_selected_image(socket, 1)}
   end
@@ -429,6 +447,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
         Entries.sanitize_selected(entries, socket.assigns[:selected_entries] || MapSet.new()),
       selected_image_id: Entries.selected_image_id(entries, socket.assigns[:selected_image_id]),
       selected_video_id: Entries.selected_video_id(entries, socket.assigns[:selected_video_id]),
+      selected_audio_id: Entries.selected_audio_id(entries, socket.assigns[:selected_audio_id]),
       workspace_used_size: Drive.workspace_used_size(socket.assigns.current_scope),
       folder_count: length(children.folders),
       file_count: length(children.files),
@@ -520,6 +539,25 @@ defmodule OpenDriveWeb.DriveLive.Index do
   defp selected_video(entries, selected_video_id),
     do: Entries.selected_video(entries, selected_video_id)
 
+  defp selected_audio(entries, selected_audio_id),
+    do: Entries.selected_audio(entries, selected_audio_id)
+
+  defp visible_audio_playlist(entries) do
+    Enum.map(Entries.visible_audios(entries), fn entry ->
+      %{
+        "id" => entry.id,
+        "name" => entry.name,
+        "href" => entry.href,
+        "content_type" => entry.content_type,
+        "size" => entry.size
+      }
+    end)
+  end
+
+  defp audio_playlist_index(playlist, selected_audio_id) do
+    Enum.find_index(playlist, &(&1["id"] == selected_audio_id)) || 0
+  end
+
   defp visible_entry_keys(entries), do: Entries.visible_entry_keys(entries)
 
   defp selected_all_entries?(entries, selected_keys),
@@ -581,6 +619,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
       assigns
       |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
       |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
+      |> assign(:selected_audio, selected_audio(assigns.entries, assigns.selected_audio_id))
+      |> assign(:audio_playlist, visible_audio_playlist(assigns.entries))
       |> assign(:editing_folder, editing_folder(assigns.entries, assigns.editing_folder_id))
       |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
       |> assign(
@@ -1293,6 +1333,326 @@ defmodule OpenDriveWeb.DriveLive.Index do
                       <p class="mt-5 text-base leading-8 text-white/62">
                         {gettext(
                           "OpenDrive Player uses native browser acceleration for smooth playback. MP4, WebM, and OGG remain private in the app, with dedicated controls for fullscreen, speed, and quick keyboard navigation."
+                        )}
+                      </p>
+                    </section>
+                  </aside>
+                </div>
+              </div>
+            </div>
+          <% end %>
+
+          <%= if selected = @selected_audio do %>
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-[radial-gradient(circle_at_top,#111827_0%,#020617_68%)] p-4 sm:p-6">
+              <button
+                type="button"
+                phx-click="close_audio"
+                class="absolute inset-0 cursor-default"
+                aria-label={gettext("Close audio player")}
+              >
+              </button>
+
+              <div class="relative z-10 w-full max-w-4xl rounded-[2rem] border border-white/10 bg-[#060b1c]/95 p-4 text-white shadow-[0_32px_120px_rgba(2,6,23,0.7)] ring-1 ring-sky-500/10 sm:p-6">
+                <div class="flex items-center justify-between border-b border-white/10 px-5 py-4">
+                  <div class="min-w-0">
+                    <p class="truncate text-base font-semibold">{selected.name}</p>
+                    <p class="text-sm text-slate-400">
+                      {selected.content_type} · {format_bytes(selected.size)}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    phx-click="close_audio"
+                    class="rounded-full border border-white/15 p-2 text-white transition hover:bg-white/10"
+                    aria-label={gettext("Close")}
+                  >
+                    <.icon name="hero-x-mark" class="size-5" />
+                  </button>
+                </div>
+
+                <div class="grid gap-5 bg-[radial-gradient(circle_at_top,#111827_0%,#030712_72%)] pt-4 lg:grid-cols-[minmax(0,1fr)_260px] lg:items-start">
+                  <div
+                    id={"audio-modal-#{selected.id}"}
+                    phx-hook="AudioPreview"
+                    data-audio-player
+                    data-autoplay="true"
+                    data-shortcuts="true"
+                    data-current-id={selected.id}
+                    data-playlist={Jason.encode!(@audio_playlist)}
+                    data-playlist-count={length(@audio_playlist)}
+                    data-playlist-index={audio_playlist_index(@audio_playlist, selected.id)}
+                    data-repeat-off-label={gettext("Loop off")}
+                    data-repeat-track-label={gettext("Looping track")}
+                    data-repeat-playlist-label={gettext("Looping playlist")}
+                    class="video-preview-shell overflow-hidden rounded-[1.75rem] border border-white/10 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
+                  >
+                    <div class="rounded-[1.5rem] bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.22),transparent_28%),linear-gradient(180deg,#0f172a_0%,#111827_100%)] p-6">
+                      <div class="flex flex-col gap-8">
+                        <div class="flex items-start justify-between gap-4">
+                          <div>
+                            <span class="inline-flex rounded-full border border-white/15 bg-slate-950/55 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-white/75 backdrop-blur-md">
+                              OpenDrive Audio
+                            </span>
+                            <p class="mt-3 text-xs text-white/45">
+                              {gettext("Speed")} <span data-role="speed">1x</span>
+                            </p>
+                          </div>
+                          <span
+                            data-role="duration"
+                            class="rounded-full border border-white/15 bg-white/12 px-3 py-1 text-[11px] font-medium text-white/85 shadow-sm backdrop-blur-md"
+                          >
+                            {format_duration(0)}
+                          </span>
+                        </div>
+
+                        <div class="flex items-center gap-5">
+                          <div class="flex size-24 shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/10 shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                            <.icon name="hero-speaker-wave" class="size-12 text-white" />
+                          </div>
+                          <div class="min-w-0">
+                            <p
+                              data-role="current-name"
+                              class="truncate text-2xl font-semibold text-white"
+                            >
+                              {selected.name}
+                            </p>
+                            <p class="mt-2 text-sm font-medium text-white/70">
+                              <span data-role="playlist-position">
+                                {gettext(
+                                  "Track %{position} of %{total}",
+                                  position: audio_playlist_index(@audio_playlist, selected.id) + 1,
+                                  total: length(@audio_playlist)
+                                )}
+                              </span>
+                            </p>
+                            <p class="mt-2 text-sm text-white/55">
+                              {gettext(
+                                "Private playback inside OpenDrive with timeline, volume, speed, and seek controls."
+                              )}
+                            </p>
+                          </div>
+                        </div>
+
+                        <audio
+                          src={selected.href}
+                          preload="metadata"
+                          class="hidden"
+                        />
+
+                        <div class="space-y-4">
+                          <label class="sr-only" for={"audio-progress-modal-#{selected.id}"}>
+                            {gettext("Audio progress")}
+                          </label>
+                          <input
+                            id={"audio-progress-modal-#{selected.id}"}
+                            data-role="progress"
+                            type="range"
+                            min="0"
+                            max="100"
+                            value="0"
+                            step="0.1"
+                            class="video-preview-range"
+                            aria-label={gettext("Audio progress")}
+                          />
+
+                          <div class="flex flex-wrap items-center gap-3">
+                            <button
+                              type="button"
+                              data-action="toggle-play"
+                              class="flex size-11 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                              aria-label={gettext("Play audio")}
+                            >
+                              <svg
+                                data-icon="play"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                class="ml-0.5 size-5"
+                                aria-hidden="true"
+                              >
+                                <path d="M8 6.82v10.36c0 .79.87 1.26 1.54.84l8.17-5.18a1 1 0 0 0 0-1.69L9.54 5.98A1 1 0 0 0 8 6.82Z" />
+                              </svg>
+                              <svg
+                                data-icon="pause"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                class="hidden size-5"
+                                aria-hidden="true"
+                              >
+                                <path d="M7 5.75A.75.75 0 0 1 7.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5A.75.75 0 0 1 7 18.25V5.75Zm7 0A.75.75 0 0 1 14.75 5h1.5a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V5.75Z" />
+                              </svg>
+                            </button>
+
+                            <button
+                              type="button"
+                              data-action="seek-backward"
+                              class="rounded-full bg-white/6 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/12 hover:text-white"
+                              aria-label={gettext("Go back 10 seconds")}
+                            >
+                              {gettext("Back 10s")}
+                            </button>
+
+                            <button
+                              type="button"
+                              data-action="seek-forward"
+                              class="rounded-full bg-white/6 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/12 hover:text-white"
+                              aria-label={gettext("Go forward 10 seconds")}
+                            >
+                              {gettext("Skip 10s")}
+                            </button>
+
+                            <button
+                              type="button"
+                              data-action="toggle-mute"
+                              class="flex size-11 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/18 focus:outline-none focus:ring-2 focus:ring-white/80 focus:ring-offset-2 focus:ring-offset-slate-950"
+                              aria-label={gettext("Mute audio")}
+                            >
+                              <svg
+                                data-icon="volume-on"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                class="size-5"
+                                aria-hidden="true"
+                              >
+                                <path d="M14.72 4.61a.75.75 0 0 1 1.06.08 10.1 10.1 0 0 1 0 14.62.75.75 0 0 1-1.14-.98 8.6 8.6 0 0 0 0-12.66.75.75 0 0 1 .08-1.06Z" />
+                                <path d="M12.6 7.34a.75.75 0 0 1 1.04.18 6.08 6.08 0 0 1 0 6.96.75.75 0 1 1-1.22-.88 4.58 4.58 0 0 0 0-5.2.75.75 0 0 1 .18-1.06Z" />
+                                <path d="M4 9.5A1.5 1.5 0 0 1 5.5 8H8l3.38-2.7A1 1 0 0 1 13 6.08v11.84a1 1 0 0 1-1.62.78L8 16H5.5A1.5 1.5 0 0 1 4 14.5v-5Z" />
+                              </svg>
+                              <svg
+                                data-icon="volume-off"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                class="hidden size-5"
+                                aria-hidden="true"
+                              >
+                                <path d="M14.5 6.08a1 1 0 0 0-1.62-.78L9.5 8H7a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 7 16h2.5l3.38 2.7a1 1 0 0 0 1.62-.78V6.08Z" />
+                                <path d="M17.78 8.22a.75.75 0 0 0-1.06 1.06L18.44 11l-1.72 1.72a.75.75 0 1 0 1.06 1.06L19.5 12.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L20.56 11l1.72-1.72a.75.75 0 1 0-1.06-1.06L19.5 9.94l-1.72-1.72Z" />
+                              </svg>
+                            </button>
+
+                            <div class="flex min-w-[11rem] items-center gap-3 rounded-full bg-white/6 px-3 py-2 text-sm text-white/80">
+                              <label class="sr-only" for={"audio-volume-modal-#{selected.id}"}>
+                                {gettext("Audio volume")}
+                              </label>
+                              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                                {gettext("Volume")}
+                              </span>
+                              <input
+                                id={"audio-volume-modal-#{selected.id}"}
+                                data-role="volume"
+                                type="range"
+                                min="0"
+                                max="100"
+                                value="100"
+                                step="1"
+                                class="video-volume-range"
+                                aria-label={gettext("Audio volume")}
+                              />
+                              <span
+                                data-role="volume-value"
+                                class="min-w-9 text-right font-semibold text-white"
+                              >
+                                100%
+                              </span>
+                            </div>
+
+                            <div class="min-w-0 grow">
+                              <p class="text-sm font-medium text-white/92">
+                                <span data-role="current-time">{format_duration(0)}</span>
+                                <span class="text-white/35"> / </span>
+                                <span data-role="duration-inline">{format_duration(0)}</span>
+                              </p>
+                            </div>
+
+                            <div class="flex items-center gap-2 rounded-full bg-white/6 px-3 py-1.5 text-sm text-white/75">
+                              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/55">
+                                {gettext("Speed")}
+                              </span>
+                              <button
+                                type="button"
+                                data-action="speed-down"
+                                class="rounded-full px-2 py-1 transition hover:bg-white/10"
+                                aria-label={gettext("Decrease speed")}
+                              >
+                                -
+                              </button>
+                              <span
+                                data-role="speed-badge"
+                                class="min-w-8 text-center font-semibold text-white"
+                              >
+                                1x
+                              </span>
+                              <button
+                                type="button"
+                                data-action="speed-up"
+                                class="rounded-full px-2 py-1 transition hover:bg-white/10"
+                                aria-label={gettext("Increase speed")}
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <div class="flex items-center gap-3 rounded-[1.25rem] border border-white/10 bg-white/6 px-3 py-2">
+                              <span class="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/50">
+                                {gettext("Loop")}
+                              </span>
+                              <button
+                                type="button"
+                                data-action="cycle-repeat"
+                                aria-pressed="false"
+                                data-role="repeat-button"
+                                class="rounded-full border border-white/10 bg-transparent px-4 py-2 text-sm font-medium text-white/60 transition hover:border-white/20 hover:bg-white/10 hover:text-white"
+                              >
+                                {gettext("Loop off")}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <aside class="space-y-5">
+                    <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
+                      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
+                        {gettext("Keyboard shortcuts")}
+                      </p>
+
+                      <div class="mt-5 space-y-4 text-sm text-white/72">
+                        <div class="flex items-center justify-between gap-4">
+                          <span>{gettext("Play / Pause")}</span>
+                          <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                            {gettext("Space")}
+                          </kbd>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                          <span>{gettext("Skip 10s")}</span>
+                          <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                            {gettext("Left/Right arrows")}
+                          </kbd>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                          <span>{gettext("Speed +/-")}</span>
+                          <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                            {gettext("Up/Down arrows")}
+                          </kbd>
+                        </div>
+                        <div class="flex items-center justify-between gap-4">
+                          <span>{gettext("Reset speed")}</span>
+                          <kbd class="rounded-md border border-white/10 bg-white/10 px-3 py-1 font-semibold text-white/88">
+                            R
+                          </kbd>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section class="rounded-[1.4rem] border border-white/10 bg-white/8 p-6 backdrop-blur-sm">
+                      <p class="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">
+                        {gettext("About the player")}
+                      </p>
+                      <p class="mt-5 text-base leading-8 text-white/62">
+                        {gettext(
+                          "OpenDrive Audio keeps playback private in the app with quick seek, speed adjustment, and keyboard navigation for longer recordings."
                         )}
                       </p>
                     </section>

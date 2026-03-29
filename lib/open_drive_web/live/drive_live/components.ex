@@ -474,6 +474,44 @@ defmodule OpenDriveWeb.DriveLive.Components do
               </div>
             </button>
 
+            <button
+              :if={entry.preview == :audio}
+              type="button"
+              phx-click="open_audio"
+              phx-value-id={entry.id}
+              class="group flex h-36 w-full flex-col justify-between overflow-hidden rounded-[1.25rem] border border-slate-200 bg-[radial-gradient(circle_at_top,rgba(14,165,233,0.18),transparent_35%),linear-gradient(180deg,#0f172a_0%,#111827_100%)] p-4 text-left text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+              aria-label={gettext("Open audio %{name}", name: entry.name)}
+            >
+              <div class="flex items-start justify-between gap-3">
+                <span class="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/80 backdrop-blur-md">
+                  {gettext("Audio")}
+                </span>
+                <span class="rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/85 shadow-sm backdrop-blur-md">
+                  {gettext("Open audio player")}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <div class="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/12 text-white shadow-[0_18px_45px_rgba(15,23,42,0.35)] backdrop-blur-xl transition duration-300 group-hover:scale-105 group-hover:bg-white/18">
+                  <.icon name="hero-speaker-wave" class="size-7" />
+                </div>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold text-white">{entry.name}</p>
+                  <p class="mt-1 text-xs text-white/60">{entry.content_type || gettext("Audio")}</p>
+                </div>
+              </div>
+
+              <div class="space-y-2">
+                <div class="h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div class="h-full w-2/5 rounded-full bg-sky-300/80"></div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-white/60">
+                  <span>{gettext("Ready to play")}</span>
+                  <span>{gettext("Open player")}</span>
+                </div>
+              </div>
+            </button>
+
             <div
               :if={entry.preview == :file}
               class="flex h-36 items-center justify-center rounded-[1.25rem] border border-dashed border-slate-300 bg-white text-slate-500"
@@ -636,6 +674,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
                   >
                     {entry.name}
                   </button>
+                  <button
+                    :if={entry.preview == :audio}
+                    type="button"
+                    phx-click="open_audio"
+                    phx-value-id={entry.id}
+                    class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
+                  >
+                    {entry.name}
+                  </button>
                 </div>
 
                 <div class="mt-2 grid gap-1 text-sm text-slate-500 md:hidden">
@@ -755,6 +802,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
   defp preview_icon(:folder), do: "hero-folder"
   defp preview_icon(:image), do: "hero-photo"
   defp preview_icon(:video), do: "hero-film"
+  defp preview_icon(:audio), do: "hero-speaker-wave"
   defp preview_icon(:file), do: "hero-document"
 
   defp sort_icon(sort, field) do

@@ -35,13 +35,15 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Fila de uploads"
   end
 
-  test "renders preview markup for image and video files", %{conn: conn} do
+  test "renders preview markup for image, video and audio files", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Preview Space"})
     image_path = Path.join(System.tmp_dir!(), "open_drive-preview-image.webp")
     video_path = Path.join(System.tmp_dir!(), "open_drive-preview-video.mp4")
+    audio_path = Path.join(System.tmp_dir!(), "open_drive-preview-audio.mp3")
 
     File.write!(image_path, "fake image")
     File.write!(video_path, "fake video")
+    File.write!(audio_path, "fake audio")
 
     {:ok, _image} =
       Drive.upload_file(workspace.scope, %{}, %{
@@ -59,6 +61,14 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
         size: byte_size("fake video")
       })
 
+    {:ok, _audio} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: audio_path,
+        client_name: "podcast.mp3",
+        content_type: "audio/mpeg",
+        size: byte_size("fake audio")
+      })
+
     conn = log_in_user(conn, workspace.user, workspace.scope)
     {:ok, _lv, html} = live(conn, ~p"/app")
 
@@ -66,6 +76,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "<img"
     assert html =~ ~s(phx-click="open_video")
     assert html =~ "Abrir player"
+    assert html =~ ~s(phx-click="open_audio")
+    assert html =~ "Abrir player de audio"
   end
 
   test "shows used workspace storage in the sidebar card", %{conn: conn} do
@@ -286,6 +298,61 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> render_click()
 
     refute html =~ "OpenDrive Player"
+  end
+
+  test "opens the audio in a modal player", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Audio Modal Space"})
+    first_audio_path = Path.join(System.tmp_dir!(), "open_drive-modal-audio.mp3")
+    second_audio_path = Path.join(System.tmp_dir!(), "open_drive-modal-audio-2.mp3")
+    File.write!(first_audio_path, "fake audio")
+    File.write!(second_audio_path, "fake audio two")
+
+    {:ok, audio} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: first_audio_path,
+        client_name: "episode.mp3",
+        content_type: "audio/mpeg",
+        size: byte_size("fake audio")
+      })
+
+    {:ok, _second_audio} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: second_audio_path,
+        client_name: "episode-2.mp3",
+        content_type: "audio/mpeg",
+        size: byte_size("fake audio two")
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    html =
+      lv
+      |> element("button[phx-click='open_audio'][phx-value-id='#{audio.id}']")
+      |> render_click()
+
+    assert html =~ "OpenDrive Audio"
+    assert html =~ "episode.mp3"
+    assert html =~ ~s(id="audio-modal-#{audio.id}")
+    assert html =~ ~s(phx-hook="AudioPreview")
+    assert html =~ ~s(data-role="progress")
+    assert html =~ ~s(data-role="volume")
+    assert html =~ ~s(data-playlist=)
+    assert html =~ "Volume do audio"
+    assert html =~ "Pular 10s"
+    assert html =~ ~s(data-action="cycle-repeat")
+    assert html =~ "Loop desligado"
+    assert html =~ "episode-2.mp3"
+    assert html =~ ~s(data-current-id="#{audio.id}")
+    assert html =~ ~s(data-playlist-count="2")
+    assert html =~ ~s(data-playlist-index=)
+
+    html =
+      lv
+      |> element("button[phx-click='close_audio'][aria-label='Fechar']")
+      |> render_click()
+
+    refute html =~ "OpenDrive Audio"
   end
 
   test "filters and switches between grid and list controls", %{conn: conn} do

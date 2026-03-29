@@ -23,6 +23,7 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   def visible_images(entries), do: Enum.filter(entries, &(&1.preview == :image))
   def visible_videos(entries), do: Enum.filter(entries, &(&1.preview == :video))
+  def visible_audios(entries), do: Enum.filter(entries, &(&1.preview == :audio))
 
   def selected_image(entries, selected_image_id) do
     Enum.find(visible_images(entries), &(&1.id == selected_image_id))
@@ -30,6 +31,10 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   def selected_video(entries, selected_video_id) do
     Enum.find(visible_videos(entries), &(&1.id == selected_video_id))
+  end
+
+  def selected_audio(entries, selected_audio_id) do
+    Enum.find(visible_audios(entries), &(&1.id == selected_audio_id))
   end
 
   def selected_image_id(entries, current_id) do
@@ -40,6 +45,12 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   def selected_video_id(entries, current_id) do
     if Enum.any?(entries, &(&1.preview == :video and &1.id == current_id)),
+      do: current_id,
+      else: nil
+  end
+
+  def selected_audio_id(entries, current_id) do
+    if Enum.any?(entries, &(&1.preview == :audio and &1.id == current_id)),
       do: current_id,
       else: nil
   end
@@ -90,6 +101,7 @@ defmodule OpenDriveWeb.DriveLive.Entries do
             cond do
               image_file?(file) -> :image
               video_file?(file) -> :video
+              audio_file?(file) -> :audio
               true -> :file
             end
         }
@@ -182,4 +194,5 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   defp image_file?(file), do: String.starts_with?(file.file_object.content_type || "", "image/")
   defp video_file?(file), do: String.starts_with?(file.file_object.content_type || "", "video/")
+  defp audio_file?(file), do: String.starts_with?(file.file_object.content_type || "", "audio/")
 end
