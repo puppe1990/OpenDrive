@@ -1,0 +1,16 @@
+.git
+.github
+.kamal
+_build
+deps
+cover
+doc
+tmp
+node_modules
+assets/node_modules
+open_drive_dev.db
+open_drive_dev.db-*
+open_drive_test.db
+open_drive_test.db-*
+.env.local
+erl_crash.dump

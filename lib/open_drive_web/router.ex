@@ -21,6 +21,7 @@ defmodule OpenDriveWeb.Router do
   scope "/", OpenDriveWeb do
     pipe_through :browser
 
+    get "/up", HealthController, :show
     get "/", PageController, :home
   end
 

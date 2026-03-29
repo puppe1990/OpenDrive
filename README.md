@@ -173,6 +173,54 @@ To override the runtime database path:
 export DATABASE_PATH=/absolute/path/to/open_drive.db
 ```
 
+## Deploy with Kamal
+
+The repository now includes a production `Dockerfile` and a starter Kamal config in `config/deploy.yml`.
+
+Current production assumptions:
+
+- Phoenix runs as a release on port `4000`
+- SQLite lives in `/data/open_drive.db` inside the container
+- Kamal mounts the host path `/var/lib/open_drive` into `/data`
+- Blob storage stays on S3 via `OPEN_DRIVE_STORAGE_ADAPTER=s3`
+- Health checks use `GET /up`
+
+Before the first deploy:
+
+```bash
+mix phx.gen.secret
+```
+
+Put the generated value plus your AWS credentials in `.kamal/secrets`:
+
+```bash
+SECRET_KEY_BASE=...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+```
+
+Adjust these placeholders in `config/deploy.yml`:
+
+- `proxy.host`
+- `servers.web.hosts`
+- `env.clear.PHX_HOST`
+- `env.clear.AWS_S3_BUCKET`
+- `ssh.user` if your server user is not `ubuntu`
+
+If you want to build remotely through a Docker host over SSH, you can still run:
+
+```bash
+DOCKER_HOST=ssh://your-server-alias kamal setup
+DOCKER_HOST=ssh://your-server-alias kamal deploy
+```
+
+Typical first-run flow:
+
+```bash
+kamal setup
+kamal deploy
+```
+
 ## Quality gate
 
 Project checks are grouped in:

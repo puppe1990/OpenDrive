@@ -1,0 +1,40 @@
+service: opendrive
+image: opendrive
+
+volumes:
+  - /var/lib/open_drive:/data
+
+servers:
+  web:
+    hosts:
+      - your-server-ip-or-hostname
+
+proxy:
+  app_port: 4000
+  ssl: true
+  host: drive.example.com
+
+registry:
+  server: localhost:5000
+
+builder:
+  arch: amd64
+
+ssh:
+  user: ubuntu
+
+env:
+  clear:
+    PHX_SERVER: "true"
+    PHX_HOST: drive.example.com
+    PHX_SCHEME: https
+    PHX_PORT: "443"
+    PORT: "4000"
+    DATABASE_PATH: /data/open_drive.db
+    OPEN_DRIVE_STORAGE_ADAPTER: s3
+    AWS_REGION: us-east-1
+    AWS_S3_BUCKET: your-s3-bucket
+  secret:
+    - SECRET_KEY_BASE
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
