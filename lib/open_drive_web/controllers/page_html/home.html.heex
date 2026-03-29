@@ -1,29 +1,29 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <section class="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+  <section class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
     <div class="space-y-8">
       <div class="space-y-4">
         <p class="text-sm uppercase tracking-[0.4em] text-sky-700">OpenDrive</p>
-        <h1 class="text-5xl font-black tracking-tight text-slate-950">
+        <h1 class="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
           {gettext("Your internal multi-tenant drive built with Phoenix LiveView.")}
         </h1>
-        <p class="max-w-xl text-lg leading-8 text-slate-600">
+        <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
           {gettext(
             "Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage."
           )}
         </p>
       </div>
 
-      <div class="flex flex-wrap gap-4">
-        <.link navigate={~p"/users/register"} class="btn btn-primary btn-lg">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <.link navigate={~p"/users/register"} class="btn btn-primary w-full sm:w-auto sm:btn-lg">
           {gettext("Create workspace")}
         </.link>
-        <.link navigate={~p"/users/log-in"} class="btn btn-outline btn-lg">
+        <.link navigate={~p"/users/log-in"} class="btn btn-outline w-full sm:w-auto sm:btn-lg">
           {gettext("Log in")}
         </.link>
       </div>
     </div>
 
-    <div class="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-cyan-100 p-8 shadow-xl shadow-sky-100">
+    <div class="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-cyan-100 p-5 shadow-xl shadow-sky-100 sm:p-8">
       <div class="space-y-4">
         <div class="rounded-2xl bg-slate-950 p-5 text-slate-100">
           <p class="text-sm text-sky-300">{gettext("Active workspace")}</p>

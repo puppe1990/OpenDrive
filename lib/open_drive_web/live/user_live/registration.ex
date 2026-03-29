@@ -9,16 +9,16 @@ defmodule OpenDriveWeb.UserLive.Registration do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <section class="mx-auto grid max-w-5xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(440px,1fr)] lg:items-center">
+      <section class="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(440px,1fr)] lg:items-center">
         <div class="space-y-6">
           <div class="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.32em] text-sky-800 shadow-sm backdrop-blur">
             OpenDrive
           </div>
           <div class="space-y-4">
-            <h1 class="max-w-md text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+            <h1 class="max-w-md text-3xl font-black tracking-tight text-slate-950 sm:text-5xl">
               {gettext("Create your workspace with clarity from the first access.")}
             </h1>
-            <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+            <p class="max-w-xl text-sm leading-6 text-slate-600 sm:text-lg sm:leading-7">
               {gettext(
                 "Centralize files, organize teams, and enter the right environment without washed-out screens or weak contrast."
               )}
@@ -45,7 +45,7 @@ defmodule OpenDriveWeb.UserLive.Registration do
           id="registration_form"
           phx-submit="save"
           phx-change="validate"
-          class="space-y-6 rounded-[2rem] border border-white/90 bg-white px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/80 sm:px-8 sm:py-8"
+          class="space-y-6 rounded-[2rem] border border-white/90 bg-white px-5 py-6 shadow-[0_24px_80px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/80 sm:px-8 sm:py-8"
         >
           <div class="space-y-3">
             <p class="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">

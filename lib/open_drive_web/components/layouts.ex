@@ -38,66 +38,111 @@ defmodule OpenDriveWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#f7fbff_0%,_#edf4ff_48%,_#f8fbff_100%)] text-slate-950">
-      <header class="mx-auto flex max-w-7xl items-center justify-between px-4 py-6 sm:px-6 lg:px-8">
-        <a href="/" class="flex items-center gap-3">
-          <div class="flex size-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-black text-white">
-            OD
-          </div>
-          <div>
-            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-700">OpenDrive</p>
-          </div>
-        </a>
+      <header class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
+          <a href="/" class="flex items-center gap-3">
+            <div class="flex size-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-black text-white">
+              OD
+            </div>
+            <div>
+              <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-700">
+                OpenDrive
+              </p>
+            </div>
+          </a>
 
-        <div class="flex items-center gap-3">
           <%= if @current_scope && @current_scope.user do %>
-            <.tenant_switcher current_scope={@current_scope} />
-            <.link
-              navigate={~p"/app"}
-              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
-            >
-              {gettext("Drive")}
-            </.link>
-            <.link
-              navigate={~p"/app/members"}
-              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
-            >
-              {gettext("Members")}
-            </.link>
-            <.link
-              navigate={~p"/app/trash"}
-              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
-            >
-              {gettext("Trash")}
-            </.link>
-            <.link
-              href={~p"/users/settings"}
-              class="inline-flex h-11 items-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
-            >
-              {gettext("Settings")}
-            </.link>
-            <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
-            <.link
-              href={~p"/users/log-out"}
-              method="delete"
-              class="inline-flex h-11 items-center rounded-2xl border border-slate-900 px-7 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-slate-950 hover:text-white"
-            >
-              {gettext("Log out")}
-            </.link>
-          <% else %>
-            <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
-            <.link
-              navigate={~p"/users/log-in"}
-              class="inline-flex h-11 items-center rounded-2xl px-4 text-sm font-semibold text-slate-700 transition hover:bg-white/80 hover:text-slate-950"
-            >
-              {gettext("Log in")}
-            </.link>
-            <.link
-              navigate={~p"/users/register"}
-              class="inline-flex h-11 items-center rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-800"
-            >
-              {gettext("Create workspace")}
-            </.link>
+            <div class="hidden lg:flex lg:flex-1 lg:justify-center">
+              <div class="flex items-center gap-1 rounded-[1.6rem] bg-white/45 p-1 ring-1 ring-white/70 backdrop-blur">
+                <.link
+                  navigate={~p"/app"}
+                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                >
+                  {gettext("Drive")}
+                </.link>
+                <.link
+                  navigate={~p"/app/members"}
+                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                >
+                  {gettext("Members")}
+                </.link>
+                <.link
+                  navigate={~p"/app/trash"}
+                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                >
+                  {gettext("Trash")}
+                </.link>
+                <.link
+                  href={~p"/users/settings"}
+                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                >
+                  {gettext("Settings")}
+                </.link>
+              </div>
+            </div>
           <% end %>
+
+          <div class="flex flex-col gap-3 lg:ml-auto lg:items-end">
+            <%= if @current_scope && @current_scope.user do %>
+              <div class="flex flex-col gap-3 lg:hidden">
+                <.tenant_switcher current_scope={@current_scope} />
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                  <.link
+                    navigate={~p"/app"}
+                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                  >
+                    {gettext("Drive")}
+                  </.link>
+                  <.link
+                    navigate={~p"/app/members"}
+                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                  >
+                    {gettext("Members")}
+                  </.link>
+                  <.link
+                    navigate={~p"/app/trash"}
+                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                  >
+                    {gettext("Trash")}
+                  </.link>
+                  <.link
+                    href={~p"/users/settings"}
+                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                  >
+                    {gettext("Settings")}
+                  </.link>
+                </div>
+              </div>
+
+              <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end lg:gap-2">
+                <.tenant_switcher current_scope={@current_scope} />
+                <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
+                <.link
+                  href={~p"/users/log-out"}
+                  method="delete"
+                  class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-900 px-7 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-slate-950 hover:text-white"
+                >
+                  {gettext("Log out")}
+                </.link>
+              </div>
+            <% else %>
+              <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end">
+                <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
+                <.link
+                  navigate={~p"/users/log-in"}
+                  class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-semibold text-slate-700 transition hover:bg-white/80 hover:text-slate-950"
+                >
+                  {gettext("Log in")}
+                </.link>
+                <.link
+                  navigate={~p"/users/register"}
+                  class="inline-flex h-11 items-center justify-center rounded-2xl bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+                >
+                  {gettext("Create workspace")}
+                </.link>
+              </div>
+            <% end %>
+          </div>
         </div>
       </header>
 
@@ -149,9 +194,14 @@ defmodule OpenDriveWeb.Layouts do
       :if={Enum.count(@current_scope.memberships) > 1}
       action={~p"/app/switch-tenant"}
       method="post"
+      class="w-full sm:w-auto"
     >
       <input type="hidden" name="_csrf_token" value={Phoenix.Controller.get_csrf_token()} />
-      <select name="tenant_id" class="select select-bordered select-sm" onchange="this.form.submit()">
+      <select
+        name="tenant_id"
+        class="select select-bordered select-sm w-full sm:w-auto"
+        onchange="this.form.submit()"
+      >
         <%= for membership <- @current_scope.memberships do %>
           <option
             value={membership.tenant_id}

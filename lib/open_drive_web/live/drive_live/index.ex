@@ -606,7 +606,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
-      <section class="rounded-[2.25rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_24%),linear-gradient(180deg,#f8fbff_0%,#f2f6fc_100%)] p-4 shadow-[0_30px_90px_rgba(148,163,184,0.16)] ring-1 ring-white/70 lg:p-6">
+      <section class="rounded-[2.25rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_24%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_24%),linear-gradient(180deg,#f8fbff_0%,#f2f6fc_100%)] p-4 shadow-[0_30px_90px_rgba(148,163,184,0.16)] ring-1 ring-white/70 md:p-5 lg:p-6">
         <div class="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
           <Components.sidebar view={assigns} />
           <Components.main_content view={assigns} />
