@@ -1,6 +1,8 @@
 defmodule OpenDriveWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :open_drive
 
+  @max_request_body_length OpenDrive.Drive.backend_upload_fallback_size()
+
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
   # Set :encryption_salt if you would also like to encrypt it.
@@ -46,7 +48,7 @@ defmodule OpenDriveWeb.Endpoint do
   plug Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    length: 2_000_000_000,
+    length: @max_request_body_length,
     json_decoder: Phoenix.json_library()
 
   plug Plug.MethodOverride

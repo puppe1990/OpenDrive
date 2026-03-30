@@ -1,5 +1,6 @@
 defmodule OpenDriveWeb.FileDownloadController do
   use OpenDriveWeb, :controller
+  require Logger
 
   alias OpenDrive.Drive
 
@@ -20,7 +21,9 @@ defmodule OpenDriveWeb.FileDownloadController do
 
   def zip(conn, params) do
     case build_zip(conn.assigns.current_scope, params["file_ids"]) do
-      {:ok, filename, zip_path, _cleanup_dir} ->
+      {:ok, filename, zip_path, cleanup_dir} ->
+        schedule_zip_cleanup(cleanup_dir)
+
         send_download(conn, {:file, zip_path},
           filename: filename,
           content_type: "application/zip"
@@ -144,5 +147,16 @@ defmodule OpenDriveWeb.FileDownloadController do
     root = Path.rootname(sanitized_name)
     ext = Path.extname(sanitized_name)
     "#{root}-#{index}#{ext}"
+  end
+
+  defp schedule_zip_cleanup(cleanup_dir) do
+    Task.start(fn ->
+      Process.sleep(5_000)
+
+      case File.rm_rf(cleanup_dir) do
+        {:ok, _paths} -> :ok
+        {:error, reason, _path} -> Logger.warning("zip cleanup failed: #{inspect(reason)}")
+      end
+    end)
   end
 end

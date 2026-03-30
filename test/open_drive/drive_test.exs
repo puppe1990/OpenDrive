@@ -18,6 +18,48 @@ defmodule OpenDrive.DriveTest do
     def presigned_download_url(_key, _opts), do: {:error, :boom}
   end
 
+  defmodule MismatchedHeadStorage do
+    @behaviour OpenDrive.Storage
+
+    def put_object(key, source, opts), do: OpenDrive.Storage.Fake.put_object(key, source, opts)
+
+    def presigned_upload_url(key, opts),
+      do: OpenDrive.Storage.Fake.presigned_upload_url(key, opts)
+
+    def head_object(key) do
+      case OpenDrive.Storage.Fake.head_object(key) do
+        {:ok, object} -> {:ok, %{object | content_type: "application/pdf"}}
+        error -> error
+      end
+    end
+
+    def delete_object(key), do: OpenDrive.Storage.Fake.delete_object(key)
+
+    def move_object(source_key, destination_key, opts),
+      do: OpenDrive.Storage.Fake.move_object(source_key, destination_key, opts)
+
+    def presigned_download_url(key, opts),
+      do: OpenDrive.Storage.Fake.presigned_download_url(key, opts)
+  end
+
+  defmodule DeleteFailingStorage do
+    @behaviour OpenDrive.Storage
+
+    def put_object(key, source, opts), do: OpenDrive.Storage.Fake.put_object(key, source, opts)
+
+    def presigned_upload_url(key, opts),
+      do: OpenDrive.Storage.Fake.presigned_upload_url(key, opts)
+
+    def head_object(key), do: OpenDrive.Storage.Fake.head_object(key)
+    def delete_object(_key), do: {:error, :boom}
+
+    def move_object(source_key, destination_key, opts),
+      do: OpenDrive.Storage.Fake.move_object(source_key, destination_key, opts)
+
+    def presigned_download_url(key, opts),
+      do: OpenDrive.Storage.Fake.presigned_download_url(key, opts)
+  end
+
   test "users do not see data from another tenant" do
     workspace_a = workspace_fixture()
     workspace_b = workspace_fixture()
@@ -111,6 +153,38 @@ defmodule OpenDrive.DriveTest do
     assert file.name == "movie.mp4"
     assert file.file_object.size == 5
     assert file.file_object.content_type == "video/mp4"
+  end
+
+  test "complete_direct_upload/2 rejects mismatched content types" do
+    original = Application.get_env(:open_drive, OpenDrive.Storage)
+
+    Application.put_env(
+      :open_drive,
+      OpenDrive.Storage,
+      Keyword.put(original, :adapter, MismatchedHeadStorage)
+    )
+
+    on_exit(fn -> Application.put_env(:open_drive, OpenDrive.Storage, original) end)
+
+    workspace = workspace_fixture()
+
+    {:ok, upload} =
+      Drive.prepare_direct_upload(workspace.scope, %{
+        "name" => "movie.mp4",
+        "content_type" => "video/mp4",
+        "size" => "5"
+      })
+
+    assert {:ok, _} = OpenDrive.Storage.put_object(upload.key, "hello", content_type: "video/mp4")
+
+    assert {:error, :content_type_mismatch} =
+             Drive.complete_direct_upload(workspace.scope, %{
+               "folder_id" => upload.folder_id,
+               "name" => upload.name,
+               "content_type" => upload.content_type,
+               "size" => upload.size,
+               "key" => upload.key
+             })
   end
 
   test "rename_file/3 updates the database name and moves the stored object" do
@@ -435,5 +509,36 @@ defmodule OpenDrive.DriveTest do
 
     assert Repo.aggregate(DriveFile, :count) == 1
     assert Repo.aggregate(FileObject, :count) == 1
+  end
+
+  test "empty_trash/1 removes database references even when storage cleanup fails" do
+    original = Application.get_env(:open_drive, OpenDrive.Storage)
+
+    Application.put_env(
+      :open_drive,
+      OpenDrive.Storage,
+      Keyword.put(original, :adapter, DeleteFailingStorage)
+    )
+
+    on_exit(fn -> Application.put_env(:open_drive, OpenDrive.Storage, original) end)
+
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-empty-trash-delete-fail.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+    assert {:ok, result} = Drive.empty_trash(workspace.scope)
+    assert result.files_deleted == 1
+    assert result.file_objects_deleted == 1
+    assert Repo.aggregate(DriveFile, :count) == 0
+    assert Repo.aggregate(FileObject, :count) == 0
   end
 end

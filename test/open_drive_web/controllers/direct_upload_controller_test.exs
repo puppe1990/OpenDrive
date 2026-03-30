@@ -112,9 +112,40 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
     assert [%{name: "proxy.txt"}] = Drive.list_children(workspace.scope).files
   end
 
+  test "rejects proxy uploads above the backend fallback limit", %{conn: conn} do
+    workspace = workspace_fixture()
+
+    upload =
+      %Plug.Upload{
+        path:
+          write_sparse_temp_file!(
+            "open-drive-proxy-too-large.bin",
+            Drive.backend_upload_fallback_size() + 1
+          ),
+        filename: "too-large.bin",
+        content_type: "application/octet-stream"
+      }
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> post(~p"/app/uploads/proxy", %{"file" => upload, "name" => "too-large.bin"})
+
+    assert conn.status in [413, 422]
+  end
+
   defp write_temp_file!(name, contents) do
     path = Path.join(System.tmp_dir!(), name)
     File.write!(path, contents)
+    path
+  end
+
+  defp write_sparse_temp_file!(name, size) do
+    path = Path.join(System.tmp_dir!(), name)
+    {:ok, file} = File.open(path, [:write, :binary])
+    {:ok, _position} = :file.position(file, size - 1)
+    :ok = IO.binwrite(file, <<0>>)
+    File.close(file)
     path
   end
 end

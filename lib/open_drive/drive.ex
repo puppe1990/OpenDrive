@@ -4,6 +4,7 @@ defmodule OpenDrive.Drive do
   """
 
   import Ecto.Query, warn: false
+  require Logger
 
   alias OpenDrive.Accounts.Scope
   alias OpenDrive.Audit
@@ -155,7 +156,7 @@ defmodule OpenDrive.Drive do
          :ok <- ensure_name_available(scope, name, folder_id, :file),
          {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
          {:ok, object} <- Storage.head_object(key),
-         :ok <- validate_uploaded_object(object, size),
+         :ok <- validate_uploaded_object(object, size, content_type),
          {:ok, result} <-
            persist_direct_upload(scope, folder_id, name, content_type, size, key, object) do
       {:ok, result}
@@ -372,54 +373,51 @@ defmodule OpenDrive.Drive do
       (deleted_root_files(scope) ++ Tree.files_in_folder_ids(scope, purged_folder_ids))
       |> Enum.uniq_by(& &1.id)
 
-    case delete_trashed_objects(trashed_files) do
-      :ok ->
-        Repo.transaction(fn ->
-          {deleted_files_count, _} =
-            Repo.delete_all(
-              from(f in DriveFile,
-                where:
-                  f.tenant_id == ^tenant_id and
-                    (not is_nil(f.deleted_at) or f.folder_id in ^purged_folder_ids)
-              )
-            )
+    file_object_keys = trashed_files |> Enum.map(& &1.file_object.key) |> Enum.uniq()
 
-          file_object_ids =
-            trashed_files
-            |> Enum.map(& &1.file_object_id)
-            |> Enum.uniq()
+    Repo.transaction(fn ->
+      {deleted_files_count, _} =
+        Repo.delete_all(
+          from(f in DriveFile,
+            where:
+              f.tenant_id == ^tenant_id and
+                (not is_nil(f.deleted_at) or f.folder_id in ^purged_folder_ids)
+          )
+        )
 
-          {deleted_file_objects_count, _} =
-            Repo.delete_all(
-              from(fo in FileObject,
-                where: fo.tenant_id == ^tenant_id and fo.id in ^file_object_ids
-              )
-            )
+      file_object_ids =
+        trashed_files
+        |> Enum.map(& &1.file_object_id)
+        |> Enum.uniq()
 
-          {deleted_folders_count, _} =
-            Repo.delete_all(
-              from(f in Folder,
-                where:
-                  f.tenant_id == ^tenant_id and
-                    (not is_nil(f.deleted_at) or f.id in ^purged_folder_ids)
-              )
-            )
+      {deleted_file_objects_count, _} =
+        Repo.delete_all(
+          from(fo in FileObject,
+            where: fo.tenant_id == ^tenant_id and fo.id in ^file_object_ids
+          )
+        )
 
-          result = %{
-            files_deleted: deleted_files_count,
-            file_objects_deleted: deleted_file_objects_count,
-            folders_deleted: deleted_folders_count
-          }
+      {deleted_folders_count, _} =
+        Repo.delete_all(
+          from(f in Folder,
+            where:
+              f.tenant_id == ^tenant_id and
+                (not is_nil(f.deleted_at) or f.id in ^purged_folder_ids)
+          )
+        )
 
-          Audit.log(scope, "trash.emptied", "trash", tenant_id, result)
+      result = %{
+        files_deleted: deleted_files_count,
+        file_objects_deleted: deleted_file_objects_count,
+        folders_deleted: deleted_folders_count
+      }
 
-          result
-        end)
-        |> normalize_transaction_result()
+      Audit.log(scope, "trash.emptied", "trash", tenant_id, result)
 
-      {:error, _} = error ->
-        error
-    end
+      {result, file_object_keys}
+    end)
+    |> normalize_transaction_result()
+    |> cleanup_deleted_objects()
   end
 
   defp persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
@@ -746,8 +744,21 @@ defmodule OpenDrive.Drive do
   defp validate_upload_size(size) when size <= 0, do: {:error, :invalid_size}
   defp validate_upload_size(_size), do: {:error, :too_large}
 
-  defp validate_uploaded_object(%{size: size}, expected_size) when size == expected_size, do: :ok
-  defp validate_uploaded_object(_object, _expected_size), do: {:error, :size_mismatch}
+  defp validate_uploaded_object(
+         %{size: size, content_type: content_type},
+         expected_size,
+         expected_type
+       )
+       when size == expected_size do
+    if normalize_content_type(content_type) == normalize_content_type(expected_type) do
+      :ok
+    else
+      {:error, :content_type_mismatch}
+    end
+  end
+
+  defp validate_uploaded_object(_object, _expected_size, _expected_type),
+    do: {:error, :size_mismatch}
 
   defp maybe_filter_by_parent(query, nil), do: where(query, [f], is_nil(f.parent_folder_id))
 
@@ -773,21 +784,27 @@ defmodule OpenDrive.Drive do
   defp expand_folder_ids(scope, folder_ids),
     do: folder_ids |> Enum.flat_map(&Tree.subtree_folder_ids(scope, &1)) |> Enum.uniq()
 
-  defp delete_trashed_objects(files) do
-    Enum.reduce_while(files, :ok, fn file, :ok ->
-      case Storage.delete_object(file.file_object.key) do
-        :ok -> {:cont, :ok}
-        {:error, _} = error -> {:halt, error}
-      end
-    end)
-  end
-
   defp tap_audit({:ok, resource}, scope, action, resource_type) do
     Audit.log(scope, action, resource_type, resource.id, %{})
     {:ok, resource}
   end
 
   defp tap_audit(error, _scope, _action, _resource_type), do: error
+
+  defp cleanup_deleted_objects({:ok, {result, []}}), do: {:ok, result}
+
+  defp cleanup_deleted_objects({:ok, {result, file_object_keys}}) do
+    case delete_trashed_object_keys(file_object_keys) do
+      :ok ->
+        {:ok, result}
+
+      {:error, reason} ->
+        Logger.warning("trash cleanup left orphaned blobs in storage: #{inspect(reason)}")
+        {:ok, result}
+    end
+  end
+
+  defp cleanup_deleted_objects({:error, _} = error), do: error
 
   defp normalize_name_conflict({:error, %Ecto.Changeset{} = changeset}) do
     if Keyword.has_key?(changeset.errors, :name) do
@@ -801,6 +818,23 @@ defmodule OpenDrive.Drive do
 
   defp normalize_transaction_result({:ok, result}), do: {:ok, result}
   defp normalize_transaction_result({:error, reason}), do: {:error, reason}
+
+  defp delete_trashed_object_keys(file_object_keys) do
+    Enum.reduce_while(file_object_keys, :ok, fn key, :ok ->
+      case Storage.delete_object(key) do
+        :ok -> {:cont, :ok}
+        {:error, _} = error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp normalize_content_type(nil), do: "application/octet-stream"
+
+  defp normalize_content_type(content_type) when is_binary(content_type) do
+    content_type
+    |> String.downcase()
+    |> String.trim()
+  end
 
   defp checksum_file(path) do
     path

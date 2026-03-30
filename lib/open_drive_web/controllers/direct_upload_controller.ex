@@ -4,6 +4,7 @@ defmodule OpenDriveWeb.DirectUploadController do
   alias OpenDrive.Drive
 
   @token_salt "direct-upload"
+  @backend_upload_fallback_size Drive.backend_upload_fallback_size()
 
   def create(conn, %{"upload" => upload_params}) do
     case Drive.prepare_direct_upload(conn.assigns.current_scope, upload_params) do
@@ -38,17 +39,23 @@ defmodule OpenDriveWeb.DirectUploadController do
       "name" => Map.get(params, "name")
     }
 
-    case Drive.upload_file(conn.assigns.current_scope, attrs, %{
-           path: upload.path,
-           client_name: upload.filename,
-           content_type: upload.content_type,
-           size: upload_size(upload)
-         }) do
-      {:ok, file} ->
-        json(conn, %{ok: true, id: file.id, name: file.name})
+    case upload_size(upload) do
+      size when size > @backend_upload_fallback_size ->
+        render_error(conn, :proxy_too_large)
 
-      {:error, reason} ->
-        render_error(conn, reason)
+      size ->
+        case Drive.upload_file(conn.assigns.current_scope, attrs, %{
+               path: upload.path,
+               client_name: upload.filename,
+               content_type: upload.content_type,
+               size: size
+             }) do
+          {:ok, file} ->
+            json(conn, %{ok: true, id: file.id, name: file.name})
+
+          {:error, reason} ->
+            render_error(conn, reason)
+        end
     end
   end
 
@@ -85,6 +92,17 @@ defmodule OpenDriveWeb.DirectUploadController do
     |> json(%{error: gettext("File exceeds the 2 GB limit.")})
   end
 
+  defp render_error(conn, :proxy_too_large) do
+    conn
+    |> put_status(413)
+    |> json(%{
+      error:
+        gettext("Browser fallback accepts files up to %{size}. Retry direct upload instead.",
+          size: format_bytes(@backend_upload_fallback_size)
+        )
+    })
+  end
+
   defp render_error(conn, :invalid_size) do
     conn
     |> put_status(:unprocessable_entity)
@@ -95,6 +113,12 @@ defmodule OpenDriveWeb.DirectUploadController do
     conn
     |> put_status(:unprocessable_entity)
     |> json(%{error: gettext("Uploaded object size does not match the selected file.")})
+  end
+
+  defp render_error(conn, :content_type_mismatch) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{error: gettext("Uploaded object type does not match the selected file.")})
   end
 
   defp render_error(conn, :not_found) do
@@ -142,4 +166,11 @@ defmodule OpenDriveWeb.DirectUploadController do
   end
 
   defp validate_upload_context(_scope, _upload), do: {:error, :invalid_token}
+
+  defp format_bytes(size) when size >= 1_000_000 do
+    megabytes = Float.round(size / 1_000_000, 1)
+    "#{megabytes} MB"
+  end
+
+  defp format_bytes(size), do: "#{size} B"
 end

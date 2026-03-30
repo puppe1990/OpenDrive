@@ -361,7 +361,7 @@ const Hooks = {
 
     canRetryViaBackend(file, error) {
       return (
-        this.shouldUseBackendFallback(file) ||
+        this.shouldUseBackendFallback(file) &&
         /cors|storage blocked|network error/i.test(error.message || "")
       );
     },
