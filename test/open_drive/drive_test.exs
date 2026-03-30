@@ -20,44 +20,42 @@ defmodule OpenDrive.DriveTest do
 
   defmodule MismatchedHeadStorage do
     @behaviour OpenDrive.Storage
+    alias OpenDrive.Storage.Fake
 
-    def put_object(key, source, opts), do: OpenDrive.Storage.Fake.put_object(key, source, opts)
+    def put_object(key, source, opts), do: Fake.put_object(key, source, opts)
 
-    def presigned_upload_url(key, opts),
-      do: OpenDrive.Storage.Fake.presigned_upload_url(key, opts)
+    def presigned_upload_url(key, opts), do: Fake.presigned_upload_url(key, opts)
 
     def head_object(key) do
-      case OpenDrive.Storage.Fake.head_object(key) do
+      case Fake.head_object(key) do
         {:ok, object} -> {:ok, %{object | content_type: "application/pdf"}}
         error -> error
       end
     end
 
-    def delete_object(key), do: OpenDrive.Storage.Fake.delete_object(key)
+    def delete_object(key), do: Fake.delete_object(key)
 
     def move_object(source_key, destination_key, opts),
-      do: OpenDrive.Storage.Fake.move_object(source_key, destination_key, opts)
+      do: Fake.move_object(source_key, destination_key, opts)
 
-    def presigned_download_url(key, opts),
-      do: OpenDrive.Storage.Fake.presigned_download_url(key, opts)
+    def presigned_download_url(key, opts), do: Fake.presigned_download_url(key, opts)
   end
 
   defmodule DeleteFailingStorage do
     @behaviour OpenDrive.Storage
+    alias OpenDrive.Storage.Fake
 
-    def put_object(key, source, opts), do: OpenDrive.Storage.Fake.put_object(key, source, opts)
+    def put_object(key, source, opts), do: Fake.put_object(key, source, opts)
 
-    def presigned_upload_url(key, opts),
-      do: OpenDrive.Storage.Fake.presigned_upload_url(key, opts)
+    def presigned_upload_url(key, opts), do: Fake.presigned_upload_url(key, opts)
 
-    def head_object(key), do: OpenDrive.Storage.Fake.head_object(key)
+    def head_object(key), do: Fake.head_object(key)
     def delete_object(_key), do: {:error, :boom}
 
     def move_object(source_key, destination_key, opts),
-      do: OpenDrive.Storage.Fake.move_object(source_key, destination_key, opts)
+      do: Fake.move_object(source_key, destination_key, opts)
 
-    def presigned_download_url(key, opts),
-      do: OpenDrive.Storage.Fake.presigned_download_url(key, opts)
+    def presigned_download_url(key, opts), do: Fake.presigned_download_url(key, opts)
   end
 
   test "users do not see data from another tenant" do
