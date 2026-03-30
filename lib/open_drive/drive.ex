@@ -15,6 +15,8 @@ defmodule OpenDrive.Drive do
 
   @max_upload_file_size 2_000_000_000
   @backend_upload_fallback_size 100_000_000
+  @max_entry_name_length 120
+  @upload_name_retry_limit 25
 
   def max_upload_file_size, do: @max_upload_file_size
   def backend_upload_fallback_size, do: @backend_upload_fallback_size
@@ -97,17 +99,17 @@ defmodule OpenDrive.Drive do
 
   def upload_file(%Scope{} = scope, attrs, upload) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
-    name = attrs[:name] || attrs["name"] || upload.client_name
+    requested_name = attrs[:name] || attrs["name"] || upload.client_name
     content_type = upload.content_type || "application/octet-stream"
     checksum = checksum_file(upload.path)
 
-    with :ok <- ensure_name_available(scope, name, folder_id, :file),
-         {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+    with {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+         name <- resolve_available_upload_name(scope, requested_name, folder_id),
          key <- object_key(scope, name),
          {:ok, _object_result} <-
            Storage.put_object(key, {:file, upload.path}, content_type: content_type),
          {:ok, result} <-
-           persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
+           persist_upload_with_retry(scope, folder_id, name, content_type, upload, key, checksum) do
       {:ok, result}
     else
       {:error, _} = error -> error
@@ -117,14 +119,14 @@ defmodule OpenDrive.Drive do
 
   def prepare_direct_upload(%Scope{} = scope, attrs) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
-    name = attrs[:name] || attrs["name"]
+    requested_name = attrs[:name] || attrs["name"]
     content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"
     size = attrs[:size] || attrs["size"]
 
     with {:ok, size} <- normalize_upload_size(size),
          :ok <- validate_upload_size(size),
-         :ok <- ensure_name_available(scope, name, folder_id, :file),
          {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+         name <- resolve_available_upload_name(scope, requested_name, folder_id),
          key <- object_key(scope, name),
          {:ok, %{url: url, headers: headers}} <-
            Storage.presigned_upload_url(key, content_type: content_type, expires_in: 3600) do
@@ -146,19 +148,27 @@ defmodule OpenDrive.Drive do
 
   def complete_direct_upload(%Scope{} = scope, attrs) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
-    name = attrs[:name] || attrs["name"]
+    requested_name = attrs[:name] || attrs["name"]
     content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"
     size = attrs[:size] || attrs["size"]
     key = attrs[:key] || attrs["key"]
 
     with {:ok, size} <- normalize_upload_size(size),
          :ok <- validate_upload_size(size),
-         :ok <- ensure_name_available(scope, name, folder_id, :file),
          {:ok, folder_id} <- validate_parent_folder(scope, folder_id),
+         name <- resolve_available_upload_name(scope, requested_name, folder_id),
          {:ok, object} <- Storage.head_object(key),
          :ok <- validate_uploaded_object(object, size, content_type),
          {:ok, result} <-
-           persist_direct_upload(scope, folder_id, name, content_type, size, key, object) do
+           persist_direct_upload_with_retry(
+             scope,
+             folder_id,
+             name,
+             content_type,
+             size,
+             key,
+             object
+           ) do
       {:ok, result}
     else
       {:error, _} = error -> error
@@ -448,6 +458,9 @@ defmodule OpenDrive.Drive do
         Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: upload.size})
         Repo.preload(file, :file_object)
       else
+        {:error, :name_conflict} ->
+          Repo.rollback(:name_conflict)
+
         {:error, reason} ->
           Storage.delete_object(key)
           Repo.rollback(reason)
@@ -486,6 +499,9 @@ defmodule OpenDrive.Drive do
         Audit.log(scope, "file.uploaded", "file", file.id, %{name: name, size: size})
         Repo.preload(file, :file_object)
       else
+        {:error, :name_conflict} ->
+          Repo.rollback(:name_conflict)
+
         {:error, reason} ->
           Storage.delete_object(key)
           Repo.rollback(reason)
@@ -556,6 +572,86 @@ defmodule OpenDrive.Drive do
     conflict? = conflict_exists?(kind, folder_query, file_query, exclude_id)
 
     if conflict?, do: {:error, :name_conflict}, else: :ok
+  end
+
+  defp resolve_available_upload_name(scope, requested_name, folder_id) do
+    case ensure_name_available(scope, requested_name, folder_id, :file) do
+      :ok -> requested_name
+      {:error, :name_conflict} -> next_available_upload_name(scope, requested_name, folder_id)
+    end
+  end
+
+  defp next_available_upload_name(scope, requested_name, folder_id) do
+    {base_name, extension, next_index} = split_name_conflict_parts(requested_name)
+
+    Enum.find_value(next_index..10_000, fn index ->
+      candidate = build_name_candidate(base_name, extension, index)
+
+      case ensure_name_available(scope, candidate, folder_id, :file) do
+        :ok -> candidate
+        {:error, :name_conflict} -> nil
+      end
+    end) || fallback_upload_name(base_name, extension)
+  end
+
+  defp persist_upload_with_retry(
+         scope,
+         folder_id,
+         name,
+         content_type,
+         upload,
+         key,
+         checksum,
+         attempts_left \\ @upload_name_retry_limit
+       ) do
+    case persist_upload(scope, folder_id, name, content_type, upload, key, checksum) do
+      {:error, :name_conflict} when attempts_left > 0 ->
+        next_name = next_available_upload_name(scope, name, folder_id)
+
+        persist_upload_with_retry(
+          scope,
+          folder_id,
+          next_name,
+          content_type,
+          upload,
+          key,
+          checksum,
+          attempts_left - 1
+        )
+
+      result ->
+        result
+    end
+  end
+
+  defp persist_direct_upload_with_retry(
+         scope,
+         folder_id,
+         name,
+         content_type,
+         size,
+         key,
+         object,
+         attempts_left \\ @upload_name_retry_limit
+       ) do
+    case persist_direct_upload(scope, folder_id, name, content_type, size, key, object) do
+      {:error, :name_conflict} when attempts_left > 0 ->
+        next_name = next_available_upload_name(scope, name, folder_id)
+
+        persist_direct_upload_with_retry(
+          scope,
+          folder_id,
+          next_name,
+          content_type,
+          size,
+          key,
+          object,
+          attempts_left - 1
+        )
+
+      result ->
+        result
+    end
   end
 
   defp conflict_exists?(:folder, folder_query, file_query, exclude_id) do
@@ -724,6 +820,55 @@ defmodule OpenDrive.Drive do
   end
 
   defp normalize_file_id(_file_id), do: nil
+
+  defp split_name_conflict_parts(name) do
+    extension = Path.extname(name)
+    base_name = Path.rootname(name, extension)
+
+    case Regex.run(~r/^(.*) \((\d+)\)$/u, base_name) do
+      [_, stem, index] ->
+        {stem, extension, String.to_integer(index) + 1}
+
+      _ ->
+        {base_name, extension, 2}
+    end
+  end
+
+  defp build_name_candidate(base_name, extension, index) do
+    suffix = " (#{index})"
+
+    max_base_length =
+      max(@max_entry_name_length - String.length(extension) - String.length(suffix), 1)
+
+    trimmed_base_name =
+      base_name
+      |> String.trim()
+      |> String.slice(0, max_base_length)
+      |> case do
+        "" -> "file"
+        value -> value
+      end
+
+    trimmed_base_name <> suffix <> extension
+  end
+
+  defp fallback_upload_name(base_name, extension) do
+    suffix = "-" <> String.slice(Ecto.UUID.generate(), 0, 8)
+
+    max_base_length =
+      max(@max_entry_name_length - String.length(extension) - String.length(suffix), 1)
+
+    trimmed_base_name =
+      base_name
+      |> String.trim()
+      |> String.slice(0, max_base_length)
+      |> case do
+        "" -> "file"
+        value -> value
+      end
+
+    trimmed_base_name <> suffix <> extension
+  end
 
   defp file_position(file_ids, file_id) do
     Enum.find_index(file_ids, &(&1 == file_id)) || length(file_ids)

@@ -109,6 +109,31 @@ defmodule OpenDrive.DriveTest do
     assert file.name == "renamed.txt"
   end
 
+  test "upload_file/3 auto-renames duplicates inside the same folder" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-duplicate-upload.txt")
+    File.write!(path, "hello")
+
+    assert {:ok, first_file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "report.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert {:ok, second_file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "report.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert first_file.name == "report.txt"
+    assert second_file.name == "report (2).txt"
+  end
+
   test "prepare_direct_upload/2 returns a storage target without reading the file" do
     workspace = workspace_fixture()
 
@@ -125,6 +150,63 @@ defmodule OpenDrive.DriveTest do
     assert is_binary(upload.key)
     assert is_binary(upload.upload_url)
     assert is_map(upload.upload_headers)
+  end
+
+  test "prepare_direct_upload/2 reserves an alternative name for duplicates" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-duplicate-direct.txt")
+    File.write!(path, "hello")
+
+    assert {:ok, _file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "movie.mp4",
+               content_type: "video/mp4",
+               size: 5
+             })
+
+    assert {:ok, upload} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "movie.mp4",
+               "content_type" => "video/mp4",
+               "size" => "5"
+             })
+
+    assert upload.name == "movie (2).mp4"
+  end
+
+  test "complete_direct_upload/2 auto-renames when a conflict appears after preparation" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-direct-race.txt")
+    File.write!(path, "hello")
+
+    {:ok, upload} =
+      Drive.prepare_direct_upload(workspace.scope, %{
+        "name" => "movie.mp4",
+        "content_type" => "video/mp4",
+        "size" => "5"
+      })
+
+    assert {:ok, _file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "movie.mp4",
+               content_type: "video/mp4",
+               size: 5
+             })
+
+    assert {:ok, _} = OpenDrive.Storage.put_object(upload.key, "hello", content_type: "video/mp4")
+
+    assert {:ok, file} =
+             Drive.complete_direct_upload(workspace.scope, %{
+               "folder_id" => upload.folder_id,
+               "name" => upload.name,
+               "content_type" => upload.content_type,
+               "size" => upload.size,
+               "key" => upload.key
+             })
+
+    assert file.name == "movie (2).mp4"
   end
 
   test "complete_direct_upload/2 persists metadata after the object exists in storage" do

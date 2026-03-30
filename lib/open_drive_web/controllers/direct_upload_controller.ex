@@ -23,6 +23,7 @@ defmodule OpenDriveWeb.DirectUploadController do
           )
 
         json(conn, %{
+          name: upload.name,
           upload_url: upload.upload_url,
           upload_headers: upload.upload_headers,
           token: token
@@ -63,8 +64,8 @@ defmodule OpenDriveWeb.DirectUploadController do
     with {:ok, upload} <-
            Phoenix.Token.verify(OpenDriveWeb.Endpoint, @token_salt, token, max_age: 3600),
          :ok <- validate_upload_context(conn.assigns.current_scope, upload),
-         {:ok, _file} <- Drive.complete_direct_upload(conn.assigns.current_scope, upload) do
-      json(conn, %{ok: true})
+         {:ok, file} <- Drive.complete_direct_upload(conn.assigns.current_scope, upload) do
+      json(conn, %{ok: true, name: file.name})
     else
       {:error, reason} ->
         render_error(conn, reason)

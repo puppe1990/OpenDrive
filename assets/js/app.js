@@ -259,7 +259,8 @@ const Hooks = {
 
       try {
         if (this.shouldUseBackendFallback(entry.file)) {
-          await this.uploadViaBackend(entry);
+          const payload = await this.uploadViaBackend(entry);
+          entry.displayName = payload.name || entry.displayName || entry.file.name;
           entry.status = "complete";
           entry.progress = 100;
           entry.error = null;
@@ -292,6 +293,9 @@ const Hooks = {
           );
         }
 
+        entry.displayName = initPayload.name || entry.displayName || entry.file.name;
+        this.renderEntry(entry);
+
         await this.uploadToStorage(
           entry,
           initPayload.upload_url,
@@ -316,6 +320,8 @@ const Hooks = {
           );
         }
 
+        entry.displayName =
+          completePayload.name || entry.displayName || entry.file.name;
         entry.status = "complete";
         entry.progress = 100;
         entry.error = null;
@@ -329,7 +335,8 @@ const Hooks = {
           entry.progress = 0;
 
           try {
-            await this.uploadViaBackend(entry);
+            const payload = await this.uploadViaBackend(entry);
+            entry.displayName = payload.name || entry.displayName || entry.file.name;
             entry.status = "complete";
             entry.progress = 100;
             entry.error = null;
@@ -376,7 +383,7 @@ const Hooks = {
         formData.append("folder_id", this.el.dataset.folderId);
       }
 
-      await new Promise((resolve, reject) => {
+      return await new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
         request.open("POST", this.el.dataset.proxyUrl);
         request.setRequestHeader("x-csrf-token", this.csrfToken);
@@ -393,7 +400,11 @@ const Hooks = {
 
         request.addEventListener("load", () => {
           if (request.status >= 200 && request.status < 300) {
-            resolve();
+            try {
+              resolve(JSON.parse(request.responseText || "{}"));
+            } catch (_error) {
+              resolve({});
+            }
             return;
           }
 
@@ -521,7 +532,8 @@ const Hooks = {
         this.entriesContainer.appendChild(row);
       }
 
-      row.querySelector('[data-role="name"]').textContent = entry.file.name;
+      row.querySelector('[data-role="name"]').textContent =
+        entry.displayName || entry.file.name;
       row.querySelector('[data-role="meta"]').textContent =
         `${this.formatBytes(entry.file.size)} • ${entry.progress}% enviado`;
 

@@ -20,6 +20,7 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
       })
 
     assert %{
+             "name" => "demo.txt",
              "upload_url" => upload_url,
              "upload_headers" => %{"content-type" => "text/plain"},
              "token" => token
@@ -55,8 +56,35 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
       |> log_in_user(workspace.user, workspace.scope)
       |> post(~p"/app/uploads/complete", %{"token" => token})
 
-    assert %{"ok" => true} = json_response(conn, 200)
+    assert %{"ok" => true, "name" => "demo.txt"} = json_response(conn, 200)
     assert [%{name: "demo.txt"}] = Drive.list_children(workspace.scope).files
+  end
+
+  test "auto-renames duplicate names during direct upload preparation", %{conn: conn} do
+    workspace = workspace_fixture()
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+
+    upload =
+      %Plug.Upload{
+        path: write_temp_file!("open-drive-proxy-duplicate.txt", "hello"),
+        filename: "demo.txt",
+        content_type: "text/plain"
+      }
+
+    conn
+    |> post(~p"/app/uploads/proxy", %{"file" => upload, "name" => "demo.txt"})
+    |> json_response(200)
+
+    conn =
+      post(conn, ~p"/app/uploads", %{
+        "upload" => %{
+          "name" => "demo.txt",
+          "content_type" => "text/plain",
+          "size" => "5"
+        }
+      })
+
+    assert %{"name" => "demo (2).txt"} = json_response(conn, 200)
   end
 
   test "rejects completing a direct upload after switching workspace", %{conn: conn} do
