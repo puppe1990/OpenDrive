@@ -14,7 +14,9 @@ defmodule OpenDrive.Drive do
   alias OpenDrive.Storage
 
   @max_upload_file_size 2_000_000_000
-  @backend_upload_fallback_size 100_000_000
+  # Keep browser uploads on the same origin by default so S3 bucket CORS
+  # misconfiguration does not break common upload flows.
+  @backend_upload_fallback_size @max_upload_file_size
   @max_entry_name_length 120
   @upload_name_retry_limit 25
 

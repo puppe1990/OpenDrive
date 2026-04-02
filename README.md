@@ -15,7 +15,7 @@ Current product surface:
 - Multi-tenant membership model with `owner`, `admin`, and `member` roles
 - Tenant switcher for users who belong to multiple workspaces
 - Folder tree navigation
-- File upload with direct-to-storage flow and backend proxy fallback
+- File upload through the Phoenix backend, with optional direct-to-storage primitives available in the codebase
 - Authenticated single-file download and multi-file ZIP download
 - Soft delete, trash listing, restore, and permanent empty-trash cleanup
 - Audit log entries for key tenant, membership, and drive actions
@@ -125,9 +125,11 @@ Direct uploads are signed with a Phoenix token and finalized through `POST /app/
 Current operational limits from the code:
 
 - Maximum upload size: `2 GB`
-- Backend proxy fallback threshold constant: `100 MB`
+- Backend proxy threshold constant: `2 GB`
 - ZIP download limit: `100 files`
 - ZIP download total size limit: `500 MB`
+
+The default runtime behavior now keeps uploads on the app origin up to the full `2 GB` limit. This avoids browser-side S3 CORS failures when the bucket is not configured for cross-origin `PUT` requests from the app domain.
 
 Downloads support:
 
