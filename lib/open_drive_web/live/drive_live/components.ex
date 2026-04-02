@@ -562,7 +562,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
               phx-click="toggle_all_entries"
               phx-value-state={if @view.all_list_entries_selected, do: "unchecked", else: "checked"}
               checked={@view.all_list_entries_selected}
-              class="checkbox checkbox-sm rounded-md border-slate-300"
+              class="checkbox checkbox-sm rounded-md border-slate-400 bg-white text-sky-600 shadow-sm"
             />
             <span>{gettext("Select all")}</span>
           </label>
@@ -603,7 +603,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
         </div>
       </div>
 
-      <div class="hidden drive-list-grid gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 md:grid">
+      <div class="drive-list-header drive-list-grid gap-4 border-b border-slate-200 px-5 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
         <span class="flex items-center justify-center">{gettext("Sel.")}</span>
         <.list_header_column view={@view} field="name" label={gettext("Name")} min="260" max="820" />
         <.list_header_column view={@view} field="type" label={gettext("Type")} min="120" max="320" />
@@ -619,21 +619,21 @@ defmodule OpenDriveWeb.DriveLive.Components do
       </div>
 
       <%= for entry <- @view.entries do %>
-        <div class="border-b border-slate-100 px-4 py-4 transition hover:bg-slate-50/70 last:border-b-0 md:grid md:drive-list-grid md:items-center md:gap-4 md:px-5 md:py-3">
-          <div class="flex items-start justify-between gap-3 md:contents">
-            <label class="flex items-center justify-center md:justify-center">
+        <div class="drive-list-row-mobile border-b border-slate-100 px-4 py-4 transition hover:bg-slate-50/70 last:border-b-0">
+          <div class="flex items-start gap-3">
+            <label class="flex items-center justify-center pt-1">
               <input
                 type="checkbox"
                 phx-click="toggle_entry_selection"
                 phx-value-key={entry_selection_key(entry)}
                 checked={MapSet.member?(@view.selected_entries, entry_selection_key(entry))}
-                class="checkbox checkbox-sm rounded-md border-slate-300"
+                class="checkbox checkbox-sm rounded-md border-slate-400 bg-white text-sky-600 shadow-sm"
               />
             </label>
 
-            <div class="min-w-0 flex-1 md:flex md:min-w-0 md:items-center md:gap-3 md:overflow-hidden">
+            <div class="min-w-0 flex-1">
               <div class={[
-                "mb-3 flex size-10 shrink-0 items-center justify-center rounded-2xl md:mb-0",
+                "mb-3 flex size-10 shrink-0 items-center justify-center rounded-2xl",
                 entry.kind == :folder && "bg-sky-100 text-sky-700",
                 entry.kind == :file && "bg-slate-100 text-slate-700"
               ]}>
@@ -641,7 +641,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
               </div>
 
               <div class="min-w-0 overflow-hidden">
-                <div class="flex flex-wrap items-start gap-2 md:block">
+                <div class="flex flex-wrap items-start gap-2">
                   <.link
                     :if={entry.kind == :folder}
                     navigate={entry.href}
@@ -650,7 +650,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
                     {entry.name}
                   </.link>
                   <.link
-                    :if={entry.kind == :file and entry.preview not in [:image, :video]}
+                    :if={entry.kind == :file and entry.preview not in [:image, :video, :audio]}
                     href={entry.href}
                     class="block w-full truncate whitespace-nowrap font-medium text-slate-950 hover:text-sky-700"
                   >
@@ -685,7 +685,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
                   </button>
                 </div>
 
-                <div class="mt-2 grid gap-1 text-sm text-slate-500 md:hidden">
+                <div class="mt-2 grid gap-1 text-sm text-slate-500">
                   <span>{gettext("Type")}: {entry.content_type}</span>
                   <span>{gettext("Modified")}: {relative_time(entry.updated_at)}</span>
                   <span>{gettext("Size")}: {format_bytes(entry.size)}</span>
@@ -694,20 +694,129 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </div>
           </div>
 
-          <span class="hidden min-w-0 truncate text-sm text-slate-500 md:block">
-            {entry.content_type}
-          </span>
-          <span class="hidden min-w-0 truncate text-sm text-slate-500 md:block">
-            {relative_time(entry.updated_at)}
-          </span>
-          <span class="hidden min-w-0 truncate text-sm text-slate-500 md:block">
-            {format_bytes(entry.size)}
-          </span>
-          <div class="mt-4 flex flex-wrap items-center gap-2 md:mt-0 md:justify-end">
+          <div class="mt-4 flex flex-wrap items-center gap-2">
             <.link
               :if={entry.kind == :file}
               href={entry.href}
-              class="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-700 hover:bg-slate-200"
+              class="rounded-xl bg-sky-100 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-200"
+            >
+              {gettext("Download")}
+            </.link>
+            <button
+              :if={entry.kind == :folder}
+              phx-click="start_rename_folder"
+              phx-value-id={entry.id}
+              class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-sky-600"
+            >
+              <.icon name="hero-pencil-square" class="size-4" />
+            </button>
+            <button
+              :if={entry.kind == :folder}
+              phx-click="delete_folder"
+              phx-value-id={entry.id}
+              class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
+            >
+              <.icon name="hero-trash" class="size-4" />
+            </button>
+            <button
+              :if={entry.kind == :file}
+              phx-click="start_rename_file"
+              phx-value-id={entry.id}
+              class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-sky-600"
+            >
+              <.icon name="hero-pencil-square" class="size-4" />
+            </button>
+            <button
+              :if={entry.kind == :file}
+              type="button"
+              phx-click="delete_file"
+              phx-value-id={entry.id}
+              class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
+            >
+              <.icon name="hero-trash" class="size-4" />
+            </button>
+          </div>
+        </div>
+
+        <div class="drive-list-row-desktop drive-list-grid border-b border-slate-100 px-5 py-3 transition hover:bg-slate-50/70 last:border-b-0">
+          <label class="flex items-center justify-center">
+            <input
+              type="checkbox"
+              phx-click="toggle_entry_selection"
+              phx-value-key={entry_selection_key(entry)}
+              checked={MapSet.member?(@view.selected_entries, entry_selection_key(entry))}
+              class="checkbox checkbox-sm rounded-md border-slate-400 bg-white text-sky-600 shadow-sm"
+            />
+          </label>
+
+          <div class="min-w-0 flex items-center gap-3 overflow-hidden">
+            <div class={[
+              "flex size-10 shrink-0 items-center justify-center rounded-2xl",
+              entry.kind == :folder && "bg-sky-100 text-sky-700",
+              entry.kind == :file && "bg-slate-100 text-slate-700"
+            ]}>
+              <.icon name={preview_icon(entry.preview)} class="size-5" />
+            </div>
+
+            <div class="min-w-0 overflow-hidden">
+              <.link
+                :if={entry.kind == :folder}
+                navigate={entry.href}
+                class="block truncate whitespace-nowrap font-medium text-slate-950 hover:text-sky-700"
+              >
+                {entry.name}
+              </.link>
+              <.link
+                :if={entry.kind == :file and entry.preview not in [:image, :video, :audio]}
+                href={entry.href}
+                class="block truncate whitespace-nowrap font-medium text-slate-950 hover:text-sky-700"
+              >
+                {entry.name}
+              </.link>
+              <button
+                :if={entry.preview == :image}
+                type="button"
+                phx-click="open_image"
+                phx-value-id={entry.id}
+                class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
+              >
+                {entry.name}
+              </button>
+              <button
+                :if={entry.preview == :video}
+                type="button"
+                phx-click="open_video"
+                phx-value-id={entry.id}
+                class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
+              >
+                {entry.name}
+              </button>
+              <button
+                :if={entry.preview == :audio}
+                type="button"
+                phx-click="open_audio"
+                phx-value-id={entry.id}
+                class="block w-full truncate whitespace-nowrap text-left font-medium text-slate-950 hover:text-sky-700"
+              >
+                {entry.name}
+              </button>
+            </div>
+          </div>
+
+          <span class="min-w-0 truncate text-sm text-slate-500">
+            {entry.content_type}
+          </span>
+          <span class="min-w-0 truncate text-sm text-slate-500">
+            {relative_time(entry.updated_at)}
+          </span>
+          <span class="min-w-0 truncate text-sm text-slate-500">
+            {format_bytes(entry.size)}
+          </span>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <.link
+              :if={entry.kind == :file}
+              href={entry.href}
+              class="rounded-xl bg-sky-100 px-3 py-2 text-sm font-medium text-sky-700 transition hover:bg-sky-200"
             >
               {gettext("Download")}
             </.link>

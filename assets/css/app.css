@@ -105,7 +105,6 @@
 /* This file is for your main application CSS */
 
 .drive-list-grid {
-  display: grid;
   grid-template-columns:
     52px
     var(--drive-col-name, minmax(260px, 1fr))
@@ -115,7 +114,27 @@
     160px;
 }
 
+.drive-list-header,
+.drive-list-row-desktop {
+  display: grid;
+  align-items: center;
+  gap: 1rem;
+}
+
+.drive-list-row-mobile {
+  display: none;
+}
+
 @media (max-width: 767px) {
+  .drive-list-header,
+  .drive-list-row-desktop {
+    display: none;
+  }
+
+  .drive-list-row-mobile {
+    display: block;
+  }
+
   .drive-list-grid {
     grid-template-columns: 1fr;
   }
