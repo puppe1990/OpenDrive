@@ -621,15 +621,22 @@ defmodule OpenDriveWeb.DriveLive.Components do
       <%= for entry <- @view.entries do %>
         <div class="drive-list-row-mobile border-b border-slate-100 px-4 py-4 transition hover:bg-slate-50/70 last:border-b-0">
           <div class="flex items-start gap-3">
-            <label class="flex items-center justify-center pt-1">
-              <input
-                type="checkbox"
-                phx-click="toggle_entry_selection"
-                phx-value-key={entry_selection_key(entry)}
-                checked={MapSet.member?(@view.selected_entries, entry_selection_key(entry))}
-                class="checkbox checkbox-sm rounded-md border-slate-400 bg-white text-sky-600 shadow-sm"
-              />
-            </label>
+            <button
+              type="button"
+              aria-label={gettext("Select %{name}", name: entry.name)}
+              aria-pressed={MapSet.member?(@view.selected_entries, entry_selection_key(entry))}
+              class={[
+                "mt-1 flex size-5 shrink-0 items-center justify-center rounded-md border shadow-sm transition",
+                MapSet.member?(@view.selected_entries, entry_selection_key(entry)) &&
+                  "border-sky-600 bg-sky-600 text-white",
+                !MapSet.member?(@view.selected_entries, entry_selection_key(entry)) &&
+                  "border-slate-400 bg-white text-transparent hover:border-sky-500"
+              ]}
+              phx-click="toggle_entry_selection"
+              phx-value-key={entry_selection_key(entry)}
+            >
+              <.icon name="hero-check" class="size-3.5" />
+            </button>
 
             <div class="min-w-0 flex-1">
               <div class={[
