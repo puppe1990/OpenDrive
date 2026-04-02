@@ -190,6 +190,19 @@ const Hooks = {
         event.target.value = "";
       };
 
+      this.handleRetryClick = (event) => {
+        const button = event.target.closest('[data-action="retry-upload"]');
+        if (!button) return;
+
+        const row = button.closest("[data-upload-entry]");
+        const entryId = row?.dataset.uploadEntry;
+        const entry = entryId ? this.entries.get(entryId) : null;
+
+        if (!entry || entry.status === "uploading") return;
+
+        this.retryEntry(entry);
+      };
+
       this.handleDragOver = (event) => {
         event.preventDefault();
         this.el.classList.add("bg-sky-50/80", "ring-2", "ring-sky-400");
@@ -209,6 +222,7 @@ const Hooks = {
       this.trigger?.addEventListener("click", this.handleTriggerClick);
       this.trigger?.addEventListener("keydown", this.handleTriggerKeydown);
       this.input?.addEventListener("change", this.handleFileSelection);
+      this.entriesContainer?.addEventListener("click", this.handleRetryClick);
       this.el.addEventListener("dragover", this.handleDragOver);
       this.el.addEventListener("dragleave", this.handleDragLeave);
       this.el.addEventListener("drop", this.handleDrop);
@@ -218,6 +232,7 @@ const Hooks = {
       this.trigger?.removeEventListener("click", this.handleTriggerClick);
       this.trigger?.removeEventListener("keydown", this.handleTriggerKeydown);
       this.input?.removeEventListener("change", this.handleFileSelection);
+      this.entriesContainer?.removeEventListener("click", this.handleRetryClick);
       this.el.removeEventListener("dragover", this.handleDragOver);
       this.el.removeEventListener("dragleave", this.handleDragLeave);
       this.el.removeEventListener("drop", this.handleDrop);
@@ -254,6 +269,7 @@ const Hooks = {
     async uploadEntry(entry) {
       entry.status = "uploading";
       this.activeUploads += 1;
+      entry.error = null;
       this.renderEntry(entry);
       this.syncStats();
 
@@ -358,6 +374,16 @@ const Hooks = {
         this.syncStats();
         this.scheduleRefreshIfIdle();
       }
+    },
+
+    retryEntry(entry) {
+      entry.status = "queued";
+      entry.progress = 0;
+      entry.error = null;
+      entry.retriedViaBackend = false;
+      this.renderEntry(entry);
+      this.syncStats();
+      this.uploadEntry(entry);
     },
 
     shouldUseBackendFallback(file) {
@@ -526,6 +552,13 @@ const Hooks = {
                 <div data-role="progress" class="h-full rounded-full transition-all duration-300"></div>
               </div>
               <p data-role="error" class="mt-2 text-[11px] font-medium text-rose-600 hidden"></p>
+              <button
+                type="button"
+                data-action="retry-upload"
+                class="mt-3 hidden rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700"
+              >
+                Tentar novamente
+              </button>
             </div>
           </div>
         `;
@@ -540,6 +573,7 @@ const Hooks = {
       const statusEl = row.querySelector('[data-role="status"]');
       const progressEl = row.querySelector('[data-role="progress"]');
       const errorEl = row.querySelector('[data-role="error"]');
+      const retryButton = row.querySelector('[data-action="retry-upload"]');
 
       const statusStyles = {
         queued: [
@@ -576,6 +610,13 @@ const Hooks = {
       } else {
         errorEl.hidden = true;
         errorEl.textContent = "";
+      }
+
+      if (retryButton) {
+        const showRetry = entry.status === "error";
+        retryButton.hidden = !showRetry;
+        retryButton.classList.toggle("hidden", !showRetry);
+        retryButton.disabled = !showRetry;
       }
     },
 
