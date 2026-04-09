@@ -161,6 +161,12 @@ const Hooks = {
       this.entriesContainer = this.el.querySelector(
         "[data-direct-upload-entries]",
       );
+      this.entriesScroll = this.el.querySelector(
+        "[data-direct-upload-entries-scroll]",
+      );
+      this.searchInput = this.el.querySelector("[data-direct-upload-search]");
+      this.filterSelect = this.el.querySelector("[data-direct-upload-filter]");
+      this.emptyState = this.el.querySelector("[data-direct-upload-empty]");
       this.errorsContainer = this.el.querySelector(
         "[data-direct-upload-errors]",
       );
@@ -173,6 +179,8 @@ const Hooks = {
       this.entries = new Map();
       this.activeUploads = 0;
       this.completedSinceRefresh = false;
+      this.queueSearchQuery = "";
+      this.queueFilterStatus = "all";
 
       this.handleTriggerClick = (event) => {
         if (event.target.closest("input, button, a, textarea, select")) return;
@@ -186,6 +194,7 @@ const Hooks = {
       };
 
       this.handleFileSelection = (event) => {
+        this.clearGlobalError();
         this.enqueueFiles(Array.from(event.target.files || []));
         event.target.value = "";
       };
@@ -203,6 +212,16 @@ const Hooks = {
         this.retryEntry(entry);
       };
 
+      this.handleQueueSearch = (event) => {
+        this.queueSearchQuery = (event.target.value || "").trim().toLowerCase();
+        this.applyQueueFilters();
+      };
+
+      this.handleQueueFilter = (event) => {
+        this.queueFilterStatus = event.target.value || "all";
+        this.applyQueueFilters();
+      };
+
       this.handleDragOver = (event) => {
         event.preventDefault();
         this.el.classList.add("bg-sky-50/80", "ring-2", "ring-sky-400");
@@ -213,16 +232,33 @@ const Hooks = {
         this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
       };
 
-      this.handleDrop = (event) => {
+      this.handleDrop = async (event) => {
         event.preventDefault();
         this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
-        this.enqueueFiles(Array.from(event.dataTransfer?.files || []));
+
+        this.clearGlobalError();
+
+        try {
+          const uploadItems = await this.buildDroppedUploadItems(
+            event.dataTransfer,
+          );
+
+          if (uploadItems.length > 0) {
+            this.enqueueFiles(uploadItems);
+          }
+        } catch (error) {
+          this.pushGlobalError(
+            error.message || "Unable to read the dropped folder.",
+          );
+        }
       };
 
       this.trigger?.addEventListener("click", this.handleTriggerClick);
       this.trigger?.addEventListener("keydown", this.handleTriggerKeydown);
       this.input?.addEventListener("change", this.handleFileSelection);
       this.entriesContainer?.addEventListener("click", this.handleRetryClick);
+      this.searchInput?.addEventListener("input", this.handleQueueSearch);
+      this.filterSelect?.addEventListener("change", this.handleQueueFilter);
       this.el.addEventListener("dragover", this.handleDragOver);
       this.el.addEventListener("dragleave", this.handleDragLeave);
       this.el.addEventListener("drop", this.handleDrop);
@@ -233,17 +269,23 @@ const Hooks = {
       this.trigger?.removeEventListener("keydown", this.handleTriggerKeydown);
       this.input?.removeEventListener("change", this.handleFileSelection);
       this.entriesContainer?.removeEventListener("click", this.handleRetryClick);
+      this.searchInput?.removeEventListener("input", this.handleQueueSearch);
+      this.filterSelect?.removeEventListener("change", this.handleQueueFilter);
       this.el.removeEventListener("dragover", this.handleDragOver);
       this.el.removeEventListener("dragleave", this.handleDragLeave);
       this.el.removeEventListener("drop", this.handleDrop);
     },
 
     enqueueFiles(files) {
-      files.forEach((file) => {
+      files.forEach((item) => {
+        const uploadItem = item?.file ? item : { file: item };
+        const file = uploadItem.file;
         const id = `${file.name}-${file.size}-${file.lastModified}-${crypto.randomUUID()}`;
         const entry = {
           id,
           file,
+          targetFolderId: uploadItem.folderId || this.currentFolderId(),
+          displayName: uploadItem.displayName || null,
           status: "queued",
           progress: 0,
           error: null,
@@ -253,6 +295,7 @@ const Hooks = {
         this.renderEntry(entry);
         this.syncQueueVisibility();
         this.syncStats();
+        this.applyQueueFilters();
 
         if (file.size > this.maxFileSize) {
           entry.status = "error";
@@ -264,6 +307,224 @@ const Hooks = {
 
         this.uploadEntry(entry);
       });
+    },
+
+    getDataTransferEntry(item) {
+      if (typeof item.webkitGetAsEntry === "function") {
+        return item.webkitGetAsEntry();
+      }
+
+      if (typeof item.getAsEntry === "function") {
+        return item.getAsEntry();
+      }
+
+      return null;
+    },
+
+    async buildDroppedUploadItems(dataTransfer) {
+      const items = Array.from(dataTransfer?.items || []);
+
+      if (items.length === 0) {
+        return Array.from(dataTransfer?.files || []).map((file) => ({ file }));
+      }
+
+      const roots = [];
+
+      items.forEach((item) => {
+        if (item.kind !== "file") return;
+
+        const entry = this.getDataTransferEntry(item);
+
+        if (entry) {
+          roots.push({ kind: "entry", entry });
+          return;
+        }
+
+        const file = item.getAsFile();
+
+        if (file) {
+          roots.push({ kind: "file", file });
+        }
+      });
+
+      const hasDirectory = roots.some(
+        (root) => root.kind === "entry" && root.entry.isDirectory,
+      );
+
+      if (!hasDirectory) {
+        const uploadItems = [];
+
+        for (const root of roots) {
+          if (root.kind === "file") {
+            uploadItems.push({ file: root.file });
+            continue;
+          }
+
+          if (root.entry.isFile) {
+            uploadItems.push({ file: await this.readFileEntry(root.entry) });
+          }
+        }
+
+        return uploadItems;
+      }
+
+      const plan = { directories: [], files: [] };
+
+      for (const root of roots) {
+        await this.collectDroppedNode(root, null, plan, []);
+      }
+
+      const resolvedFolders = await this.createDroppedFolders(plan.directories);
+
+      return plan.files.map((item) => ({
+        file: item.file,
+        folderId: item.parentToken
+          ? resolvedFolders.get(item.parentToken)?.id || this.currentFolderId()
+          : this.currentFolderId(),
+        displayName: item.relativePath,
+      }));
+    },
+
+    async collectDroppedNode(root, parentToken, plan, pathSegments) {
+      if (root.kind === "file") {
+        plan.files.push({
+          file: root.file,
+          parentToken,
+          relativePath: [...pathSegments, root.file.name].join("/"),
+        });
+        return;
+      }
+
+      const entry = root.entry;
+
+      if (entry.isDirectory) {
+        const token = crypto.randomUUID();
+        const nextPathSegments = [...pathSegments, entry.name];
+
+        plan.directories.push({
+          token,
+          parentToken,
+          name: entry.name,
+          relativePath: nextPathSegments.join("/"),
+        });
+
+        const children = await this.readDirectoryEntries(entry);
+
+        for (const child of children) {
+          await this.collectDroppedNode(
+            { kind: "entry", entry: child },
+            token,
+            plan,
+            nextPathSegments,
+          );
+        }
+
+        return;
+      }
+
+      const file = await this.readFileEntry(entry);
+
+      plan.files.push({
+        file,
+        parentToken,
+        relativePath: [...pathSegments, file.name].join("/"),
+      });
+    },
+
+    readDirectoryEntries(entry) {
+      return new Promise((resolve, reject) => {
+        const reader = entry.createReader();
+        const entries = [];
+
+        const readBatch = () => {
+          reader.readEntries(
+            (batch) => {
+              if (batch.length === 0) {
+                resolve(entries);
+                return;
+              }
+
+              entries.push(...batch);
+              readBatch();
+            },
+            reject,
+          );
+        };
+
+        readBatch();
+      });
+    },
+
+    readFileEntry(entry) {
+      return new Promise((resolve, reject) => {
+        entry.file(resolve, reject);
+      });
+    },
+
+    async createDroppedFolders(directories) {
+      const resolvedFolders = new Map();
+      let pending = [...directories];
+
+      while (pending.length > 0) {
+        let progressed = false;
+        const nextPending = [];
+
+        for (const directory of pending) {
+          if (directory.parentToken && !resolvedFolders.has(directory.parentToken)) {
+            nextPending.push(directory);
+            continue;
+          }
+
+          const parentFolderId = directory.parentToken
+            ? resolvedFolders.get(directory.parentToken).id
+            : this.currentFolderId();
+
+          const folder = await this.createUploadFolder(
+            directory.name,
+            parentFolderId,
+          );
+
+          resolvedFolders.set(directory.token, folder);
+          progressed = true;
+        }
+
+        if (!progressed) {
+          throw new Error("Unable to resolve the dropped folder structure.");
+        }
+
+        pending = nextPending;
+      }
+
+      return resolvedFolders;
+    },
+
+    async createUploadFolder(name, parentFolderId) {
+      const response = await fetch(this.el.dataset.folderCreateUrl, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-csrf-token": this.csrfToken,
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          folder: {
+            name,
+            parent_folder_id: parentFolderId || null,
+          },
+        }),
+      });
+
+      const payload = await this.readJson(response);
+
+      if (!response.ok) {
+        throw new Error(payload.error || `Unable to create folder "${name}".`);
+      }
+
+      return payload;
+    },
+
+    currentFolderId() {
+      return this.el.dataset.folderId || "";
     },
 
     async uploadEntry(entry) {
@@ -293,7 +554,7 @@ const Hooks = {
           credentials: "same-origin",
           body: JSON.stringify({
             upload: {
-              folder_id: this.el.dataset.folderId || null,
+              folder_id: entry.targetFolderId || null,
               name: entry.file.name,
               content_type: entry.file.type || "application/octet-stream",
               size: entry.file.size,
@@ -405,8 +666,8 @@ const Hooks = {
       formData.append("name", entry.file.name);
       formData.append("_csrf_token", this.csrfToken);
 
-      if (this.el.dataset.folderId) {
-        formData.append("folder_id", this.el.dataset.folderId);
+      if (entry.targetFolderId) {
+        formData.append("folder_id", entry.targetFolderId);
       }
 
       return await new Promise((resolve, reject) => {
@@ -434,16 +695,15 @@ const Hooks = {
             return;
           }
 
-          try {
-            const payload = JSON.parse(request.responseText || "{}");
-            reject(new Error(payload.error || "Backend upload failed."));
-          } catch (_error) {
-            reject(new Error(`Backend upload failed (${request.status}).`));
-          }
+          reject(new Error(this.describeBackendUploadFailure(request)));
         });
 
         request.addEventListener("error", () => {
-          reject(new Error("Backend upload failed."));
+          reject(new Error(this.describeBackendUploadFailure(request)));
+        });
+
+        request.addEventListener("abort", () => {
+          reject(new Error("Upload canceled before the server finished receiving the file."));
         });
 
         request.send(formData);
@@ -507,9 +767,16 @@ const Hooks = {
       this.errorsContainer.textContent = message;
     },
 
+    clearGlobalError() {
+      if (!this.errorsContainer) return;
+      this.errorsContainer.hidden = true;
+      this.errorsContainer.textContent = "";
+    },
+
     syncQueueVisibility() {
       if (!this.queue) return;
       this.queue.hidden = this.entries.size === 0;
+      this.applyQueueFilters();
     },
 
     syncStats() {
@@ -539,7 +806,7 @@ const Hooks = {
       if (!row) {
         row = document.createElement("div");
         row.dataset.uploadEntry = entry.id;
-        row.className = "border-t border-slate-100 px-4 py-3 first:border-t-0";
+        row.className = "border-t border-slate-100 px-4 py-2.5 first:border-t-0";
         row.innerHTML = `
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0 flex-1">
@@ -547,15 +814,15 @@ const Hooks = {
                 <span data-role="name" class="block truncate text-sm font-medium text-slate-800"></span>
                 <span data-role="status" class="rounded-full px-2.5 py-1 text-[11px] font-semibold"></span>
               </div>
-              <div data-role="meta" class="mt-2 flex items-center gap-2 text-[11px] text-slate-500"></div>
-              <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
+              <div data-role="meta" class="mt-1.5 flex items-center gap-2 text-[11px] text-slate-500"></div>
+              <div class="mt-2.5 h-2 overflow-hidden rounded-full bg-slate-100">
                 <div data-role="progress" class="h-full rounded-full transition-all duration-300"></div>
               </div>
-              <p data-role="error" class="mt-2 text-[11px] font-medium text-rose-600 hidden"></p>
+              <p data-role="error" class="mt-1.5 text-[11px] font-medium text-rose-600 hidden"></p>
               <button
                 type="button"
                 data-action="retry-upload"
-                class="mt-3 hidden rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700"
+                class="mt-2 hidden rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700"
               >
                 Tentar novamente
               </button>
@@ -618,6 +885,43 @@ const Hooks = {
         retryButton.classList.toggle("hidden", !showRetry);
         retryButton.disabled = !showRetry;
       }
+
+      this.applyQueueFilters();
+    },
+
+    applyQueueFilters() {
+      if (!this.entriesContainer) return;
+
+      const rows = Array.from(
+        this.entriesContainer.querySelectorAll("[data-upload-entry]"),
+      );
+      let visibleCount = 0;
+
+      rows.forEach((row) => {
+        const entryId = row.dataset.uploadEntry;
+        const entry = entryId ? this.entries.get(entryId) : null;
+
+        if (!entry) return;
+
+        const matchesQuery =
+          this.queueSearchQuery === "" ||
+          (entry.displayName || entry.file.name)
+            .toLowerCase()
+            .includes(this.queueSearchQuery);
+
+        const matchesStatus =
+          this.queueFilterStatus === "all" ||
+          entry.status === this.queueFilterStatus;
+
+        const visible = matchesQuery && matchesStatus;
+        row.hidden = !visible;
+
+        if (visible) visibleCount += 1;
+      });
+
+      if (this.emptyState) {
+        this.emptyState.hidden = visibleCount > 0;
+      }
     },
 
     async readJson(response) {
@@ -629,6 +933,47 @@ const Hooks = {
         return JSON.parse(text);
       } catch (_error) {
         return {};
+      }
+    },
+
+    describeBackendUploadFailure(request) {
+      const payload = this.parseJson(request.responseText);
+      const responseText = request.responseText?.trim();
+
+      if (payload?.error) return payload.error;
+
+      if (request.status === 401 || request.status === 403) {
+        return "Your session expired before the upload finished. Sign in again and retry.";
+      }
+
+      if (request.status === 413) {
+        return "This file is too large for the browser fallback upload.";
+      }
+
+      if (request.status >= 500) {
+        return `The app failed to store this file (${request.status}). Retry in a few seconds.`;
+      }
+
+      if (request.status > 0) {
+        return `The app rejected this upload (${request.status}).${
+          responseText ? ` ${responseText}` : ""
+        }`;
+      }
+
+      if (navigator.onLine === false) {
+        return "Upload failed before reaching the app. Check your internet connection and retry.";
+      }
+
+      return "Upload failed before the app could respond. Confirm the Phoenix server is still running and retry.";
+    },
+
+    parseJson(text) {
+      if (!text) return null;
+
+      try {
+        return JSON.parse(text);
+      } catch (_error) {
+        return null;
       }
     },
 
@@ -675,6 +1020,106 @@ const Hooks = {
 
     destroyed() {
       this.button?.removeEventListener("click", this.toggleVisibility);
+    },
+  },
+
+  VideoCardPreview: {
+    mounted() {
+      this.video = this.el.querySelector('[data-role="video-card-source"]');
+      this.canvas = this.el.querySelector('[data-role="video-card-canvas"]');
+      this.context = this.canvas?.getContext("2d");
+      this.previewVideo = null;
+      this.frameCaptured = false;
+
+      if (!this.video || !this.canvas || !this.context) return;
+
+      this.boundTryCapture = () => this.tryCaptureFrame();
+      this.boundMetadata = () => this.captureFromPreferredTimestamp();
+      this.boundError = () => this.showFallback();
+
+      this.video.addEventListener("loadeddata", this.boundTryCapture);
+      this.video.addEventListener("canplay", this.boundTryCapture);
+      this.video.addEventListener("error", this.boundError);
+
+      this.captureFromPreferredTimestamp();
+    },
+
+    destroyed() {
+      this.video?.removeEventListener("loadeddata", this.boundTryCapture);
+      this.video?.removeEventListener("canplay", this.boundTryCapture);
+      this.video?.removeEventListener("error", this.boundError);
+
+      this.previewVideo?.removeEventListener("loadedmetadata", this.boundMetadata);
+      this.previewVideo?.removeEventListener("loadeddata", this.boundTryCapture);
+      this.previewVideo?.removeEventListener("seeked", this.boundTryCapture);
+      this.previewVideo?.removeEventListener("error", this.boundError);
+      this.previewVideo?.removeAttribute("src");
+      this.previewVideo?.load?.();
+    },
+
+    captureFromPreferredTimestamp() {
+      if (!this.video || this.frameCaptured) return;
+
+      if (!this.previewVideo) {
+        this.previewVideo = document.createElement("video");
+        this.previewVideo.muted = true;
+        this.previewVideo.playsInline = true;
+        this.previewVideo.preload = "auto";
+        this.previewVideo.src = this.video.currentSrc || this.video.src;
+        this.previewVideo.addEventListener("loadedmetadata", this.boundMetadata);
+        this.previewVideo.addEventListener("loadeddata", this.boundTryCapture);
+        this.previewVideo.addEventListener("seeked", this.boundTryCapture);
+        this.previewVideo.addEventListener("error", this.boundError);
+      }
+
+      const targetTime = this.preferredTimestamp(this.previewVideo.duration);
+
+      if (Number.isFinite(this.previewVideo.duration) && targetTime !== null) {
+        try {
+          this.previewVideo.currentTime = targetTime;
+        } catch (_error) {}
+      }
+    },
+
+    preferredTimestamp(duration) {
+      if (!Number.isFinite(duration) || duration <= 0) return 0;
+      return Math.min(Math.max(duration * 0.1, 0.15), 1.5, duration);
+    },
+
+    tryCaptureFrame() {
+      const source =
+        this.previewVideo?.readyState >= 2 ? this.previewVideo : this.video;
+
+      if (!source || source.readyState < 2 || this.frameCaptured) return;
+
+      const sourceWidth = source.videoWidth || 640;
+      const sourceHeight = source.videoHeight || 360;
+
+      if (!sourceWidth || !sourceHeight) return;
+
+      if (
+        this.canvas.width !== sourceWidth ||
+        this.canvas.height !== sourceHeight
+      ) {
+        this.canvas.width = sourceWidth;
+        this.canvas.height = sourceHeight;
+      }
+
+      this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+      try {
+        this.context.drawImage(source, 0, 0, this.canvas.width, this.canvas.height);
+        this.canvas.classList.remove("hidden");
+        this.video.classList.add("opacity-0");
+        this.frameCaptured = true;
+      } catch (_error) {
+        this.showFallback();
+      }
+    },
+
+    showFallback() {
+      this.canvas?.classList.add("hidden");
+      this.video?.classList.remove("opacity-0");
     },
   },
 

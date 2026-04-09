@@ -745,6 +745,46 @@ msgstr ""
 msgid "Drag files into this folder"
 msgstr ""
 
+#: lib/open_drive_web/live/drive_live/components.ex:260
+#, elixir-autogen, elixir-format
+msgid "Search uploads"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:269
+#, elixir-autogen, elixir-format
+msgid "Status"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:275
+#, elixir-autogen, elixir-format
+msgid "All statuses"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:276
+#, elixir-autogen, elixir-format
+msgid "Queued"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:277
+#, elixir-autogen, elixir-format
+msgid "Uploading"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:278
+#, elixir-autogen, elixir-format
+msgid "Completed"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:279
+#, elixir-autogen, elixir-format
+msgid "With error"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:288
+#, elixir-autogen, elixir-format
+msgid "No uploads found"
+msgstr ""
+
 #: lib/open_drive_web/live/trash_live/index.ex:143
 #: lib/open_drive_web/live/trash_live/index.ex:333
 #, elixir-autogen, elixir-format
@@ -1324,6 +1364,11 @@ msgstr ""
 #: lib/open_drive_web/live/drive_live/index.ex:965
 #, elixir-autogen, elixir-format
 msgid "Upload starts as soon as you drop the file"
+msgstr ""
+
+#: lib/open_drive_web/live/drive_live/components.ex:202
+#, elixir-autogen, elixir-format
+msgid "Drop a folder to preserve its internal structure automatically."
 msgstr ""
 
 #: lib/open_drive_web/live/trash_live/index.ex:309

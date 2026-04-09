@@ -161,6 +161,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
         id="folder-dropzone"
         phx-hook="DirectUploadZone"
         data-initiate-url={~p"/app/uploads"}
+        data-folder-create-url={~p"/app/folders/upload"}
         data-proxy-url={~p"/app/uploads/proxy"}
         data-complete-url={~p"/app/uploads/complete"}
         data-folder-id={@view.current_folder_id || ""}
@@ -197,6 +198,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
               </p>
               <p class="mt-1 text-xs text-slate-400">
                 {gettext("You can drop multiple files at once")}
+              </p>
+              <p class="mt-1 text-xs text-emerald-700">
+                {gettext("Drop a folder to preserve its internal structure automatically.")}
               </p>
               <p class="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">
                 {gettext("Click to choose files from your device")}
@@ -247,7 +251,42 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </div>
           </div>
 
-          <div data-direct-upload-entries></div>
+          <div
+            data-direct-upload-entries-scroll
+            class="max-h-[26rem] overflow-y-auto"
+          >
+            <div class="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+              <div class="flex flex-col gap-3 md:flex-row md:items-center">
+                <label class="flex min-w-0 flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <.icon name="hero-magnifying-glass" class="size-4 text-slate-400" />
+                  <input
+                    type="text"
+                    data-direct-upload-search
+                    placeholder={gettext("Search uploads")}
+                    class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+                  />
+                </label>
+
+                <label class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <span>{gettext("Status")}</span>
+                  <select
+                    data-direct-upload-filter
+                    class="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none"
+                  >
+                    <option value="all">{gettext("All statuses")}</option>
+                    <option value="queued">{gettext("Queued")}</option>
+                    <option value="uploading">{gettext("Uploading")}</option>
+                    <option value="complete">{gettext("Completed")}</option>
+                    <option value="error">{gettext("With error")}</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div data-direct-upload-empty class="px-4 py-6 text-sm text-slate-500">
+              {gettext("No uploads found")}
+            </div>
+            <div data-direct-upload-entries></div>
+          </div>
         </div>
 
         <div
@@ -441,15 +480,26 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
             <button
               :if={entry.preview == :video}
+              id={"video-card-preview-#{entry.id}"}
               type="button"
               phx-click="open_video"
               phx-value-id={entry.id}
+              phx-hook="VideoCardPreview"
               class="video-preview-shell group relative block h-36 w-full overflow-hidden rounded-[1.25rem] text-left ring-1 ring-slate-200 transition hover:ring-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
               aria-label={gettext("Open video %{name}", name: entry.name)}
             >
+              <canvas
+                data-role="video-card-canvas"
+                width="640"
+                height="360"
+                class="video-card-canvas pointer-events-none absolute inset-0 hidden h-full w-full object-cover"
+                aria-hidden="true"
+              >
+              </canvas>
               <video
+                data-role="video-card-source"
                 src={entry.href}
-                preload="metadata"
+                preload="auto"
                 muted
                 playsinline
                 class="h-full w-full object-cover"

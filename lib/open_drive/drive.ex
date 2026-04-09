@@ -99,6 +99,20 @@ defmodule OpenDrive.Drive do
     end
   end
 
+  def create_folder_with_available_name(%Scope{} = scope, attrs) do
+    requested_name = attrs[:name] || attrs["name"]
+    parent_folder_id = attrs[:parent_folder_id] || attrs["parent_folder_id"]
+
+    case create_folder(scope, attrs) do
+      {:error, :name_conflict} ->
+        next_name = next_available_folder_name(scope, requested_name, parent_folder_id)
+        create_folder(scope, Map.put(attrs, :name, next_name))
+
+      result ->
+        result
+    end
+  end
+
   def upload_file(%Scope{} = scope, attrs, upload) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
     requested_name = attrs[:name] || attrs["name"] || upload.client_name
@@ -594,6 +608,17 @@ defmodule OpenDrive.Drive do
         {:error, :name_conflict} -> nil
       end
     end) || fallback_upload_name(base_name, extension)
+  end
+
+  defp next_available_folder_name(scope, requested_name, parent_folder_id) do
+    Enum.find_value(2..10_000, fn index ->
+      candidate = "#{requested_name} (#{index})"
+
+      case ensure_name_available(scope, candidate, parent_folder_id, :folder) do
+        :ok -> candidate
+        {:error, :name_conflict} -> nil
+      end
+    end) || "#{requested_name} (copy)"
   end
 
   defp put_upload_object(key, path, content_type) do

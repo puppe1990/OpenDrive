@@ -28,11 +28,19 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Arraste arquivos para esta pasta"
     assert html =~ "O upload comeca assim que voce solta o arquivo"
     assert html =~ "Voce pode soltar varios arquivos por vez"
+    assert html =~ "Solte uma pasta para preservar a estrutura interna automaticamente"
     assert html =~ ~s(id="folder-dropzone")
     assert html =~ ~s(phx-hook="DirectUploadZone")
     assert html =~ "data-direct-upload-input"
     assert html =~ ~s(type="file")
     assert html =~ "Fila de uploads"
+    assert html =~ "Buscar uploads"
+    assert html =~ "Todos os status"
+    assert html =~ "Nenhum upload encontrado"
+    assert html =~ "data-direct-upload-search"
+    assert html =~ "data-direct-upload-filter"
+    assert html =~ "data-direct-upload-empty"
+    assert html =~ "data-direct-upload-entries-scroll"
   end
 
   test "renders preview markup for image, video and audio files", %{conn: conn} do
@@ -75,6 +83,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ ~s(src="/app/files/)
     assert html =~ "<img"
     assert html =~ ~s(phx-click="open_video")
+    assert html =~ ~s(phx-hook="VideoCardPreview")
+    assert html =~ ~s(data-role="video-card-canvas")
     assert html =~ "Abrir player"
     assert html =~ ~s(phx-click="open_audio")
     assert html =~ "Abrir player de audio"
