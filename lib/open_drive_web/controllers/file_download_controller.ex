@@ -47,7 +47,10 @@ defmodule OpenDriveWeb.FileDownloadController do
                 length = range_end - range_start + 1
 
                 conn
-                |> put_resp_header("content-range", "bytes #{range_start}-#{range_end}/#{file_size}")
+                |> put_resp_header(
+                  "content-range",
+                  "bytes #{range_start}-#{range_end}/#{file_size}"
+                )
                 |> send_file(206, path, range_start, length)
 
               :error ->
