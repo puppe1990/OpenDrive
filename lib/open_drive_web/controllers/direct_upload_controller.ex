@@ -139,9 +139,7 @@ defmodule OpenDriveWeb.DirectUploadController do
     |> put_status(:service_unavailable)
     |> json(%{
       error:
-        gettext(
-          "The storage service did not respond in time. Retry the upload in a few seconds."
-        )
+        gettext("The storage service did not respond in time. Retry the upload in a few seconds.")
     })
   end
 
