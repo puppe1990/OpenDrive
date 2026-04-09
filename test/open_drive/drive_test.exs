@@ -58,6 +58,17 @@ defmodule OpenDrive.DriveTest do
     def presigned_download_url(key, opts), do: Fake.presigned_download_url(key, opts)
   end
 
+  defmodule ExitingStorage do
+    @behaviour OpenDrive.Storage
+
+    def put_object(_key, _source, _opts), do: exit(:timeout)
+    def presigned_upload_url(_key, _opts), do: {:error, :boom}
+    def head_object(_key), do: {:error, :boom}
+    def delete_object(_key), do: :ok
+    def move_object(_source_key, _destination_key, _opts), do: {:error, :boom}
+    def presigned_download_url(_key, _opts), do: {:error, :boom}
+  end
+
   test "users do not see data from another tenant" do
     workspace_a = workspace_fixture()
     workspace_b = workspace_fixture()
@@ -361,6 +372,33 @@ defmodule OpenDrive.DriveTest do
     Elixir.File.write!(path, "hello")
 
     assert {:error, :boom} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "hello.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert Repo.aggregate(DriveFile, :count) == 0
+    assert Repo.aggregate(FileObject, :count) == 0
+  end
+
+  test "upload_file/3 returns an error when the storage adapter exits" do
+    original = Application.get_env(:open_drive, OpenDrive.Storage)
+
+    Application.put_env(
+      :open_drive,
+      OpenDrive.Storage,
+      Keyword.put(original, :adapter, ExitingStorage)
+    )
+
+    on_exit(fn -> Application.put_env(:open_drive, OpenDrive.Storage, original) end)
+
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-upload-exit.txt")
+    File.write!(path, "hello")
+
+    assert {:error, :storage_unavailable} =
              Drive.upload_file(workspace.scope, %{}, %{
                path: path,
                client_name: "hello.txt",

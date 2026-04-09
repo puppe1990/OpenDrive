@@ -109,7 +109,7 @@ defmodule OpenDrive.Drive do
          name <- resolve_available_upload_name(scope, requested_name, folder_id),
          key <- object_key(scope, name),
          {:ok, _object_result} <-
-           Storage.put_object(key, {:file, upload.path}, content_type: content_type),
+           put_upload_object(key, upload.path, content_type),
          {:ok, result} <-
            persist_upload_with_retry(scope, folder_id, name, content_type, upload, key, checksum) do
       {:ok, result}
@@ -594,6 +594,14 @@ defmodule OpenDrive.Drive do
         {:error, :name_conflict} -> nil
       end
     end) || fallback_upload_name(base_name, extension)
+  end
+
+  defp put_upload_object(key, path, content_type) do
+    Storage.put_object(key, {:file, path}, content_type: content_type)
+  catch
+    :exit, reason ->
+      Logger.error("storage upload crashed for #{key}: #{inspect(reason)}")
+      {:error, :storage_unavailable}
   end
 
   defp persist_upload_with_retry(

@@ -6,6 +6,17 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
   alias OpenDrive.Drive
   alias OpenDrive.Repo
 
+  defmodule ExitingStorage do
+    @behaviour OpenDrive.Storage
+
+    def put_object(_key, _source, _opts), do: exit(:timeout)
+    def presigned_upload_url(_key, _opts), do: {:error, :boom}
+    def head_object(_key), do: {:error, :boom}
+    def delete_object(_key), do: :ok
+    def move_object(_source_key, _destination_key, _opts), do: {:error, :boom}
+    def presigned_download_url(_key, _opts), do: {:error, :boom}
+  end
+
   test "creates a direct upload session for an authenticated user", %{conn: conn} do
     workspace = workspace_fixture()
     conn = log_in_user(conn, workspace.user, workspace.scope)
@@ -160,6 +171,36 @@ defmodule OpenDriveWeb.DirectUploadControllerTest do
       |> post(~p"/app/uploads/proxy", %{"file" => upload, "name" => "too-large.bin"})
 
     assert conn.status in [413, 422]
+  end
+
+  test "returns a structured error when proxy storage exits", %{conn: conn} do
+    original = Application.get_env(:open_drive, OpenDrive.Storage)
+
+    Application.put_env(
+      :open_drive,
+      OpenDrive.Storage,
+      Keyword.put(original, :adapter, ExitingStorage)
+    )
+
+    on_exit(fn -> Application.put_env(:open_drive, OpenDrive.Storage, original) end)
+
+    workspace = workspace_fixture()
+
+    upload =
+      %Plug.Upload{
+        path: write_temp_file!("open-drive-proxy-storage-exit.txt", "hello proxy"),
+        filename: "proxy.txt",
+        content_type: "text/plain"
+      }
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> post(~p"/app/uploads/proxy", %{"file" => upload, "name" => "proxy.txt"})
+
+    assert conn.status == 503
+    assert %{"error" => error} = json_response(conn, 503)
+    assert error =~ "storage"
   end
 
   defp write_temp_file!(name, contents) do

@@ -134,6 +134,17 @@ defmodule OpenDriveWeb.DirectUploadController do
     |> json(%{error: gettext("Upload session expired. Select the file again.")})
   end
 
+  defp render_error(conn, :storage_unavailable) do
+    conn
+    |> put_status(:service_unavailable)
+    |> json(%{
+      error:
+        gettext(
+          "The storage service did not respond in time. Retry the upload in a few seconds."
+        )
+    })
+  end
+
   defp render_error(conn, :forbidden) do
     conn
     |> put_status(:forbidden)
