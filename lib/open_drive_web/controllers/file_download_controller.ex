@@ -40,28 +40,7 @@ defmodule OpenDriveWeb.FileDownloadController do
           |> put_resp_header("content-type", content_type)
           |> put_resp_header("accept-ranges", "bytes")
 
-        case get_req_header(conn, "range") do
-          ["bytes=" <> range] ->
-            case parse_range(range, file_size) do
-              {:ok, range_start, range_end} ->
-                length = range_end - range_start + 1
-
-                conn
-                |> put_resp_header(
-                  "content-range",
-                  "bytes #{range_start}-#{range_end}/#{file_size}"
-                )
-                |> send_file(206, path, range_start, length)
-
-              :error ->
-                conn
-                |> put_resp_header("content-range", "bytes */#{file_size}")
-                |> send_resp(416, "")
-            end
-
-          _ ->
-            send_file(conn, 200, path)
-        end
+        serve_local_file_body(conn, path, file_size)
 
       {:error, :enoent} ->
         {:error, :not_found}
@@ -69,6 +48,29 @@ defmodule OpenDriveWeb.FileDownloadController do
       {:error, reason} ->
         Logger.warning("failed to read local download blob at #{path}: #{inspect(reason)}")
         {:error, :not_found}
+    end
+  end
+
+  defp serve_local_file_body(conn, path, file_size) do
+    case get_req_header(conn, "range") do
+      ["bytes=" <> range] -> serve_local_file_range(conn, path, file_size, range)
+      _ -> send_file(conn, 200, path)
+    end
+  end
+
+  defp serve_local_file_range(conn, path, file_size, range) do
+    case parse_range(range, file_size) do
+      {:ok, range_start, range_end} ->
+        length = range_end - range_start + 1
+
+        conn
+        |> put_resp_header("content-range", "bytes #{range_start}-#{range_end}/#{file_size}")
+        |> send_file(206, path, range_start, length)
+
+      :error ->
+        conn
+        |> put_resp_header("content-range", "bytes */#{file_size}")
+        |> send_resp(416, "")
     end
   end
 
