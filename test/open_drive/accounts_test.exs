@@ -53,4 +53,8 @@ defmodule OpenDrive.AccountsTest do
     assert {scoped_user, _inserted_at} = Accounts.get_user_by_session_token(token)
     assert scoped_user.id == user.id
   end
+
+  test "get_user_by_session_token/1 returns nil for invalid token" do
+    assert nil == Accounts.get_user_by_session_token("invalid-token")
+  end
 end

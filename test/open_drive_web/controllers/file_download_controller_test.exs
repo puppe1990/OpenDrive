@@ -5,6 +5,91 @@ defmodule OpenDriveWeb.FileDownloadControllerTest do
 
   alias OpenDrive.Drive
 
+  test "serves local storage files inline for previewable media", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Media Space"})
+    path = Path.join(System.tmp_dir!(), "open_drive-preview-video.mp4")
+    body = "fake-video-binary"
+    File.write!(path, body)
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "preview.mp4",
+        content_type: "video/mp4",
+        size: byte_size(body)
+      })
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> get(~p"/app/files/#{file.id}/download")
+
+    assert conn.status == 200
+    assert conn.resp_body == body
+    assert get_resp_header(conn, "content-type") == ["video/mp4"]
+    assert get_resp_header(conn, "accept-ranges") == ["bytes"]
+  end
+
+  test "supports byte range requests for local storage files", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Media Range Space"})
+    path = Path.join(System.tmp_dir!(), "open_drive-range-video.mp4")
+    body = "0123456789"
+    File.write!(path, body)
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "range.mp4",
+        content_type: "video/mp4",
+        size: byte_size(body)
+      })
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> put_req_header("range", "bytes=2-5")
+      |> get(~p"/app/files/#{file.id}/download")
+
+    assert conn.status == 206
+    assert conn.resp_body == "2345"
+    assert get_resp_header(conn, "content-range") == ["bytes 2-5/10"]
+    assert get_resp_header(conn, "accept-ranges") == ["bytes"]
+    assert get_resp_header(conn, "content-type") == ["video/mp4"]
+  end
+
+  test "redirects with an error when a local storage blob is missing", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Missing Blob Space"})
+    path = Path.join(System.tmp_dir!(), "open_drive-missing-video.mp4")
+    body = "fake-video-binary"
+    File.write!(path, body)
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "missing.mp4",
+        content_type: "video/mp4",
+        size: byte_size(body)
+      })
+
+    blob_path =
+      Path.join([
+        System.tmp_dir!(),
+        "open_drive_storage",
+        OpenDrive.Storage.bucket(),
+        file.file_object.key
+      ])
+
+    File.rm!(blob_path)
+
+    conn =
+      conn
+      |> log_in_user(workspace.user, workspace.scope)
+      |> get(~p"/app/files/#{file.id}/download")
+
+    assert redirected_to(conn) == ~p"/app"
+    assert Phoenix.Flash.get(conn.assigns.flash, :error) == "Arquivo nao encontrado."
+  end
+
   test "downloads selected files as a zip", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Zip Space"})
     first_path = Path.join(System.tmp_dir!(), "open_drive-zip-first.txt")
