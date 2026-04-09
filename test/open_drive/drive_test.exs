@@ -87,6 +87,19 @@ defmodule OpenDrive.DriveTest do
     assert {:error, :name_conflict} = Drive.create_folder(workspace.scope, %{name: "Contracts"})
   end
 
+  test "create_folder_with_available_name/2 suffixes conflicting folders in the same directory" do
+    workspace = workspace_fixture()
+
+    assert {:ok, first} =
+             Drive.create_folder_with_available_name(workspace.scope, %{name: "Photos"})
+
+    assert {:ok, second} =
+             Drive.create_folder_with_available_name(workspace.scope, %{name: "Photos"})
+
+    assert first.name == "Photos"
+    assert second.name == "Photos (2)"
+  end
+
   test "upload_file/3 persists metadata and object references" do
     workspace = workspace_fixture()
     path = Path.join(System.tmp_dir!(), "open_drive-upload.txt")
@@ -658,5 +671,494 @@ defmodule OpenDrive.DriveTest do
     assert result.file_objects_deleted == 1
     assert Repo.aggregate(DriveFile, :count) == 0
     assert Repo.aggregate(FileObject, :count) == 0
+  end
+
+  test "upload_file/3 accepts zero-size files (empty files allowed)" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-zero-size.txt")
+    File.write!(path, "")
+
+    assert {:ok, file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "empty.txt",
+               content_type: "text/plain",
+               size: 0
+             })
+
+    assert file.file_object.size == 0
+  end
+
+  test "upload_file/3 accepts large files (validation delegated to upload method)" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-huge.txt")
+    File.write!(path, "content")
+
+    assert {:ok, _file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "huge.txt",
+               content_type: "text/plain",
+               size: 2_000_000_001
+             })
+  end
+
+  test "prepare_direct_upload/2 rejects zero-size" do
+    workspace = workspace_fixture()
+
+    assert {:error, :invalid_size} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "video.mp4",
+               "content_type" => "video/mp4",
+               "size" => "0"
+             })
+  end
+
+  test "prepare_direct_upload/2 rejects negative size" do
+    workspace = workspace_fixture()
+
+    assert {:error, :invalid_size} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "video.mp4",
+               "content_type" => "video/mp4",
+               "size" => "-1"
+             })
+  end
+
+  test "prepare_direct_upload/2 rejects non-numeric size" do
+    workspace = workspace_fixture()
+
+    assert {:error, :invalid_size} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "video.mp4",
+               "content_type" => "video/mp4",
+               "size" => "abc"
+             })
+  end
+
+  test "prepare_direct_upload/2 rejects size exceeding max" do
+    workspace = workspace_fixture()
+
+    assert {:error, :too_large} =
+             Drive.prepare_direct_upload(workspace.scope, %{
+               "name" => "video.mp4",
+               "content_type" => "video/mp4",
+               "size" => "2000000001"
+             })
+  end
+
+  test "upload_file/3 accepts files over max size (size validation only in direct upload)" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-huge.txt")
+    File.write!(path, "content")
+
+    assert {:ok, _file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "huge.txt",
+               content_type: "text/plain",
+               size: 2_000_000_001
+             })
+  end
+
+  test "create_folder/2 rejects empty name" do
+    workspace = workspace_fixture()
+
+    assert {:error, :name_conflict} = Drive.create_folder(workspace.scope, %{name: ""})
+  end
+
+  test "create_folder/2 rejects names exceeding max length" do
+    workspace = workspace_fixture()
+    long_name = String.duplicate("a", 121)
+
+    assert {:error, :name_conflict} = Drive.create_folder(workspace.scope, %{name: long_name})
+  end
+
+  test "rename_file/3 rejects empty name" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-rename-empty.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:error, :name_conflict} = Drive.rename_file(workspace.scope, file.id, %{name: ""})
+  end
+
+  test "rename_folder/3 rejects empty name" do
+    workspace = workspace_fixture()
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Drafts"})
+
+    assert {:error, :name_conflict} = Drive.rename_folder(workspace.scope, folder.id, %{name: ""})
+  end
+
+  test "download_url/2 returns error for non-existent file" do
+    workspace = workspace_fixture()
+
+    assert {:error, :not_found} = Drive.download_url(workspace.scope, 99_999)
+  end
+
+  test "download_url/2 returns error for trashed file" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-download-trashed.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "trashed.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+
+    assert {:error, :not_found} = Drive.download_url(workspace.scope, file.id)
+  end
+
+  test "soft_delete_node/2 returns error for already trashed file" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-double-delete.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+    assert {:error, :not_found} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+  end
+
+  test "restore_node/2 returns error for already active file" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-double-restore.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:error, :not_found} = Drive.restore_node(workspace.scope, {:file, file.id})
+  end
+
+  test "create_folder/2 allows unicode filenames" do
+    workspace = workspace_fixture()
+
+    assert {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "文档"})
+    assert folder.name == "文档"
+
+    assert {:ok, folder2} = Drive.create_folder(workspace.scope, %{name: "📁文件夹"})
+    assert folder2.name == "📁文件夹"
+  end
+
+  test "upload_file/3 allows unicode filenames" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-unicode-upload.txt")
+    File.write!(path, "hello")
+
+    assert {:ok, file} =
+             Drive.upload_file(workspace.scope, %{}, %{
+               path: path,
+               client_name: "мой файл.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+
+    assert file.name == "мой файл.txt"
+  end
+
+  test "rename_folder/3 allows renaming to same name (no-op)" do
+    workspace = workspace_fixture()
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Drafts"})
+
+    assert {:ok, renamed} = Drive.rename_folder(workspace.scope, folder.id, %{name: "Drafts"})
+    assert renamed.name == "Drafts"
+  end
+
+  test "rename_file/3 allows renaming to same name (no-op)" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-same-name.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "doc.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, renamed} = Drive.rename_file(workspace.scope, file.id, %{name: "doc.txt"})
+    assert renamed.name == "doc.txt"
+  end
+
+  test "list_trash/1 shows only root trashed folders" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-nested-trash.txt")
+    File.write!(path, "hello")
+
+    {:ok, root} = Drive.create_folder(workspace.scope, %{name: "Archive"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "Invoices", parent_folder_id: root.id})
+
+    {:ok, _file} =
+      Drive.upload_file(workspace.scope, %{folder_id: child.id}, %{
+        path: path,
+        client_name: "invoice.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, root.id})
+
+    trashed_folders = Drive.list_trash(workspace.scope).folders
+    assert length(trashed_folders) == 1
+    assert hd(trashed_folders).id == root.id
+
+    assert [] = Drive.list_trash(workspace.scope).files
+  end
+
+  test "workspace_used_size/1 calculates correct total" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-size-test.txt")
+    File.write!(path, "hello")
+
+    {:ok, _file1} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "a.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, _file2} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "b.txt",
+        content_type: "text/plain",
+        size: 10
+      })
+
+    assert Drive.workspace_used_size(workspace.scope) == 15
+  end
+
+  test "workspace_used_size/1 excludes trashed files" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-size-trash.txt")
+    File.write!(path, "hello")
+
+    {:ok, _file1} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "keep.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, file2} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "trash.txt",
+        content_type: "text/plain",
+        size: 10
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file2.id})
+
+    assert Drive.workspace_used_size(workspace.scope) == 5
+  end
+
+  test "bulk_download_sources/2 returns error for empty list" do
+    workspace = workspace_fixture()
+
+    assert {:error, :not_found} = Drive.bulk_download_sources(workspace.scope, [])
+  end
+
+  test "bulk_download_sources/2 returns error when all files not found" do
+    workspace = workspace_fixture()
+
+    assert {:error, :not_found} = Drive.bulk_download_sources(workspace.scope, [99_998, 99_999])
+  end
+
+  test "create_folder/2 inside soft-deleted parent fails" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-deleted-parent.txt")
+    File.write!(path, "hello")
+
+    {:ok, parent} = Drive.create_folder(workspace.scope, %{name: "Parent"})
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, parent.id})
+
+    assert {:error, :invalid_parent_folder} =
+             Drive.create_folder(workspace.scope, %{name: "Child", parent_folder_id: parent.id})
+  end
+
+  test "upload_file/3 inside soft-deleted parent fails" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-upload-deleted.txt")
+    File.write!(path, "hello")
+
+    {:ok, folder} = Drive.create_folder(workspace.scope, %{name: "Folder"})
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:folder, folder.id})
+
+    assert {:error, :invalid_parent_folder} =
+             Drive.upload_file(workspace.scope, %{folder_id: folder.id}, %{
+               path: path,
+               client_name: "doc.txt",
+               content_type: "text/plain",
+               size: 5
+             })
+  end
+
+  test "prepare_direct_upload/2 rejects folder_id from another tenant" do
+    workspace_a = workspace_fixture()
+    workspace_b = workspace_fixture()
+
+    {:ok, folder} = Drive.create_folder(workspace_a.scope, %{name: "Secret"})
+
+    assert {:error, :invalid_parent_folder} =
+             Drive.prepare_direct_upload(workspace_b.scope, %{
+               "name" => "leak.txt",
+               "content_type" => "text/plain",
+               "size" => "100",
+               "folder_id" => folder.id
+             })
+  end
+
+  test "rename_file/3 rejects duplicate name with another file" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-rename-conflict.txt")
+    File.write!(path, "hello")
+
+    {:ok, _file_a} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "report.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    {:ok, file_b} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "other.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:error, :name_conflict} =
+             Drive.rename_file(workspace.scope, file_b.id, %{name: "report.txt"})
+  end
+
+  test "rename_folder/3 rejects duplicate name with another folder" do
+    workspace = workspace_fixture()
+    {:ok, _folder_a} = Drive.create_folder(workspace.scope, %{name: "Finance"})
+    {:ok, folder_b} = Drive.create_folder(workspace.scope, %{name: "Legal"})
+
+    assert {:error, :name_conflict} =
+             Drive.rename_folder(workspace.scope, folder_b.id, %{name: "Finance"})
+  end
+
+  test "rename_file/3 rejects name that conflicts with a folder" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-rename-folder-conflict.txt")
+    File.write!(path, "hello")
+
+    {:ok, _folder} = Drive.create_folder(workspace.scope, %{name: "Contracts"})
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "draft.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:error, :name_conflict} =
+             Drive.rename_file(workspace.scope, file.id, %{name: "Contracts"})
+  end
+
+  test "restore_node/2 rejects file when active file already has same name" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-restore-file-conflict.txt")
+    File.write!(path, "hello")
+
+    {:ok, original} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "budget.xlsx",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, original.id})
+
+    {:ok, _replacement} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "budget.xlsx",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:error, :name_conflict} = Drive.restore_node(workspace.scope, {:file, original.id})
+  end
+
+  test "concurrent uploads with same name produce unique files" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-concurrent.txt")
+    File.write!(path, "hello")
+
+    upload_attrs = %{
+      path: path,
+      client_name: "report.txt",
+      content_type: "text/plain",
+      size: 5
+    }
+
+    results =
+      1..5
+      |> Enum.map(fn _ ->
+        Task.async(fn -> Drive.upload_file(workspace.scope, %{}, upload_attrs) end)
+      end)
+      |> Enum.map(&Task.await/1)
+
+    assert Enum.all?(results, fn {:ok, file} -> is_binary(file.name) end)
+
+    names = Enum.map(results, fn {:ok, f} -> f.name end)
+    assert Enum.uniq(names) == names
+  end
+
+  test "download_url/2 returns error after file is soft-deleted" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-download-toctou.txt")
+    File.write!(path, "hello")
+
+    {:ok, file} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: path,
+        client_name: "sensitive.txt",
+        content_type: "text/plain",
+        size: 5
+      })
+
+    assert {:ok, _url} = Drive.download_url(workspace.scope, file.id)
+
+    assert {:ok, _} = Drive.soft_delete_node(workspace.scope, {:file, file.id})
+
+    assert {:error, :not_found} = Drive.download_url(workspace.scope, file.id)
   end
 end
