@@ -198,6 +198,12 @@
     linear-gradient(135deg, rgba(56, 189, 248, 0.2) 0%, transparent 40%, rgba(14, 165, 233, 0.18) 100%);
 }
 
+.video-card-canvas {
+  background:
+    radial-gradient(circle at top, rgba(125, 211, 252, 0.12), transparent 42%),
+    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+}
+
 .video-preview-play {
   transform: scale(1);
 }
