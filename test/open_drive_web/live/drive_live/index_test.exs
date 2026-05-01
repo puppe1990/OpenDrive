@@ -19,18 +19,19 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     refute html =~ "Hidden Space"
   end
 
-  test "renders an automatic drag and drop area for the current folder", %{conn: conn} do
+  test "renders the drive as a global dropzone with overlay markup", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Drop Space"})
 
     conn = log_in_user(conn, workspace.user, workspace.scope)
     {:ok, _lv, html} = live(conn, ~p"/app")
 
-    assert html =~ "Arraste arquivos para esta pasta"
-    assert html =~ "O upload comeca assim que voce solta o arquivo"
-    assert html =~ "Voce pode soltar varios arquivos por vez"
-    assert html =~ "Solte uma pasta para preservar a estrutura interna automaticamente"
-    assert html =~ ~s(id="folder-dropzone")
+    assert html =~ ~s(id="drive-dropzone")
     assert html =~ ~s(phx-hook="DirectUploadZone")
+    assert html =~ ~s(data-dropzone-scope="global")
+    assert html =~ ~s(id="drive-drop-overlay")
+    assert html =~ "Drop files to upload to this folder"
+    refute html =~ "Arraste arquivos para esta pasta"
+    assert html =~ "data-direct-upload-trigger"
     assert html =~ "data-direct-upload-input"
     assert html =~ ~s(type="file")
     assert html =~ "Fila de uploads"

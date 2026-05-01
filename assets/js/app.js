@@ -157,6 +157,7 @@ const Hooks = {
       );
       this.input = this.el.querySelector("[data-direct-upload-input]");
       this.trigger = this.el.querySelector("[data-direct-upload-trigger]");
+      this.overlay = this.el.querySelector("[data-drop-overlay-target]");
       this.queue = this.el.querySelector("[data-direct-upload-queue]");
       this.entriesContainer = this.el.querySelector(
         "[data-direct-upload-entries]",
@@ -181,6 +182,7 @@ const Hooks = {
       this.completedSinceRefresh = false;
       this.queueSearchQuery = "";
       this.queueFilterStatus = "all";
+      this.dragDepth = 0;
 
       this.handleTriggerClick = (event) => {
         if (event.target.closest("input, button, a, textarea, select")) return;
@@ -232,19 +234,51 @@ const Hooks = {
         this.applyQueueFilters();
       };
 
-      this.handleDragOver = (event) => {
+      this.hasDraggedFiles = (event) =>
+        Array.from(event.dataTransfer?.types || []).includes("Files");
+
+      this.showDropOverlay = () => {
+        this.overlay?.removeAttribute("hidden");
+        this.el.dataset.dragActive = "true";
+      };
+
+      this.hideDropOverlay = () => {
+        this.overlay?.setAttribute("hidden", "");
+        delete this.el.dataset.dragActive;
+      };
+
+      this.handleDragEnter = (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
         event.preventDefault();
-        this.el.classList.add("bg-sky-50/80", "ring-2", "ring-sky-400");
+        this.dragDepth += 1;
+        this.showDropOverlay();
+      };
+
+      this.handleDragOver = (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
+        event.preventDefault();
+        this.showDropOverlay();
       };
 
       this.handleDragLeave = (event) => {
-        if (event.currentTarget.contains(event.relatedTarget)) return;
-        this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
+        if (!this.hasDraggedFiles(event)) return;
+
+        event.preventDefault();
+        this.dragDepth = Math.max(0, this.dragDepth - 1);
+
+        if (this.dragDepth === 0) {
+          this.hideDropOverlay();
+        }
       };
 
       this.handleDrop = async (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
         event.preventDefault();
-        this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
+        this.dragDepth = 0;
+        this.hideDropOverlay();
 
         this.clearGlobalError();
 
@@ -269,18 +303,21 @@ const Hooks = {
       this.entriesContainer?.addEventListener("click", this.handleRetryClick);
       this.searchInput?.addEventListener("input", this.handleQueueSearch);
       this.filterSelect?.addEventListener("change", this.handleQueueFilter);
+      this.el.addEventListener("dragenter", this.handleDragEnter);
       this.el.addEventListener("dragover", this.handleDragOver);
       this.el.addEventListener("dragleave", this.handleDragLeave);
       this.el.addEventListener("drop", this.handleDrop);
     },
 
     destroyed() {
+      this.hideDropOverlay?.();
       this.trigger?.removeEventListener("click", this.handleTriggerClick);
       this.trigger?.removeEventListener("keydown", this.handleTriggerKeydown);
       this.input?.removeEventListener("change", this.handleFileSelection);
       this.entriesContainer?.removeEventListener("click", this.handleRetryClick);
       this.searchInput?.removeEventListener("input", this.handleQueueSearch);
       this.filterSelect?.removeEventListener("change", this.handleQueueFilter);
+      this.el.removeEventListener("dragenter", this.handleDragEnter);
       this.el.removeEventListener("dragover", this.handleDragOver);
       this.el.removeEventListener("dragleave", this.handleDragLeave);
       this.el.removeEventListener("drop", this.handleDrop);
@@ -548,16 +585,6 @@ const Hooks = {
       this.syncStats();
 
       try {
-        if (this.shouldUseBackendFallback(entry.file)) {
-          const payload = await this.uploadViaBackend(entry);
-          entry.displayName = payload.name || entry.displayName || entry.file.name;
-          entry.status = "complete";
-          entry.progress = 100;
-          entry.error = null;
-          this.completedSinceRefresh = true;
-          return;
-        }
-
         const initResponse = await fetch(this.el.dataset.initiateUrl, {
           method: "POST",
           headers: {

@@ -44,3 +44,4 @@ npm-debug.log
 .kamal/secrets*
 .codex/
 .playwright-mcp/
+/docs/

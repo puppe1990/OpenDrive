@@ -34,7 +34,7 @@ defmodule OpenDriveWeb.Endpoint do
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader
-    plug Phoenix.CodeReloader
+    plug OpenDriveWeb.SafeCodeReloader
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :open_drive
   end
 
@@ -45,7 +45,7 @@ defmodule OpenDriveWeb.Endpoint do
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 
-  plug Plug.Parsers,
+  plug OpenDriveWeb.UploadParsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     length: @max_request_body_length,

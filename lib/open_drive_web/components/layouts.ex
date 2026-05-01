@@ -32,12 +32,16 @@ defmodule OpenDriveWeb.Layouts do
     doc: "the current [scope](https://hexdocs.pm/phoenix/scopes.html)"
 
   attr :locale, :string, default: nil
+  attr :rest, :global
 
   slot :inner_block, required: true
 
   def app(assigns) do
     ~H"""
-    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#f7fbff_0%,_#edf4ff_48%,_#f8fbff_100%)] text-slate-950">
+    <div
+      {@rest}
+      class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#f7fbff_0%,_#edf4ff_48%,_#f8fbff_100%)] text-slate-950"
+    >
       <header class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
           <a href="/" class="flex items-center gap-3">

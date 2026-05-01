@@ -176,6 +176,11 @@ defmodule OpenDrive.DriveTest do
     assert is_map(upload.upload_headers)
   end
 
+  test "backend_upload_fallback_size/0 stays capped for small browser fallback uploads" do
+    assert Drive.backend_upload_fallback_size() == 25_000_000
+    assert Drive.backend_upload_fallback_size() < Drive.max_upload_file_size()
+  end
+
   test "prepare_direct_upload/2 reserves an alternative name for duplicates" do
     workspace = workspace_fixture()
     path = Path.join(System.tmp_dir!(), "open_drive-duplicate-direct.txt")
