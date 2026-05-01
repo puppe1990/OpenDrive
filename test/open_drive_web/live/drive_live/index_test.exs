@@ -131,7 +131,9 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
   test "renders a clickable breadcrumb for the current folder path", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Breadcrumb Space"})
     {:ok, parent} = Drive.create_folder(workspace.scope, %{name: "Projects"})
-    {:ok, child} = Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: parent.id})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: parent.id})
 
     conn = log_in_user(conn, workspace.user, workspace.scope)
     {:ok, _lv, html} = live(conn, ~p"/app/folders/#{child.id}")
