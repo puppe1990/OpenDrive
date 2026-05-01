@@ -1039,6 +1039,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                           src={selected.href}
                           preload="metadata"
                           playsinline
+                          muted
                           class="h-full w-full object-contain"
                         />
                       </div>

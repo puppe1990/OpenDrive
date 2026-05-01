@@ -298,6 +298,36 @@ defmodule OpenDriveWeb.DriveLive.Components do
         >
         </div>
 
+        <nav
+          id="drive-breadcrumbs"
+          aria-label={gettext("Breadcrumb")}
+          class="mb-4 flex flex-wrap items-center gap-2 rounded-[1.4rem] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+        >
+          <.link
+            navigate={~p"/app"}
+            class="rounded-full px-2.5 py-1 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+          >
+            {gettext("My Drive")}
+          </.link>
+
+          <%= for folder <- @view.breadcrumbs do %>
+            <span class="text-slate-300">/</span>
+            <.link
+              navigate={~p"/app/folders/#{folder.id}"}
+              class={[
+                "rounded-full px-2.5 py-1 font-medium transition",
+                folder.id == @view.current_folder_id &&
+                  "bg-sky-50 text-sky-700 ring-1 ring-sky-100 hover:bg-sky-100",
+                folder.id != @view.current_folder_id &&
+                  "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+              ]}
+              aria-current={folder.id == @view.current_folder_id && "page"}
+            >
+              {folder.name}
+            </.link>
+          <% end %>
+        </nav>
+
         <.form
           for={@view.controls_form}
           id="controls_form"
@@ -499,10 +529,12 @@ defmodule OpenDriveWeb.DriveLive.Components do
               <video
                 data-role="video-card-source"
                 src={entry.href}
-                preload="auto"
+                preload="metadata"
                 muted
                 playsinline
-                class="h-full w-full object-cover"
+                crossorigin="anonymous"
+                data-fallback-visibility="visible"
+                class="h-full w-full object-cover transition-opacity duration-200"
               />
               <div class="video-preview-overlay pointer-events-none absolute inset-0"></div>
 
