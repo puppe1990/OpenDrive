@@ -171,6 +171,15 @@ const Hooks = {
       this.errorsContainer = this.el.querySelector(
         "[data-direct-upload-errors]",
       );
+      this.preparingContainer = this.el.querySelector(
+        "[data-direct-upload-preparing]",
+      );
+      this.preparingMessage = this.el.querySelector(
+        "[data-direct-upload-preparing-message]",
+      );
+      this.preparingHint = this.el.querySelector(
+        "[data-direct-upload-preparing-hint]",
+      );
       this.stats = {
         queued: this.el.querySelector('[data-upload-stat="queued"]'),
         uploading: this.el.querySelector('[data-upload-stat="uploading"]'),
@@ -183,6 +192,7 @@ const Hooks = {
       this.queueSearchQuery = "";
       this.queueFilterStatus = "all";
       this.dragDepth = 0;
+      this.preparingDrops = 0;
 
       this.handleTriggerClick = (event) => {
         if (event.target.closest("input, button, a, textarea, select")) return;
@@ -281,6 +291,14 @@ const Hooks = {
         this.hideDropOverlay();
 
         this.clearGlobalError();
+        const dropFeedback = this.describeDropFeedback(event.dataTransfer);
+
+        if (dropFeedback) {
+          this.showPreparingFeedback(
+            dropFeedback.message,
+            dropFeedback.hint,
+          );
+        }
 
         try {
           const uploadItems = await this.buildDroppedUploadItems(
@@ -289,11 +307,17 @@ const Hooks = {
 
           if (uploadItems.length > 0) {
             this.enqueueFiles(uploadItems);
+          } else {
+            this.pushGlobalError(
+              "No readable files were found in the dropped item.",
+            );
           }
         } catch (error) {
           this.pushGlobalError(
             error.message || "Unable to read the dropped folder.",
           );
+        } finally {
+          this.hidePreparingFeedback();
         }
       };
 
@@ -576,6 +600,32 @@ const Hooks = {
       return this.el.dataset.folderId || "";
     },
 
+    describeDropFeedback(dataTransfer) {
+      const items = Array.from(dataTransfer?.items || []);
+
+      const hasDirectory = items.some((item) => {
+        if (item.kind !== "file") return false;
+        const entry = this.getDataTransferEntry(item);
+        return entry?.isDirectory;
+      });
+
+      if (hasDirectory) {
+        return {
+          message: "Preparing folder structure before upload",
+          hint: "Creating folders and reading files before the upload queue starts.",
+        };
+      }
+
+      if (Array.from(dataTransfer?.files || []).length > 0) {
+        return {
+          message: "Preparing dropped files",
+          hint: "Checking the dropped files before the upload queue starts.",
+        };
+      }
+
+      return null;
+    },
+
     async uploadEntry(entry) {
       entry.status = "uploading";
       this.activeUploads += 1;
@@ -832,6 +882,30 @@ const Hooks = {
       if (!this.errorsContainer) return;
       this.errorsContainer.hidden = true;
       this.errorsContainer.textContent = "";
+    },
+
+    showPreparingFeedback(message, hint) {
+      this.preparingDrops += 1;
+
+      if (!this.preparingContainer) return;
+
+      this.preparingContainer.hidden = false;
+
+      if (this.preparingMessage) {
+        this.preparingMessage.textContent = message;
+      }
+
+      if (this.preparingHint) {
+        this.preparingHint.textContent = hint;
+      }
+    },
+
+    hidePreparingFeedback() {
+      this.preparingDrops = Math.max(0, this.preparingDrops - 1);
+
+      if (this.preparingDrops > 0 || !this.preparingContainer) return;
+
+      this.preparingContainer.hidden = true;
     },
 
     syncQueueVisibility() {

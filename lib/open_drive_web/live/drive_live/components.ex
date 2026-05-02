@@ -301,6 +301,29 @@ defmodule OpenDriveWeb.DriveLive.Components do
           hidden
         >
         </div>
+
+        <div
+          id="direct-upload-preparing"
+          data-direct-upload-preparing
+          phx-update="ignore"
+          class="mb-4 rounded-2xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 shadow-sm ring-1 ring-sky-100"
+          aria-live="polite"
+          hidden
+        >
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex size-8 items-center justify-center rounded-full bg-white text-sky-700 ring-1 ring-sky-200">
+              <.icon name="hero-arrow-path" class="size-4 animate-spin" />
+            </div>
+            <div class="min-w-0">
+              <p data-direct-upload-preparing-message class="font-semibold">
+                {gettext("Preparing folder structure before upload")}
+              </p>
+              <p data-direct-upload-preparing-hint class="mt-1 text-xs text-sky-800/80">
+                {gettext("Creating folders and reading files before the upload queue starts.")}
+              </p>
+            </div>
+          </div>
+        </div>
       </section>
 
       <nav

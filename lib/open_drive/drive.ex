@@ -67,7 +67,6 @@ defmodule OpenDrive.Drive do
     scope
     |> get_folder!(folder_id)
     |> do_breadcrumbs(scope, [])
-    |> Enum.reverse()
   end
 
   def get_folder!(%Scope{} = scope, id) do

@@ -42,6 +42,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "data-direct-upload-filter"
     assert html =~ "data-direct-upload-empty"
     assert html =~ "data-direct-upload-entries-scroll"
+    assert html =~ "data-direct-upload-preparing"
+    assert html =~ "Preparing folder structure before upload"
   end
 
   test "renders preview markup for image, video and audio files", %{conn: conn} do

@@ -100,6 +100,18 @@ defmodule OpenDrive.DriveTest do
     assert second.name == "Photos (2)"
   end
 
+  test "list_breadcrumbs/2 returns folders from root to current folder" do
+    workspace = workspace_fixture()
+    {:ok, parent} = Drive.create_folder(workspace.scope, %{name: "Programando a riqueza"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "Cursos", parent_folder_id: parent.id})
+
+    assert [root, current] = Drive.list_breadcrumbs(workspace.scope, child.id)
+    assert root.id == parent.id
+    assert current.id == child.id
+  end
+
   test "upload_file/3 persists metadata and object references" do
     workspace = workspace_fixture()
     path = Path.join(System.tmp_dir!(), "open_drive-upload.txt")
