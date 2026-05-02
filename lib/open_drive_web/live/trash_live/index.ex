@@ -5,19 +5,42 @@ defmodule OpenDriveWeb.TrashLive.Index do
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket |> assign(:confirm_empty_trash, false) |> load_trash()}
+    {:ok,
+     socket
+     |> assign(:confirm_empty_trash, false)
+     |> assign(:emptying_trash, false)
+     |> load_trash()}
   end
 
   @impl true
   def handle_event("open_empty_trash_modal", _params, socket) do
-    {:noreply, assign(socket, :confirm_empty_trash, true)}
+    {:noreply, socket |> assign(:confirm_empty_trash, true) |> assign(:emptying_trash, false)}
+  end
+
+  def handle_event("cancel_empty_trash", _params, %{assigns: %{emptying_trash: true}} = socket) do
+    {:noreply, socket}
   end
 
   def handle_event("cancel_empty_trash", _params, socket) do
-    {:noreply, assign(socket, :confirm_empty_trash, false)}
+    {:noreply, socket |> assign(:confirm_empty_trash, false) |> assign(:emptying_trash, false)}
   end
 
   def handle_event("empty_trash", _params, socket) do
+    send(self(), :empty_trash)
+
+    {:noreply, assign(socket, :emptying_trash, true)}
+  end
+
+  def handle_event("restore_folder", %{"id" => id}, socket) do
+    handle_restore(socket, {:folder, id})
+  end
+
+  def handle_event("restore_file", %{"id" => id}, socket) do
+    handle_restore(socket, {:file, id})
+  end
+
+  @impl true
+  def handle_info(:empty_trash, socket) do
     case Drive.empty_trash(socket.assigns.current_scope) do
       {:ok, result} ->
         message =
@@ -30,6 +53,7 @@ defmodule OpenDriveWeb.TrashLive.Index do
         {:noreply,
          socket
          |> assign(:confirm_empty_trash, false)
+         |> assign(:emptying_trash, false)
          |> put_flash(:info, message)
          |> load_trash()}
 
@@ -37,16 +61,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
         {:noreply,
          socket
          |> assign(:confirm_empty_trash, false)
+         |> assign(:emptying_trash, false)
          |> put_flash(:error, gettext("Unable to empty trash."))}
     end
-  end
-
-  def handle_event("restore_folder", %{"id" => id}, socket) do
-    handle_restore(socket, {:folder, id})
-  end
-
-  def handle_event("restore_file", %{"id" => id}, socket) do
-    handle_restore(socket, {:file, id})
   end
 
   defp handle_restore(socket, {kind, id}) do
@@ -334,62 +351,136 @@ defmodule OpenDriveWeb.TrashLive.Index do
         </aside>
 
         <%= if @confirm_empty_trash do %>
-          <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
-            <button
-              type="button"
-              phx-click="cancel_empty_trash"
-              class="absolute inset-0 cursor-default"
-              aria-label={gettext("Close empty trash modal")}
-            >
-            </button>
-            <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] border border-white/70 bg-white/95 shadow-[0_30px_100px_rgba(15,23,42,0.25)] ring-1 ring-slate-200/70 backdrop-blur">
-              <div class="relative border-b border-slate-200 px-6 py-5">
-                <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(135deg,rgba(244,63,94,0.14),rgba(255,255,255,0))]" />
-                <div class="relative">
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
-                    {gettext("Empty trash")}
-                  </p>
-                  <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
-                    {gettext("Delete permanently?")}
-                  </h2>
-                  <p class="mt-2 text-sm text-slate-500">
-                    {gettext(
-                      "This action permanently removes the files from the trash and deletes the objects from storage."
-                    )}
-                  </p>
-                </div>
-              </div>
+          <div class={[
+            "fixed inset-0 z-50 flex items-center justify-center p-4 transition",
+            if(@emptying_trash,
+              do: "bg-slate-950/90 backdrop-blur-md",
+              else: "bg-slate-950/75 backdrop-blur-sm"
+            )
+          ]}>
+            <%= if not @emptying_trash do %>
+              <button
+                type="button"
+                phx-click="cancel_empty_trash"
+                class="absolute inset-0 cursor-default"
+                aria-label={gettext("Close empty trash modal")}
+              >
+              </button>
+            <% end %>
+            <div class={[
+              "relative z-10 w-full max-w-lg overflow-hidden rounded-[2rem] backdrop-blur transition",
+              if(@emptying_trash,
+                do:
+                  "border border-rose-400/30 bg-[linear-gradient(180deg,rgba(15,23,42,0.98),rgba(30,41,59,0.96))] text-white shadow-[0_32px_120px_rgba(15,23,42,0.55),0_0_0_1px_rgba(251,113,133,0.08)] motion-safe:animate-[modal-breathe_3.8s_ease-in-out_infinite]",
+                else:
+                  "border border-white/70 bg-white/95 shadow-[0_30px_100px_rgba(15,23,42,0.25)] ring-1 ring-slate-200/70"
+              )
+            ]}>
+              <%= if @emptying_trash do %>
+                <div class="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" />
+                <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,113,133,0.18),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(251,191,36,0.12),transparent_30%)]" />
 
-              <div class="space-y-5 px-6 py-6">
-                <div class="rounded-3xl border border-rose-100 bg-rose-50/80 px-4 py-4 text-sm text-slate-600">
-                  <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-rose-700">
-                    {gettext("Impact of this action")}
-                  </p>
-                  <p class="mt-2">
-                    {gettext("%{files} file(s) and %{folders} folder(s) will be permanently removed.",
-                      files: length(@trash.files),
-                      folders: length(@trash.folders)
-                    )}
-                  </p>
+                <div class="relative space-y-6 px-6 py-6 sm:px-7 sm:py-7">
+                  <div class="flex items-start gap-4">
+                    <div class="relative flex size-14 shrink-0 items-center justify-center rounded-3xl border border-rose-300/30 bg-rose-500/10 text-rose-100 shadow-[0_0_0_1px_rgba(251,113,133,0.08)] motion-safe:animate-[danger-pulse_2.8s_ease-in-out_infinite] motion-reduce:animate-none">
+                      <div class="absolute inset-0 rounded-3xl bg-[radial-gradient(circle,rgba(251,113,133,0.28),transparent_70%)] motion-safe:animate-[danger-pulse_2.8s_ease-in-out_infinite] motion-reduce:animate-none" />
+                      <.icon name="hero-trash" class="relative size-7" />
+                    </div>
+
+                    <div class="space-y-2">
+                      <p class="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-rose-200">
+                        {gettext("Permanent removal in progress")}
+                      </p>
+                      <h2 class="text-2xl font-bold tracking-tight text-white">
+                        {gettext("Removing items from trash")}
+                      </h2>
+                      <p class="max-w-md text-sm leading-6 text-slate-300">
+                        {gettext(
+                          "Files and folders are being deleted from the trash and removed from storage. This cannot be undone."
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div class="rounded-3xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-200">
+                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-amber-200/90">
+                      {gettext("Impact of this action")}
+                    </p>
+                    <p class="mt-2">
+                      {gettext(
+                        "%{files} file(s) and %{folders} folder(s) will be permanently removed.",
+                        files: length(@trash.files),
+                        folders: length(@trash.folders)
+                      )}
+                    </p>
+                  </div>
+
+                  <div class="space-y-3">
+                    <div class="h-2 overflow-hidden rounded-full bg-white/10">
+                      <div class="h-full w-1/2 rounded-full bg-[linear-gradient(90deg,rgba(251,113,133,0.0),rgba(251,113,133,0.92),rgba(251,191,36,0.92),rgba(251,113,133,0.0))] motion-safe:animate-[deletion-sweep_1.8s_ease-in-out_infinite] motion-reduce:w-full motion-reduce:animate-none" />
+                    </div>
+                    <div class="flex justify-end">
+                      <button
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        class="inline-flex cursor-not-allowed items-center justify-center rounded-full border border-rose-300/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                      >
+                        {gettext("Deleting permanently...")}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              <% else %>
+                <div class="relative border-b border-slate-200 px-6 py-5">
+                  <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[linear-gradient(135deg,rgba(244,63,94,0.14),rgba(255,255,255,0))]" />
+                  <div class="relative">
+                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-rose-600">
+                      {gettext("Empty trash")}
+                    </p>
+                    <h2 class="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+                      {gettext("Delete permanently?")}
+                    </h2>
+                    <p class="mt-2 text-sm text-slate-500">
+                      {gettext(
+                        "This action permanently removes the files from the trash and deletes the objects from storage."
+                      )}
+                    </p>
+                  </div>
                 </div>
 
-                <div class="flex items-center justify-end gap-3">
-                  <button
-                    type="button"
-                    phx-click="cancel_empty_trash"
-                    class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
-                  >
-                    {gettext("Cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    phx-click="empty_trash"
-                    class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(225,29,72,0.28)] transition hover:bg-rose-700"
-                  >
-                    Limpar lixeira
-                  </button>
+                <div class="space-y-5 px-6 py-6">
+                  <div class="rounded-3xl border border-rose-100 bg-rose-50/80 px-4 py-4 text-sm text-slate-600">
+                    <p class="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-rose-700">
+                      {gettext("Impact of this action")}
+                    </p>
+                    <p class="mt-2">
+                      {gettext(
+                        "%{files} file(s) and %{folders} folder(s) will be permanently removed.",
+                        files: length(@trash.files),
+                        folders: length(@trash.folders)
+                      )}
+                    </p>
+                  </div>
+
+                  <div class="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      phx-click="cancel_empty_trash"
+                      class="rounded-xl px-4 py-2.5 text-sm font-medium text-slate-500 transition hover:bg-slate-100"
+                    >
+                      {gettext("Cancel")}
+                    </button>
+                    <button
+                      type="button"
+                      phx-click="empty_trash"
+                      class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(225,29,72,0.28)] transition hover:bg-rose-700"
+                    >
+                      {gettext("Empty trash")}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              <% end %>
             </div>
           </div>
         <% end %>

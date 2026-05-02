@@ -45,9 +45,21 @@ defmodule OpenDriveWeb.TrashLive.IndexTest do
     assert has_element?(view, "button[phx-click=\"cancel_empty_trash\"]", "Cancel")
     assert has_element?(view, "button[phx-click=\"empty_trash\"]")
 
-    view
-    |> element("button[phx-click=\"empty_trash\"]")
-    |> render_click()
+    processing_html =
+      view
+      |> element("button[phx-click=\"empty_trash\"]")
+      |> render_click()
+
+    assert processing_html =~ "Permanent removal in progress"
+    assert processing_html =~ "Removing items from trash"
+
+    assert processing_html =~
+             "Files and folders are being deleted from the trash and removed from storage. This cannot be undone."
+
+    assert processing_html =~ "Deleting permanently..."
+    assert processing_html =~ "1 file(s) and 0 folder(s)"
+    refute processing_html =~ "Cancel"
+    refute processing_html =~ "Delete permanently?"
 
     refute has_element?(view, "h2", "Delete permanently?")
     assert render(view) =~ "Trash emptied."
