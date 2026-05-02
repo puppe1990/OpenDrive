@@ -3,8 +3,6 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   use OpenDriveWeb, :html
 
-  alias OpenDrive.Drive
-
   attr :view, :map, required: true
 
   def sidebar(assigns) do
@@ -157,56 +155,62 @@ defmodule OpenDriveWeb.DriveLive.Components do
   def main_content(assigns) do
     ~H"""
     <div class="space-y-5">
-      <section
-        id="folder-dropzone"
-        phx-hook="DirectUploadZone"
-        data-initiate-url={~p"/app/uploads"}
-        data-folder-create-url={~p"/app/folders/upload"}
-        data-proxy-url={~p"/app/uploads/proxy"}
-        data-complete-url={~p"/app/uploads/complete"}
-        data-folder-id={@view.current_folder_id || ""}
-        data-max-file-size={Drive.max_upload_file_size()}
-        data-backend-fallback-size={Drive.backend_upload_fallback_size()}
-        class="rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,250,255,0.98))] p-4 shadow-[0_20px_60px_rgba(148,163,184,0.14)] ring-1 ring-white/70 transition phx-drop-target-active:bg-sky-50/80 phx-drop-target-active:ring-2 phx-drop-target-active:ring-sky-400"
-      >
-        <input
-          id="folder-upload-input"
-          data-direct-upload-input
-          type="file"
-          multiple
-          class="hidden"
-        />
+      <input
+        id="folder-upload-input"
+        data-direct-upload-input
+        type="file"
+        multiple
+        class="hidden"
+      />
 
-        <div
-          id="folder-upload-trigger"
-          data-direct-upload-trigger
-          role="button"
-          tabindex="0"
-          aria-label={gettext("Select files from device")}
-          class="mb-4 block cursor-pointer overflow-hidden rounded-[1.65rem] border border-dashed border-slate-200 bg-[radial-gradient(circle_at_top,rgba(125,211,252,0.18),transparent_35%),linear-gradient(180deg,rgba(248,250,252,0.98),rgba(239,246,255,0.94))] px-4 py-6 text-center transition hover:border-sky-300 hover:bg-sky-50/70 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
-        >
-          <div class="flex flex-col items-center justify-center gap-3 sm:flex-row sm:text-left">
-            <div class="flex size-12 items-center justify-center rounded-2xl bg-white text-sky-600 shadow-sm ring-1 ring-sky-100">
-              <.icon name="hero-arrow-up-tray" class="size-6" />
+      <div
+        id="drive-drop-overlay"
+        data-drop-overlay-target
+        hidden
+        class="pointer-events-none fixed inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(251,146,60,0.32),rgba(251,146,60,0.18)_42%,rgba(255,237,213,0.14)_72%,rgba(255,255,255,0.08)_100%)] backdrop-blur-md"
+      >
+        <div class="flex min-h-screen items-center justify-center px-6">
+          <div class="w-full max-w-3xl rounded-[2rem] border border-orange-300/70 bg-white/40 px-8 py-10 text-center shadow-[0_30px_120px_rgba(249,115,22,0.18)] ring-1 ring-white/50 backdrop-blur-xl">
+            <div class="mx-auto flex size-16 items-center justify-center rounded-[1.6rem] bg-orange-500/12 text-orange-700 ring-1 ring-orange-300/60">
+              <.icon name="hero-arrow-up-tray" class="size-8" />
             </div>
-            <div>
-              <p class="text-sm font-semibold text-slate-900">
-                {gettext("Drag files into this folder")}
-              </p>
-              <p class="mt-1 text-xs text-slate-500">
-                {gettext("Upload starts as soon as you drop the file")}
-              </p>
-              <p class="mt-1 text-xs text-slate-400">
-                {gettext("You can drop multiple files at once")}
-              </p>
-              <p class="mt-1 text-xs text-emerald-700">
-                {gettext("Drop a folder to preserve its internal structure automatically.")}
-              </p>
-              <p class="mt-2 text-[11px] uppercase tracking-[0.18em] text-slate-400">
-                {gettext("Click to choose files from your device")}
-              </p>
-            </div>
+            <p class="mt-5 text-xs font-semibold uppercase tracking-[0.28em] text-orange-700/80">
+              {gettext("Global upload area")}
+            </p>
+            <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-950">
+              {gettext("Drop files to upload to this folder")}
+            </h2>
+            <p class="mt-3 text-sm text-slate-700">
+              {gettext("You can drop files anywhere on the screen.")}
+            </p>
+            <p class="mt-2 text-sm text-orange-900/80">
+              {gettext("Dropping a folder still preserves its internal structure automatically.")}
+            </p>
           </div>
+        </div>
+      </div>
+
+      <section class="rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,250,255,0.98))] p-4 shadow-[0_20px_60px_rgba(148,163,184,0.14)] ring-1 ring-white/70">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-slate-200/80 bg-white/85 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+          <div>
+            <p class="text-sm font-semibold text-slate-900">
+              {gettext("Upload files from anywhere on the screen")}
+            </p>
+            <p class="text-xs text-slate-500">
+              {gettext("Or choose files manually if you prefer.")}
+            </p>
+          </div>
+
+          <button
+            id="folder-upload-trigger"
+            data-direct-upload-trigger
+            type="button"
+            aria-label={gettext("Select files from device")}
+            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            <.icon name="hero-arrow-up-tray" class="size-4.5" />
+            {gettext("Choose files")}
+          </button>
         </div>
 
         <div
@@ -298,98 +302,151 @@ defmodule OpenDriveWeb.DriveLive.Components do
         >
         </div>
 
-        <.form
-          for={@view.controls_form}
-          id="controls_form"
-          phx-change="update_controls"
-          class="flex flex-col gap-3 rounded-[1.6rem] border border-slate-200/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:flex-row md:flex-wrap md:items-center"
+        <div
+          id="direct-upload-preparing"
+          data-direct-upload-preparing
+          phx-update="ignore"
+          class="mb-4 rounded-2xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 shadow-sm ring-1 ring-sky-100"
+          aria-live="polite"
+          hidden
         >
-          <label class="flex w-full min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:min-w-[220px]">
-            <.icon name="hero-magnifying-glass" class="size-5 text-slate-400" />
-            <input
-              type="text"
-              name={@view.controls_form[:query].name}
-              value={@view.controls_form[:query].value}
-              placeholder={gettext("Search by name")}
-              class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-            />
-          </label>
-
-          <.input
-            field={@view.controls_form[:type]}
-            type="select"
-            options={[
-              {gettext("All"), "all"},
-              {gettext("Folders"), "folders"},
-              {gettext("Files"), "files"},
-              {gettext("Images"), "images"},
-              {gettext("Videos"), "videos"}
-            ]}
-            class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
-          />
-
-          <.input
-            field={@view.controls_form[:sort]}
-            type="select"
-            options={[
-              {gettext("Recently modified"), "modified_desc"},
-              {gettext("Oldest modified"), "modified_asc"},
-              {gettext("Name"), "name_asc"},
-              {gettext("Name Z-A"), "name_desc"},
-              {gettext("Type"), "type_asc"},
-              {gettext("Type Z-A"), "type_desc"},
-              {gettext("Largest size"), "size_desc"},
-              {gettext("Smallest size"), "size_asc"}
-            ]}
-            class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
-          />
-
-          <input
-            type="hidden"
-            name={@view.controls_form[:view].name}
-            value={@view.controls_form[:view].value}
-          />
-        </.form>
-
-        <div class="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
-          <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <span class="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-              {gettext("%{count} results", count: length(@view.entries))}
-            </span>
-            <span
-              :if={@view.controls["type"] != "all"}
-              class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sky-700"
-            >
-              {gettext("filter: %{value}", value: @view.controls["type"])}
-            </span>
-          </div>
-
-          <div class="inline-flex self-start rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:self-auto">
-            <button
-              phx-click="set_view"
-              phx-value-view="grid"
-              class={[
-                "rounded-xl px-3 py-2 text-sm transition",
-                @view.controls["view"] == "grid" && "bg-white shadow-sm text-slate-950",
-                @view.controls["view"] != "grid" && "text-slate-500"
-              ]}
-            >
-              <.icon name="hero-squares-2x2" class="size-5" />
-            </button>
-            <button
-              phx-click="set_view"
-              phx-value-view="list"
-              class={[
-                "rounded-xl px-3 py-2 text-sm transition",
-                @view.controls["view"] == "list" && "bg-white shadow-sm text-slate-950",
-                @view.controls["view"] != "list" && "text-slate-500"
-              ]}
-            >
-              <.icon name="hero-list-bullet" class="size-5" />
-            </button>
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex size-8 items-center justify-center rounded-full bg-white text-sky-700 ring-1 ring-sky-200">
+              <.icon name="hero-arrow-path" class="size-4 animate-spin" />
+            </div>
+            <div class="min-w-0">
+              <p data-direct-upload-preparing-message class="font-semibold">
+                {gettext("Preparing folder structure before upload")}
+              </p>
+              <p data-direct-upload-preparing-hint class="mt-1 text-xs text-sky-800/80">
+                {gettext("Creating folders and reading files before the upload queue starts.")}
+              </p>
+            </div>
           </div>
         </div>
       </section>
+
+      <nav
+        id="drive-breadcrumbs"
+        aria-label={gettext("Breadcrumb")}
+        class="flex flex-wrap items-center gap-2 rounded-[1.4rem] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+      >
+        <.link
+          navigate={~p"/app"}
+          class="rounded-full px-2.5 py-1 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+        >
+          {gettext("My Drive")}
+        </.link>
+
+        <%= for folder <- @view.breadcrumbs do %>
+          <span class="text-slate-300">/</span>
+          <.link
+            navigate={~p"/app/folders/#{folder.id}"}
+            class={[
+              "rounded-full px-2.5 py-1 font-medium transition",
+              folder.id == @view.current_folder_id &&
+                "bg-sky-50 text-sky-700 ring-1 ring-sky-100 hover:bg-sky-100",
+              folder.id != @view.current_folder_id &&
+                "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+            ]}
+            aria-current={folder.id == @view.current_folder_id && "page"}
+          >
+            {folder.name}
+          </.link>
+        <% end %>
+      </nav>
+
+      <.form
+        for={@view.controls_form}
+        id="controls_form"
+        phx-change="update_controls"
+        class="flex flex-col gap-3 rounded-[1.6rem] border border-slate-200/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:flex-row md:flex-wrap md:items-center"
+      >
+        <label class="flex w-full min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:min-w-[220px]">
+          <.icon name="hero-magnifying-glass" class="size-5 text-slate-400" />
+          <input
+            type="text"
+            name={@view.controls_form[:query].name}
+            value={@view.controls_form[:query].value}
+            placeholder={gettext("Search by name")}
+            class="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
+          />
+        </label>
+
+        <.input
+          field={@view.controls_form[:type]}
+          type="select"
+          options={[
+            {gettext("All"), "all"},
+            {gettext("Folders"), "folders"},
+            {gettext("Files"), "files"},
+            {gettext("Images"), "images"},
+            {gettext("Videos"), "videos"}
+          ]}
+          class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
+        />
+
+        <.input
+          field={@view.controls_form[:sort]}
+          type="select"
+          options={[
+            {gettext("Recently modified"), "modified_desc"},
+            {gettext("Oldest modified"), "modified_asc"},
+            {gettext("Name"), "name_asc"},
+            {gettext("Name Z-A"), "name_desc"},
+            {gettext("Type"), "type_asc"},
+            {gettext("Type Z-A"), "type_desc"},
+            {gettext("Largest size"), "size_desc"},
+            {gettext("Smallest size"), "size_asc"}
+          ]}
+          class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
+        />
+
+        <input
+          type="hidden"
+          name={@view.controls_form[:view].name}
+          value={@view.controls_form[:view].value}
+        />
+      </.form>
+
+      <div class="flex flex-col gap-3 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
+        <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+          <span class="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+            {gettext("%{count} results", count: length(@view.entries))}
+          </span>
+          <span
+            :if={@view.controls["type"] != "all"}
+            class="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 text-sky-700"
+          >
+            {gettext("filter: %{value}", value: @view.controls["type"])}
+          </span>
+        </div>
+
+        <div class="inline-flex self-start rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:self-auto">
+          <button
+            phx-click="set_view"
+            phx-value-view="grid"
+            class={[
+              "rounded-xl px-3 py-2 text-sm transition",
+              @view.controls["view"] == "grid" && "bg-white shadow-sm text-slate-950",
+              @view.controls["view"] != "grid" && "text-slate-500"
+            ]}
+          >
+            <.icon name="hero-squares-2x2" class="size-5" />
+          </button>
+          <button
+            phx-click="set_view"
+            phx-value-view="list"
+            class={[
+              "rounded-xl px-3 py-2 text-sm transition",
+              @view.controls["view"] == "list" && "bg-white shadow-sm text-slate-950",
+              @view.controls["view"] != "list" && "text-slate-500"
+            ]}
+          >
+            <.icon name="hero-list-bullet" class="size-5" />
+          </button>
+        </div>
+      </div>
 
       <.empty_state :if={@view.entries == []} />
       <.grid_entries :if={@view.entries != [] and @view.controls["view"] == "grid"} view={@view} />
@@ -499,10 +556,12 @@ defmodule OpenDriveWeb.DriveLive.Components do
               <video
                 data-role="video-card-source"
                 src={entry.href}
-                preload="auto"
+                preload="metadata"
                 muted
                 playsinline
-                class="h-full w-full object-cover"
+                crossorigin="anonymous"
+                data-fallback-visibility="visible"
+                class="h-full w-full object-cover transition-opacity duration-200"
               />
               <div class="video-preview-overlay pointer-events-none absolute inset-0"></div>
 

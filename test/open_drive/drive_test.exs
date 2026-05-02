@@ -100,6 +100,18 @@ defmodule OpenDrive.DriveTest do
     assert second.name == "Photos (2)"
   end
 
+  test "list_breadcrumbs/2 returns folders from root to current folder" do
+    workspace = workspace_fixture()
+    {:ok, parent} = Drive.create_folder(workspace.scope, %{name: "Programando a riqueza"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "Cursos", parent_folder_id: parent.id})
+
+    assert [root, current] = Drive.list_breadcrumbs(workspace.scope, child.id)
+    assert root.id == parent.id
+    assert current.id == child.id
+  end
+
   test "upload_file/3 persists metadata and object references" do
     workspace = workspace_fixture()
     path = Path.join(System.tmp_dir!(), "open_drive-upload.txt")
@@ -174,6 +186,11 @@ defmodule OpenDrive.DriveTest do
     assert is_binary(upload.key)
     assert is_binary(upload.upload_url)
     assert is_map(upload.upload_headers)
+  end
+
+  test "backend_upload_fallback_size/0 stays capped for small browser fallback uploads" do
+    assert Drive.backend_upload_fallback_size() == 25_000_000
+    assert Drive.backend_upload_fallback_size() < Drive.max_upload_file_size()
   end
 
   test "prepare_direct_upload/2 reserves an alternative name for duplicates" do

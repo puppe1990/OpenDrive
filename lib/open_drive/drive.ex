@@ -14,9 +14,9 @@ defmodule OpenDrive.Drive do
   alias OpenDrive.Storage
 
   @max_upload_file_size 2_000_000_000
-  # Keep browser uploads on the same origin by default so S3 bucket CORS
-  # misconfiguration does not break common upload flows.
-  @backend_upload_fallback_size @max_upload_file_size
+  # Browser fallback stores multipart bodies on the Phoenix host before sending
+  # them to storage, so keep it limited to small files and prefer direct upload.
+  @backend_upload_fallback_size 25_000_000
   @max_entry_name_length 120
   @upload_name_retry_limit 25
 
@@ -67,7 +67,6 @@ defmodule OpenDrive.Drive do
     scope
     |> get_folder!(folder_id)
     |> do_breadcrumbs(scope, [])
-    |> Enum.reverse()
   end
 
   def get_folder!(%Scope{} = scope, id) do

@@ -19,18 +19,19 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     refute html =~ "Hidden Space"
   end
 
-  test "renders an automatic drag and drop area for the current folder", %{conn: conn} do
+  test "renders the drive as a global dropzone with overlay markup", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Drop Space"})
 
     conn = log_in_user(conn, workspace.user, workspace.scope)
     {:ok, _lv, html} = live(conn, ~p"/app")
 
-    assert html =~ "Arraste arquivos para esta pasta"
-    assert html =~ "O upload comeca assim que voce solta o arquivo"
-    assert html =~ "Voce pode soltar varios arquivos por vez"
-    assert html =~ "Solte uma pasta para preservar a estrutura interna automaticamente"
-    assert html =~ ~s(id="folder-dropzone")
+    assert html =~ ~s(id="drive-dropzone")
     assert html =~ ~s(phx-hook="DirectUploadZone")
+    assert html =~ ~s(data-dropzone-scope="global")
+    assert html =~ ~s(id="drive-drop-overlay")
+    assert html =~ "Drop files to upload to this folder"
+    refute html =~ "Arraste arquivos para esta pasta"
+    assert html =~ "data-direct-upload-trigger"
     assert html =~ "data-direct-upload-input"
     assert html =~ ~s(type="file")
     assert html =~ "Fila de uploads"
@@ -41,6 +42,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "data-direct-upload-filter"
     assert html =~ "data-direct-upload-empty"
     assert html =~ "data-direct-upload-entries-scroll"
+    assert html =~ "data-direct-upload-preparing"
+    assert html =~ "Preparing folder structure before upload"
   end
 
   test "renders preview markup for image, video and audio files", %{conn: conn} do
@@ -78,7 +81,9 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       })
 
     conn = log_in_user(conn, workspace.user, workspace.scope)
-    {:ok, _lv, html} = live(conn, ~p"/app")
+    {:ok, lv, html} = live(conn, ~p"/app")
+
+    video_card_html = render(lv)
 
     assert html =~ ~s(src="/app/files/)
     assert html =~ "<img"
@@ -88,6 +93,11 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Abrir player"
     assert html =~ ~s(phx-click="open_audio")
     assert html =~ "Abrir player de audio"
+    assert video_card_html =~ ~s(id="video-card-preview-)
+    assert video_card_html =~ ~s(data-role="video-card-source")
+    assert video_card_html =~ ~s(preload="metadata")
+    assert video_card_html =~ ~s(crossorigin="anonymous")
+    assert video_card_html =~ ~s(data-fallback-visibility="visible")
   end
 
   test "shows used workspace storage in the sidebar card", %{conn: conn} do
@@ -119,6 +129,24 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
 
     assert html =~ "15 B"
     assert html =~ "Workspace overview"
+  end
+
+  test "renders a clickable breadcrumb for the current folder path", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Breadcrumb Space"})
+    {:ok, parent} = Drive.create_folder(workspace.scope, %{name: "Projects"})
+
+    {:ok, child} =
+      Drive.create_folder(workspace.scope, %{name: "2026", parent_folder_id: parent.id})
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, _lv, html} = live(conn, ~p"/app/folders/#{child.id}")
+
+    assert html =~ ~s(id="drive-breadcrumbs")
+    assert html =~ "Projects"
+    assert html =~ "2026"
+    assert html =~ ~s(href="/app")
+    assert html =~ ~s(href="/app/folders/#{parent.id}")
+    assert html =~ ~s(href="/app/folders/#{child.id}")
   end
 
   test "renames an already uploaded file from the drive list", %{conn: conn} do

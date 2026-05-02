@@ -160,6 +160,77 @@ export AWS_S3_SCHEME=http://
 
 You can also place these variables in `.env.local` at the project root. `config/runtime.exs` loads that file automatically outside the test environment without overriding shell-exported variables.
 
+### S3 permissions and policies
+
+There are two different pieces involved when OpenDrive uses S3:
+
+- IAM permissions for the server-side AWS credentials
+- Bucket CORS rules for browser-based direct uploads
+
+These solve different problems and both may be required.
+
+#### 1. Bucket CORS for direct browser uploads
+
+If the browser uploads directly to S3 with a presigned `PUT` URL, the bucket must allow cross-origin requests from the app origin. Without this, the browser blocks the request before the object reaches S3 and the UI falls back to `/app/uploads/proxy`.
+
+Example one-line command for local development:
+
+```bash
+aws s3api put-bucket-cors --bucket YOUR_BUCKET --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://127.0.0.1:4000","http://localhost:4000"],"AllowedMethods":["GET","HEAD","PUT"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}'
+```
+
+To verify:
+
+```bash
+aws s3api get-bucket-cors --bucket YOUR_BUCKET
+```
+
+Notes:
+
+- Add any extra local or deployed origins you actually use, such as staging or production domains
+- `PUT` is required for direct uploads
+- `AllowedHeaders=["*"]` avoids preflight failures with presigned S3 headers
+
+#### 2. IAM policy for the app credentials
+
+The AWS credentials used by `OpenDrive.Storage.S3` need permission to manage the objects stored by the app. A minimal example looks like this:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OpenDriveBucketList",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket"
+      ],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET"
+    },
+    {
+      "Sid": "OpenDriveObjectAccess",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:AbortMultipartUpload"
+      ],
+      "Resource": "arn:aws:s3:::YOUR_BUCKET/*"
+    }
+  ]
+}
+```
+
+If you want the same IAM principal to inspect or manage bucket CORS from the CLI, add:
+
+```json
+"s3:GetBucketCORS",
+"s3:PutBucketCORS"
+```
+
+on the bucket resource `arn:aws:s3:::YOUR_BUCKET`.
+
 ## Database configuration
 
 Default database files:

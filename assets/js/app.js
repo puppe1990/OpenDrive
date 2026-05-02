@@ -157,6 +157,7 @@ const Hooks = {
       );
       this.input = this.el.querySelector("[data-direct-upload-input]");
       this.trigger = this.el.querySelector("[data-direct-upload-trigger]");
+      this.overlay = this.el.querySelector("[data-drop-overlay-target]");
       this.queue = this.el.querySelector("[data-direct-upload-queue]");
       this.entriesContainer = this.el.querySelector(
         "[data-direct-upload-entries]",
@@ -170,6 +171,15 @@ const Hooks = {
       this.errorsContainer = this.el.querySelector(
         "[data-direct-upload-errors]",
       );
+      this.preparingContainer = this.el.querySelector(
+        "[data-direct-upload-preparing]",
+      );
+      this.preparingMessage = this.el.querySelector(
+        "[data-direct-upload-preparing-message]",
+      );
+      this.preparingHint = this.el.querySelector(
+        "[data-direct-upload-preparing-hint]",
+      );
       this.stats = {
         queued: this.el.querySelector('[data-upload-stat="queued"]'),
         uploading: this.el.querySelector('[data-upload-stat="uploading"]'),
@@ -181,6 +191,8 @@ const Hooks = {
       this.completedSinceRefresh = false;
       this.queueSearchQuery = "";
       this.queueFilterStatus = "all";
+      this.dragDepth = 0;
+      this.preparingDrops = 0;
 
       this.handleTriggerClick = (event) => {
         if (event.target.closest("input, button, a, textarea, select")) return;
@@ -200,14 +212,24 @@ const Hooks = {
       };
 
       this.handleRetryClick = (event) => {
-        const button = event.target.closest('[data-action="retry-upload"]');
-        if (!button) return;
-
-        const row = button.closest("[data-upload-entry]");
+        const row = event.target.closest("[data-upload-entry]");
         const entryId = row?.dataset.uploadEntry;
         const entry = entryId ? this.entries.get(entryId) : null;
 
-        if (!entry || entry.status === "uploading") return;
+        if (!entry) return;
+
+        const cancelButton = event.target.closest('[data-action="cancel-upload"]');
+
+        if (cancelButton) {
+          if (entry.status === "uploading") {
+            this.cancelEntry(entry);
+          }
+
+          return;
+        }
+
+        const button = event.target.closest('[data-action="retry-upload"]');
+        if (!button || entry.status === "uploading") return;
 
         this.retryEntry(entry);
       };
@@ -222,21 +244,61 @@ const Hooks = {
         this.applyQueueFilters();
       };
 
-      this.handleDragOver = (event) => {
+      this.hasDraggedFiles = (event) =>
+        Array.from(event.dataTransfer?.types || []).includes("Files");
+
+      this.showDropOverlay = () => {
+        this.overlay?.removeAttribute("hidden");
+        this.el.dataset.dragActive = "true";
+      };
+
+      this.hideDropOverlay = () => {
+        this.overlay?.setAttribute("hidden", "");
+        delete this.el.dataset.dragActive;
+      };
+
+      this.handleDragEnter = (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
         event.preventDefault();
-        this.el.classList.add("bg-sky-50/80", "ring-2", "ring-sky-400");
+        this.dragDepth += 1;
+        this.showDropOverlay();
+      };
+
+      this.handleDragOver = (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
+        event.preventDefault();
+        this.showDropOverlay();
       };
 
       this.handleDragLeave = (event) => {
-        if (event.currentTarget.contains(event.relatedTarget)) return;
-        this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
+        if (!this.hasDraggedFiles(event)) return;
+
+        event.preventDefault();
+        this.dragDepth = Math.max(0, this.dragDepth - 1);
+
+        if (this.dragDepth === 0) {
+          this.hideDropOverlay();
+        }
       };
 
       this.handleDrop = async (event) => {
+        if (!this.hasDraggedFiles(event)) return;
+
         event.preventDefault();
-        this.el.classList.remove("bg-sky-50/80", "ring-2", "ring-sky-400");
+        this.dragDepth = 0;
+        this.hideDropOverlay();
 
         this.clearGlobalError();
+        const dropFeedback = this.describeDropFeedback(event.dataTransfer);
+
+        if (dropFeedback) {
+          this.showPreparingFeedback(
+            dropFeedback.message,
+            dropFeedback.hint,
+          );
+        }
 
         try {
           const uploadItems = await this.buildDroppedUploadItems(
@@ -245,11 +307,17 @@ const Hooks = {
 
           if (uploadItems.length > 0) {
             this.enqueueFiles(uploadItems);
+          } else {
+            this.pushGlobalError(
+              "No readable files were found in the dropped item.",
+            );
           }
         } catch (error) {
           this.pushGlobalError(
             error.message || "Unable to read the dropped folder.",
           );
+        } finally {
+          this.hidePreparingFeedback();
         }
       };
 
@@ -259,18 +327,21 @@ const Hooks = {
       this.entriesContainer?.addEventListener("click", this.handleRetryClick);
       this.searchInput?.addEventListener("input", this.handleQueueSearch);
       this.filterSelect?.addEventListener("change", this.handleQueueFilter);
+      this.el.addEventListener("dragenter", this.handleDragEnter);
       this.el.addEventListener("dragover", this.handleDragOver);
       this.el.addEventListener("dragleave", this.handleDragLeave);
       this.el.addEventListener("drop", this.handleDrop);
     },
 
     destroyed() {
+      this.hideDropOverlay?.();
       this.trigger?.removeEventListener("click", this.handleTriggerClick);
       this.trigger?.removeEventListener("keydown", this.handleTriggerKeydown);
       this.input?.removeEventListener("change", this.handleFileSelection);
       this.entriesContainer?.removeEventListener("click", this.handleRetryClick);
       this.searchInput?.removeEventListener("input", this.handleQueueSearch);
       this.filterSelect?.removeEventListener("change", this.handleQueueFilter);
+      this.el.removeEventListener("dragenter", this.handleDragEnter);
       this.el.removeEventListener("dragover", this.handleDragOver);
       this.el.removeEventListener("dragleave", this.handleDragLeave);
       this.el.removeEventListener("drop", this.handleDrop);
@@ -289,6 +360,8 @@ const Hooks = {
           status: "queued",
           progress: 0,
           error: null,
+          canceled: false,
+          request: null,
         };
 
         this.entries.set(id, entry);
@@ -527,24 +600,41 @@ const Hooks = {
       return this.el.dataset.folderId || "";
     },
 
+    describeDropFeedback(dataTransfer) {
+      const items = Array.from(dataTransfer?.items || []);
+
+      const hasDirectory = items.some((item) => {
+        if (item.kind !== "file") return false;
+        const entry = this.getDataTransferEntry(item);
+        return entry?.isDirectory;
+      });
+
+      if (hasDirectory) {
+        return {
+          message: "Preparing folder structure before upload",
+          hint: "Creating folders and reading files before the upload queue starts.",
+        };
+      }
+
+      if (Array.from(dataTransfer?.files || []).length > 0) {
+        return {
+          message: "Preparing dropped files",
+          hint: "Checking the dropped files before the upload queue starts.",
+        };
+      }
+
+      return null;
+    },
+
     async uploadEntry(entry) {
       entry.status = "uploading";
       this.activeUploads += 1;
       entry.error = null;
+      entry.canceled = false;
       this.renderEntry(entry);
       this.syncStats();
 
       try {
-        if (this.shouldUseBackendFallback(entry.file)) {
-          const payload = await this.uploadViaBackend(entry);
-          entry.displayName = payload.name || entry.displayName || entry.file.name;
-          entry.status = "complete";
-          entry.progress = 100;
-          entry.error = null;
-          this.completedSinceRefresh = true;
-          return;
-        }
-
         const initResponse = await fetch(this.el.dataset.initiateUrl, {
           method: "POST",
           headers: {
@@ -604,6 +694,13 @@ const Hooks = {
         entry.error = null;
         this.completedSinceRefresh = true;
       } catch (error) {
+        if (entry.canceled) {
+          entry.status = "canceled";
+          entry.error = null;
+          entry.progress = 0;
+          return;
+        }
+
         if (
           !entry.retriedViaBackend &&
           this.canRetryViaBackend(entry.file, error)
@@ -630,6 +727,7 @@ const Hooks = {
           this.pushGlobalError(error.message);
         }
       } finally {
+        entry.request = null;
         this.activeUploads = Math.max(0, this.activeUploads - 1);
         this.renderEntry(entry);
         this.syncStats();
@@ -637,10 +735,17 @@ const Hooks = {
       }
     },
 
+    cancelEntry(entry) {
+      entry.canceled = true;
+      entry.request?.abort?.();
+    },
+
     retryEntry(entry) {
       entry.status = "queued";
       entry.progress = 0;
       entry.error = null;
+      entry.canceled = false;
+      entry.request = null;
       entry.retriedViaBackend = false;
       this.renderEntry(entry);
       this.syncStats();
@@ -672,6 +777,7 @@ const Hooks = {
 
       return await new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
+        entry.request = request;
         request.open("POST", this.el.dataset.proxyUrl);
         request.setRequestHeader("x-csrf-token", this.csrfToken);
 
@@ -713,6 +819,7 @@ const Hooks = {
     uploadToStorage(entry, url, headers) {
       return new Promise((resolve, reject) => {
         const request = new XMLHttpRequest();
+        entry.request = request;
         request.open("PUT", url);
 
         Object.entries(headers).forEach(([name, value]) => {
@@ -747,6 +854,10 @@ const Hooks = {
           );
         });
 
+        request.addEventListener("abort", () => {
+          reject(new Error("Upload canceled before the file reached storage."));
+        });
+
         request.send(entry.file);
       });
     },
@@ -773,6 +884,30 @@ const Hooks = {
       this.errorsContainer.textContent = "";
     },
 
+    showPreparingFeedback(message, hint) {
+      this.preparingDrops += 1;
+
+      if (!this.preparingContainer) return;
+
+      this.preparingContainer.hidden = false;
+
+      if (this.preparingMessage) {
+        this.preparingMessage.textContent = message;
+      }
+
+      if (this.preparingHint) {
+        this.preparingHint.textContent = hint;
+      }
+    },
+
+    hidePreparingFeedback() {
+      this.preparingDrops = Math.max(0, this.preparingDrops - 1);
+
+      if (this.preparingDrops > 0 || !this.preparingContainer) return;
+
+      this.preparingContainer.hidden = true;
+    },
+
     syncQueueVisibility() {
       if (!this.queue) return;
       this.queue.hidden = this.entries.size === 0;
@@ -780,7 +915,13 @@ const Hooks = {
     },
 
     syncStats() {
-      const counters = { queued: 0, uploading: 0, complete: 0, error: 0 };
+      const counters = {
+        queued: 0,
+        uploading: 0,
+        complete: 0,
+        canceled: 0,
+        error: 0,
+      };
 
       this.entries.forEach((entry) => {
         counters[entry.status] += 1;
@@ -793,7 +934,7 @@ const Hooks = {
       if (this.stats.complete)
         this.stats.complete.textContent = `${counters.complete} concluidos`;
       if (this.stats.error)
-        this.stats.error.textContent = `${counters.error} com erro`;
+        this.stats.error.textContent = `${counters.error + counters.canceled} com problema`;
     },
 
     renderEntry(entry) {
@@ -821,6 +962,13 @@ const Hooks = {
               <p data-role="error" class="mt-1.5 text-[11px] font-medium text-rose-600 hidden"></p>
               <button
                 type="button"
+                data-action="cancel-upload"
+                class="mt-2 hidden rounded-full border border-slate-300 bg-white px-3 py-1.5 text-[11px] font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+              >
+                Cancelar upload
+              </button>
+              <button
+                type="button"
                 data-action="retry-upload"
                 class="mt-2 hidden rounded-full bg-slate-900 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-slate-700"
               >
@@ -840,6 +988,7 @@ const Hooks = {
       const statusEl = row.querySelector('[data-role="status"]');
       const progressEl = row.querySelector('[data-role="progress"]');
       const errorEl = row.querySelector('[data-role="error"]');
+      const cancelButton = row.querySelector('[data-action="cancel-upload"]');
       const retryButton = row.querySelector('[data-action="retry-upload"]');
 
       const statusStyles = {
@@ -857,6 +1006,11 @@ const Hooks = {
           "Concluido",
           "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200",
           "bg-emerald-400",
+        ],
+        canceled: [
+          "Cancelado",
+          "bg-amber-100 text-amber-800 ring-1 ring-amber-200",
+          "bg-amber-300",
         ],
         error: [
           "Falhou",
@@ -877,6 +1031,13 @@ const Hooks = {
       } else {
         errorEl.hidden = true;
         errorEl.textContent = "";
+      }
+
+      if (cancelButton) {
+        const showCancel = entry.status === "uploading";
+        cancelButton.hidden = !showCancel;
+        cancelButton.classList.toggle("hidden", !showCancel);
+        cancelButton.disabled = !showCancel;
       }
 
       if (retryButton) {
@@ -1037,6 +1198,7 @@ const Hooks = {
       this.boundMetadata = () => this.captureFromPreferredTimestamp();
       this.boundError = () => this.showFallback();
 
+      this.showFallback();
       this.video.addEventListener("loadeddata", this.boundTryCapture);
       this.video.addEventListener("canplay", this.boundTryCapture);
       this.video.addEventListener("error", this.boundError);
@@ -1065,6 +1227,7 @@ const Hooks = {
         this.previewVideo.muted = true;
         this.previewVideo.playsInline = true;
         this.previewVideo.preload = "auto";
+        this.previewVideo.crossOrigin = "anonymous";
         this.previewVideo.src = this.video.currentSrc || this.video.src;
         this.previewVideo.addEventListener("loadedmetadata", this.boundMetadata);
         this.previewVideo.addEventListener("loadeddata", this.boundTryCapture);
@@ -1110,8 +1273,13 @@ const Hooks = {
       try {
         this.context.drawImage(source, 0, 0, this.canvas.width, this.canvas.height);
         this.canvas.classList.remove("hidden");
-        this.video.classList.add("opacity-0");
+        this.video?.classList.add("opacity-0");
         this.frameCaptured = true;
+
+        if (this.previewVideo) {
+          this.previewVideo.removeAttribute("src");
+          this.previewVideo.load();
+        }
       } catch (_error) {
         this.showFallback();
       }
@@ -1244,7 +1412,6 @@ const Hooks = {
       this.syncProgress();
 
       if (this.el.dataset.autoplay === "true") {
-        this.video.muted = false;
         this.video.play().catch(() => {});
       }
     },
