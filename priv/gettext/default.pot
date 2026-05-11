@@ -1502,7 +1502,8 @@ msgstr ""
 
 #: lib/open_drive_web/controllers/direct_upload_controller.ex:78
 #, elixir-autogen, elixir-format
-msgid "File exceeds the 2 GB limit."
+msgid "File exceeds the %{size} limit."
+msgstr ""
 msgstr ""
 
 #: lib/open_drive_web/controllers/file_download_controller.ex:13

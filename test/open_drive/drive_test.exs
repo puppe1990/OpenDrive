@@ -760,7 +760,7 @@ defmodule OpenDrive.DriveTest do
              Drive.prepare_direct_upload(workspace.scope, %{
                "name" => "video.mp4",
                "content_type" => "video/mp4",
-               "size" => "2000000001"
+               "size" => "5000000001"
              })
   end
 
@@ -774,7 +774,7 @@ defmodule OpenDrive.DriveTest do
                path: path,
                client_name: "huge.txt",
                content_type: "text/plain",
-               size: 2_000_000_001
+               size: 5_000_000_001
              })
   end
 

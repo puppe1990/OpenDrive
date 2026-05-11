@@ -2,6 +2,7 @@ defmodule OpenDriveWeb.Endpoint do
   use Phoenix.Endpoint, otp_app: :open_drive
 
   @max_request_body_length OpenDrive.Drive.backend_upload_fallback_size()
+  require Logger
 
   # The session will be stored in the cookie and signed,
   # this means its contents can be read but not tampered with.
@@ -34,7 +35,7 @@ defmodule OpenDriveWeb.Endpoint do
   if code_reloading? do
     socket "/phoenix/live_reload/socket", Phoenix.LiveReloader.Socket
     plug Phoenix.LiveReloader
-    plug OpenDriveWeb.SafeCodeReloader
+    plug :safe_code_reloader
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :open_drive
   end
 
@@ -55,4 +56,22 @@ defmodule OpenDriveWeb.Endpoint do
   plug Plug.Head
   plug Plug.Session, @session_options
   plug OpenDriveWeb.Router
+
+  def safe_code_reloader_init(opts) do
+    opts
+    |> Keyword.put_new(:server, Phoenix.CodeReloader.Server)
+    |> Phoenix.CodeReloader.init()
+  end
+
+  def safe_code_reloader(conn, opts) do
+    if Process.whereis(opts[:server]) do
+      Phoenix.CodeReloader.call(conn, opts)
+    else
+      Logger.warning(
+        "Phoenix.CodeReloader.Server is not running; skipping code reload for this request"
+      )
+
+      conn
+    end
+  end
 end

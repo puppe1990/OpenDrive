@@ -372,7 +372,7 @@ const Hooks = {
 
         if (file.size > this.maxFileSize) {
           entry.status = "error";
-          entry.error = "Arquivo excede o limite de 2 GB.";
+          entry.error = `Arquivo excede o limite de ${this.formatBytes(this.maxFileSize)}.`;
           this.renderEntry(entry);
           this.syncStats();
           return;

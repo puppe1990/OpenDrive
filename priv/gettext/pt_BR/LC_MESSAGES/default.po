@@ -1494,8 +1494,8 @@ msgstr "A pasta %{name} sera enviada para a lixeira."
 
 #: lib/open_drive_web/controllers/direct_upload_controller.ex:78
 #, elixir-autogen, elixir-format
-msgid "File exceeds the 2 GB limit."
-msgstr "Arquivo excede o limite de 2 GB."
+msgid "File exceeds the %{size} limit."
+msgstr "Arquivo excede o limite de %{size}."
 
 #: lib/open_drive_web/controllers/file_download_controller.ex:13
 #: lib/open_drive_web/live/drive_live/index.ex:335
