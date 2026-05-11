@@ -13,7 +13,7 @@ defmodule OpenDrive.Drive do
   alias OpenDrive.Repo
   alias OpenDrive.Storage
 
-  @max_upload_file_size 2_000_000_000
+  @max_upload_file_size 5_000_000_000
   # Browser fallback stores multipart bodies on the Phoenix host before sending
   # them to storage, so keep it limited to small files and prefer direct upload.
   @backend_upload_fallback_size 25_000_000

@@ -5,6 +5,7 @@ defmodule OpenDriveWeb.DirectUploadController do
 
   @token_salt "direct-upload"
   @backend_upload_fallback_size Drive.backend_upload_fallback_size()
+  @max_upload_file_size Drive.max_upload_file_size()
 
   def create(conn, %{"upload" => upload_params}) do
     case Drive.prepare_direct_upload(conn.assigns.current_scope, upload_params) do
@@ -90,7 +91,12 @@ defmodule OpenDriveWeb.DirectUploadController do
   defp render_error(conn, :too_large) do
     conn
     |> put_status(:unprocessable_entity)
-    |> json(%{error: gettext("File exceeds the 2 GB limit.")})
+    |> json(%{
+      error:
+        gettext("File exceeds the %{size} limit.",
+          size: format_gigabytes(@max_upload_file_size)
+        )
+    })
   end
 
   defp render_error(conn, :proxy_too_large) do
@@ -183,4 +189,14 @@ defmodule OpenDriveWeb.DirectUploadController do
   end
 
   defp format_bytes(size), do: "#{size} B"
+
+  defp format_gigabytes(size) do
+    gigabytes = Float.round(size / 1_000_000_000, 1)
+
+    if gigabytes == trunc(gigabytes) do
+      "#{trunc(gigabytes)} GB"
+    else
+      "#{gigabytes} GB"
+    end
+  end
 end
