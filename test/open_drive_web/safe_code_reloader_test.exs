@@ -4,11 +4,11 @@ defmodule OpenDriveWeb.SafeCodeReloaderTest do
   import Plug.Conn
   import Plug.Test
 
-  alias OpenDriveWeb.SafeCodeReloader
+  alias OpenDriveWeb.Endpoint
 
   test "skips reloading when the code reloader server is unavailable" do
     opts =
-      SafeCodeReloader.init(
+      Endpoint.safe_code_reloader_init(
         server: OpenDriveWeb.MissingCodeReloaderServer,
         reloader: fn _, _ ->
           send(self(), :reloader_called)
@@ -21,7 +21,7 @@ defmodule OpenDriveWeb.SafeCodeReloaderTest do
       |> conn("/")
       |> put_private(:phoenix_endpoint, OpenDriveWeb.Endpoint)
 
-    returned_conn = SafeCodeReloader.call(conn, opts)
+    returned_conn = Endpoint.safe_code_reloader(conn, opts)
 
     refute_received :reloader_called
     assert returned_conn == conn
@@ -32,7 +32,7 @@ defmodule OpenDriveWeb.SafeCodeReloaderTest do
     Process.register(server, OpenDriveWeb.AvailableCodeReloaderServer)
 
     opts =
-      SafeCodeReloader.init(
+      Endpoint.safe_code_reloader_init(
         server: OpenDriveWeb.AvailableCodeReloaderServer,
         reloader: fn _, _ ->
           send(self(), {:reloader_called, server})
@@ -45,7 +45,7 @@ defmodule OpenDriveWeb.SafeCodeReloaderTest do
       |> conn("/")
       |> put_private(:phoenix_endpoint, OpenDriveWeb.Endpoint)
 
-    returned_conn = SafeCodeReloader.call(conn, opts)
+    returned_conn = Endpoint.safe_code_reloader(conn, opts)
 
     assert_received {:reloader_called, ^server}
     assert returned_conn == conn
