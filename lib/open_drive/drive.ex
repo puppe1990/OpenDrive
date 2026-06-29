@@ -6,6 +6,7 @@ defmodule OpenDrive.Drive do
   import Ecto.Query, warn: false
   require Logger
 
+  alias Ecto.Adapters.SQL
   alias OpenDrive.Accounts.Scope
   alias OpenDrive.Audit
   alias OpenDrive.Drive.File, as: DriveFile
@@ -32,17 +33,20 @@ defmodule OpenDrive.Drive do
   def workspace_used_size(%Scope{} = scope) do
     tenant_id = Scope.tenant_id(scope)
 
-    file_object_ids =
-      from(f in DriveFile,
-        where: f.tenant_id == ^tenant_id and is_nil(f.deleted_at),
-        select: f.file_object_id
+    # LibSQL returns one row per joined record for Ecto aggregate queries, so use raw SQL.
+    {:ok, %{rows: [[size]]}} =
+      SQL.query(
+        Repo,
+        """
+        SELECT COALESCE(SUM(fo.size), 0)
+        FROM files f
+        INNER JOIN file_objects fo ON fo.id = f.file_object_id
+        WHERE f.tenant_id = ? AND f.deleted_at IS NULL
+        """,
+        [tenant_id]
       )
 
-    from(fo in FileObject,
-      where: fo.id in subquery(file_object_ids),
-      select: coalesce(sum(fo.size), 0)
-    )
-    |> Repo.one()
+    size
   end
 
   def list_trash(%Scope{} = scope) do
