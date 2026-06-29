@@ -39,6 +39,7 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  config :open_drive, :skip_migrations, true
   config :open_drive, OpenDrive.Repo, OpenDrive.Config.Turso.repo_config()
 end
 
