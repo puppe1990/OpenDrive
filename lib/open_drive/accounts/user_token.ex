@@ -56,10 +56,12 @@ defmodule OpenDrive.Accounts.UserToken do
   not expired (after @session_validity_in_days).
   """
   def verify_session_token_query(token) do
+    cutoff = datetime_ago(@session_validity_in_days, :day)
+
     query =
       from token in by_token_and_context_query(token, "session"),
         join: user in assoc(token, :user),
-        where: token.inserted_at > ago(@session_validity_in_days, "day"),
+        where: token.inserted_at > ^cutoff,
         select: {%{user | authenticated_at: token.authenticated_at}, token.inserted_at}
 
     {:ok, query}
@@ -109,10 +111,12 @@ defmodule OpenDrive.Accounts.UserToken do
       {:ok, decoded_token} ->
         hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
 
+        cutoff = datetime_ago(@magic_link_validity_in_minutes, :minute)
+
         query =
           from token in by_token_and_context_query(hashed_token, "login"),
             join: user in assoc(token, :user),
-            where: token.inserted_at > ago(^@magic_link_validity_in_minutes, "minute"),
+            where: token.inserted_at > ^cutoff,
             where: token.sent_to == user.email,
             select: {user, token}
 
@@ -139,9 +143,11 @@ defmodule OpenDrive.Accounts.UserToken do
       {:ok, decoded_token} ->
         hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
 
+        cutoff = datetime_ago(@change_email_validity_in_days, :day)
+
         query =
           from token in by_token_and_context_query(hashed_token, context),
-            where: token.inserted_at > ago(@change_email_validity_in_days, "day")
+            where: token.inserted_at > ^cutoff
 
         {:ok, query}
 
@@ -153,4 +159,10 @@ defmodule OpenDrive.Accounts.UserToken do
   defp by_token_and_context_query(token, context) do
     from UserToken, where: [token: ^token, context: ^context]
   end
+
+  # LibSQL does not support Ecto's ago/2 with TEXT timestamps.
+  defp datetime_ago(amount, :day), do: DateTime.utc_now(:second) |> DateTime.add(-amount, :day)
+
+  defp datetime_ago(amount, :minute),
+    do: DateTime.utc_now(:second) |> DateTime.add(-amount, :minute)
 end
