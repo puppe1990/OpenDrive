@@ -38,15 +38,8 @@ if System.get_env("PHX_SERVER") do
   config :open_drive, OpenDriveWeb.Endpoint, server: true
 end
 
-database_path =
-  System.get_env("DATABASE_PATH") ||
-    if config_env() == :prod, do: "/data/open_drive.db", else: nil
-
-if database_path do
-  config :open_drive, OpenDrive.Repo,
-    database: database_path,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "5"),
-    busy_timeout: String.to_integer(System.get_env("SQLITE_BUSY_TIMEOUT") || "5000")
+if config_env() == :prod do
+  config :open_drive, OpenDrive.Repo, OpenDrive.Config.Turso.repo_config()
 end
 
 storage_adapter =

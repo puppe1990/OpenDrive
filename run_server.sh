@@ -2,6 +2,13 @@
 
 set -eu
 
+ensure_dependencies() {
+  if [ ! -d deps ] || mix deps 2>&1 | grep -q "the dependency is not available"; then
+    echo "Dependências ausentes, executando mix setup..."
+    mix setup
+  fi
+}
+
 is_port_in_use() {
   if command -v lsof >/dev/null 2>&1; then
     lsof -n -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1
@@ -19,6 +26,8 @@ is_port_in_use() {
 
 START_PORT="${1:-4000}"
 PORT="$START_PORT"
+
+ensure_dependencies
 
 while is_port_in_use "$PORT"; do
   echo "Porta $PORT ocupada, tentando a próxima..."
