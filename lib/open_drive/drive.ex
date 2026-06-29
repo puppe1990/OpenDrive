@@ -32,10 +32,16 @@ defmodule OpenDrive.Drive do
   def workspace_used_size(%Scope{} = scope) do
     tenant_id = Scope.tenant_id(scope)
 
-    DriveFile
-    |> where([f], f.tenant_id == ^tenant_id and is_nil(f.deleted_at))
-    |> join(:inner, [f], fo in assoc(f, :file_object))
-    |> select([_f, fo], coalesce(sum(fo.size), 0))
+    file_object_ids =
+      from(f in DriveFile,
+        where: f.tenant_id == ^tenant_id and is_nil(f.deleted_at),
+        select: f.file_object_id
+      )
+
+    from(fo in FileObject,
+      where: fo.id in subquery(file_object_ids),
+      select: coalesce(sum(fo.size), 0)
+    )
     |> Repo.one()
   end
 

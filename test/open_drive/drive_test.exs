@@ -973,6 +973,24 @@ defmodule OpenDrive.DriveTest do
     assert Drive.workspace_used_size(workspace.scope) == 15
   end
 
+  test "workspace_used_size/1 aggregates many files into a single scalar" do
+    workspace = workspace_fixture()
+    path = Path.join(System.tmp_dir!(), "open_drive-size-many.txt")
+    File.write!(path, "x")
+
+    for index <- 1..15 do
+      {:ok, _} =
+        Drive.upload_file(workspace.scope, %{}, %{
+          path: path,
+          client_name: "file-#{index}.txt",
+          content_type: "text/plain",
+          size: index
+        })
+    end
+
+    assert Drive.workspace_used_size(workspace.scope) == Enum.sum(1..15)
+  end
+
   test "workspace_used_size/1 excludes trashed files" do
     workspace = workspace_fixture()
     path = Path.join(System.tmp_dir!(), "open_drive-size-trash.txt")
