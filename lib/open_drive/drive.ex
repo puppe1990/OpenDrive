@@ -18,11 +18,21 @@ defmodule OpenDrive.Drive do
   # Browser fallback stores multipart bodies on the Phoenix host before sending
   # them to storage, so keep it limited to small files and prefer direct upload.
   @backend_upload_fallback_size 25_000_000
+  @max_concurrent_uploads 4
   @max_entry_name_length 120
   @upload_name_retry_limit 25
 
   def max_upload_file_size, do: @max_upload_file_size
   def backend_upload_fallback_size, do: @backend_upload_fallback_size
+  def max_concurrent_uploads, do: @max_concurrent_uploads
+
+  def with_db_rescue(fun) when is_function(fun, 0) do
+    fun.()
+  rescue
+    error in DBConnection.ConnectionError ->
+      Logger.warning("database connection saturated during upload: #{Exception.message(error)}")
+      {:error, :db_busy}
+  end
 
   def list_children(%Scope{} = scope, folder_id \\ nil) do
     folder_id = normalize_folder_id(folder_id)
@@ -143,6 +153,10 @@ defmodule OpenDrive.Drive do
   end
 
   def prepare_direct_upload(%Scope{} = scope, attrs) do
+    with_db_rescue(fn -> do_prepare_direct_upload(scope, attrs) end)
+  end
+
+  defp do_prepare_direct_upload(%Scope{} = scope, attrs) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
     requested_name = attrs[:name] || attrs["name"]
     content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"
@@ -172,6 +186,10 @@ defmodule OpenDrive.Drive do
   end
 
   def complete_direct_upload(%Scope{} = scope, attrs) do
+    with_db_rescue(fn -> do_complete_direct_upload(scope, attrs) end)
+  end
+
+  defp do_complete_direct_upload(%Scope{} = scope, attrs) do
     folder_id = attrs[:folder_id] || attrs["folder_id"]
     requested_name = attrs[:name] || attrs["name"]
     content_type = attrs[:content_type] || attrs["content_type"] || "application/octet-stream"

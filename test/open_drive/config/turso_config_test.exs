@@ -15,7 +15,28 @@ defmodule OpenDrive.Config.TursoConfigTest do
              adapter: Ecto.Adapters.LibSql,
              uri: "libsql://open-drive-prod.turso.io",
              auth_token: "secret-token",
-             pool_size: 15
+             pool_size: 15,
+             queue_target: 5000,
+             queue_interval: 1000,
+             timeout: 15_000
+           ] = Turso.repo_config(env)
+  end
+
+  test "defaults production pool size and queue settings when POOL_SIZE is absent" do
+    env = fn
+      "TURSO_DATABASE_URL" -> "libsql://open-drive-prod.turso.io"
+      "TURSO_AUTH_TOKEN" -> "secret-token"
+      _ -> nil
+    end
+
+    assert [
+             adapter: Ecto.Adapters.LibSql,
+             uri: "libsql://open-drive-prod.turso.io",
+             auth_token: "secret-token",
+             pool_size: 15,
+             queue_target: 5000,
+             queue_interval: 1000,
+             timeout: 15_000
            ] = Turso.repo_config(env)
   end
 
@@ -29,7 +50,10 @@ defmodule OpenDrive.Config.TursoConfigTest do
     assert [
              adapter: Ecto.Adapters.LibSql,
              database: "/var/data/open_drive.db",
-             pool_size: 5
+             pool_size: 5,
+             queue_target: 5000,
+             queue_interval: 1000,
+             timeout: 15_000
            ] = Turso.repo_config(env)
   end
 

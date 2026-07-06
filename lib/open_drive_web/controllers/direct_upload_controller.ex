@@ -2,6 +2,7 @@ defmodule OpenDriveWeb.DirectUploadController do
   use OpenDriveWeb, :controller
 
   alias OpenDrive.Drive
+  alias OpenDriveWeb.DirectUploadErrors
 
   @token_salt "direct-upload"
   @backend_upload_fallback_size Drive.backend_upload_fallback_size()
@@ -147,6 +148,11 @@ defmodule OpenDriveWeb.DirectUploadController do
       error:
         gettext("The storage service did not respond in time. Retry the upload in a few seconds.")
     })
+  end
+
+  defp render_error(conn, :db_busy) do
+    {status, body} = DirectUploadErrors.response(:db_busy)
+    conn |> put_status(status) |> json(body)
   end
 
   defp render_error(conn, :forbidden) do

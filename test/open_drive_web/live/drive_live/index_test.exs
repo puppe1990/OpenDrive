@@ -28,6 +28,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ ~s(id="drive-dropzone")
     assert html =~ ~s(phx-hook="DirectUploadZone")
     assert html =~ ~s(data-dropzone-scope="global")
+    assert html =~ ~s(data-max-concurrent-uploads="4")
     assert html =~ ~s(id="drive-drop-overlay")
     assert html =~ "Drop files to upload to this folder"
     refute html =~ "Arraste arquivos para esta pasta"

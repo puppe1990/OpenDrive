@@ -24,6 +24,7 @@ import { Socket } from "phoenix";
 import { LiveSocket } from "phoenix_live_view";
 import { hooks as colocatedHooks } from "phoenix-colocated/open_drive";
 import topbar from "../vendor/topbar";
+import { createUploadScheduler } from "./upload_scheduler";
 
 const Hooks = {
   ResizableListColumns: {
@@ -188,6 +189,13 @@ const Hooks = {
       };
       this.entries = new Map();
       this.activeUploads = 0;
+      this.maxConcurrentUploads = Number(
+        this.el.dataset.maxConcurrentUploads || 4,
+      );
+      this.uploadScheduler = createUploadScheduler({
+        maxConcurrent: this.maxConcurrentUploads,
+        onRun: (entry) => this.uploadEntry(entry),
+      });
       this.completedSinceRefresh = false;
       this.queueSearchQuery = "";
       this.queueFilterStatus = "all";
@@ -378,7 +386,7 @@ const Hooks = {
           return;
         }
 
-        this.uploadEntry(entry);
+        this.uploadScheduler.enqueue(entry);
       });
     },
 
@@ -749,7 +757,7 @@ const Hooks = {
       entry.retriedViaBackend = false;
       this.renderEntry(entry);
       this.syncStats();
-      this.uploadEntry(entry);
+      this.uploadScheduler.enqueue(entry);
     },
 
     shouldUseBackendFallback(file) {
