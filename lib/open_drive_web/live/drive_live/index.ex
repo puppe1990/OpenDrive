@@ -773,12 +773,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
+                    <.async_button
                       type="submit"
+                      loading_label={gettext("Saving...")}
                       class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       {gettext("Save")}
-                    </button>
+                    </.async_button>
                   </div>
                 </.form>
               </div>
@@ -837,12 +838,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
+                    <.async_button
                       type="submit"
+                      loading_label={gettext("Saving...")}
                       class="rounded-xl bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
                     >
                       {gettext("Save")}
-                    </button>
+                    </.async_button>
                   </div>
                 </.form>
               </div>
@@ -885,14 +887,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
-                      type="button"
+                    <.async_button
                       phx-click="confirm_delete_file"
                       phx-value-id={selected.id}
+                      loading_label={gettext("Deleting...")}
                       class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                     >
                       {gettext("Delete")}
-                    </button>
+                    </.async_button>
                   </div>
                 </div>
               </div>
@@ -937,14 +939,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
-                      type="button"
+                    <.async_button
                       phx-click="confirm_delete_folder"
                       phx-value-id={selected.id}
+                      loading_label={gettext("Deleting...")}
                       class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                     >
                       {gettext("Delete")}
-                    </button>
+                    </.async_button>
                   </div>
                 </div>
               </div>
@@ -991,13 +993,13 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
-                      type="button"
+                    <.async_button
                       phx-click="confirm_bulk_delete"
+                      loading_label={gettext("Deleting...")}
                       class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700"
                     >
                       {gettext("Delete selected")}
-                    </button>
+                    </.async_button>
                   </div>
                 </div>
               </div>

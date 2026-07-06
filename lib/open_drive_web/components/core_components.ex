@@ -80,24 +80,66 @@ defmodule OpenDriveWeb.CoreComponents do
   end
 
   @doc """
+  Renders a loading spinner.
+
+  Uses daisyUI `loading` styles. Sizes: `xs`, `sm`, `md`, `lg`.
+
+  ## Examples
+
+      <.spinner />
+      <.spinner size="sm" class="text-white" />
+  """
+  attr :size, :string, default: "xs", values: ~w(xs sm md lg)
+  attr :class, :any, default: nil
+  attr :rest, :global
+
+  def spinner(assigns) do
+    ~H"""
+    <span
+      class={[
+        "loading loading-spinner",
+        spinner_size_class(@size),
+        @class
+      ]}
+      aria-hidden="true"
+      {@rest}
+    />
+    """
+  end
+
+  @doc """
   Renders a button with navigation support.
+
+  Buttons with `phx-click`, `type="submit"`, `phx-disable-with`, or
+  `data-submit-loading` automatically show a spinner while the action runs.
 
   ## Examples
 
       <.button>Send!</.button>
       <.button phx-click="go" variant="primary">Send!</.button>
       <.button navigate={~p"/"}>Home</.button>
+      <.button phx-click="save" loading_label={gettext("Saving...")}>Save</.button>
   """
-  attr :rest, :global, include: ~w(href navigate patch method download name value disabled)
+  attr :rest, :global,
+    include:
+      ~w(href navigate patch method download name value disabled type phx-click phx-disable-with data-submit-loading)
+
   attr :class, :any
   attr :variant, :string, values: ~w(primary)
+  attr :loading_label, :string, default: nil
+  attr :spinner_size, :string, default: "xs", values: ~w(xs sm md lg)
   slot :inner_block, required: true
 
   def button(%{rest: rest} = assigns) do
     variants = %{"primary" => "btn-primary", nil => "btn-primary btn-soft"}
 
+    {rest, loading_label} = extract_loading_label(rest, assigns[:loading_label])
+    loading? = interactive_button?(rest, assigns)
+
     assigns =
-      assign_new(assigns, :class, fn ->
+      assigns
+      |> assign(rest: rest, loading?: loading?, loading_label: loading_label)
+      |> assign_new(:class, fn ->
         ["btn", Map.fetch!(variants, assigns[:variant])]
       end)
 
@@ -109,12 +151,98 @@ defmodule OpenDriveWeb.CoreComponents do
       """
     else
       ~H"""
-      <button class={@class} {@rest}>
-        {render_slot(@inner_block)}
+      <button class={[@class, @loading? && "inline-flex items-center justify-center gap-2"]} {@rest}>
+        <.button_loading_content
+          :if={@loading?}
+          loading_label={@loading_label}
+          spinner_size={@spinner_size}
+        >
+          {render_slot(@inner_block)}
+        </.button_loading_content>
+        <span :if={!@loading?}>{render_slot(@inner_block)}</span>
       </button>
       """
     end
   end
+
+  @doc """
+  Renders a styled action button with built-in loading feedback.
+
+  Same loading behavior as `.button/1`, but without daisyUI button defaults.
+  Use for custom-styled `phx-click` and submit buttons across LiveViews.
+
+  ## Examples
+
+      <.async_button phx-click="restore_file" phx-value-id={file.id} class="btn...">
+        Restore
+      </.async_button>
+  """
+  attr :rest, :global,
+    include:
+      ~w(disabled type phx-click phx-value-id phx-disable-with data-submit-loading name value)
+
+  attr :class, :any, required: true
+  attr :loading_label, :string, default: nil
+  attr :spinner_size, :string, default: "xs", values: ~w(xs sm md lg)
+  slot :inner_block, required: true
+
+  def async_button(%{rest: rest} = assigns) do
+    {rest, loading_label} = extract_loading_label(rest, assigns[:loading_label])
+    loading? = interactive_button?(rest, assigns)
+
+    assigns =
+      assign(assigns,
+        rest: rest,
+        loading?: loading?,
+        loading_label: loading_label
+      )
+
+    ~H"""
+    <button class={[@class, @loading? && "inline-flex items-center justify-center gap-2"]} {@rest}>
+      <.button_loading_content
+        :if={@loading?}
+        loading_label={@loading_label}
+        spinner_size={@spinner_size}
+      >
+        {render_slot(@inner_block)}
+      </.button_loading_content>
+      <span :if={!@loading?}>{render_slot(@inner_block)}</span>
+    </button>
+    """
+  end
+
+  attr :loading_label, :string, default: nil
+  attr :spinner_size, :string, default: "xs", values: ~w(xs sm md lg)
+  slot :inner_block, required: true
+
+  defp button_loading_content(assigns) do
+    ~H"""
+    <span class="inline-flex items-center gap-2 phx-click-loading:inline-flex phx-submit-loading:inline-flex hidden">
+      <.spinner size={@spinner_size} />
+      <span :if={@loading_label}>{@loading_label}</span>
+    </span>
+    <span class="inline-flex items-center gap-2 phx-click-loading:hidden phx-submit-loading:hidden">
+      {render_slot(@inner_block)}
+    </span>
+    """
+  end
+
+  defp interactive_button?(rest, assigns) do
+    rest[:"phx-click"] || rest[:"phx-disable-with"] || rest[:"data-submit-loading"] ||
+      rest[:type] == "submit" || (is_nil(rest[:type]) && is_nil(rest[:"phx-click"])) ||
+      assigns[:loading]
+  end
+
+  defp extract_loading_label(rest, loading_label) do
+    label = loading_label || rest[:"phx-disable-with"]
+    rest = if rest[:"phx-disable-with"], do: Map.delete(rest, :"phx-disable-with"), else: rest
+    {rest, label}
+  end
+
+  defp spinner_size_class("xs"), do: "loading-xs"
+  defp spinner_size_class("sm"), do: "loading-sm"
+  defp spinner_size_class("md"), do: "loading-md"
+  defp spinner_size_class("lg"), do: "loading-lg"
 
   @doc """
   Renders an input with label and error messages.

@@ -2220,6 +2220,18 @@ topbar.config({ barColors: { 0: "#29d" }, shadowColor: "rgba(0, 0, 0, .3)" });
 window.addEventListener("phx:page-loading-start", (_info) => topbar.show(300));
 window.addEventListener("phx:page-loading-stop", (_info) => topbar.hide());
 
+// Show button spinners on regular HTML form submits (non-LiveView)
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+
+  form.querySelectorAll("[data-submit-loading]").forEach((button) => {
+    button.classList.add("phx-click-loading");
+    button.setAttribute("disabled", "disabled");
+    button.setAttribute("aria-busy", "true");
+  });
+});
+
 // connect if there are any LiveViews on the page
 liveSocket.connect();
 

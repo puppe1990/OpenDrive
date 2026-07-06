@@ -53,7 +53,13 @@ defmodule OpenDriveWeb.DriveLive.Components do
               label={gettext("New folder")}
               required
             />
-            <.button class="btn btn-primary w-full">{gettext("Create folder")}</.button>
+            <.button
+              type="submit"
+              loading_label={gettext("Creating...")}
+              class="btn btn-primary w-full"
+            >
+              {gettext("Create folder")}
+            </.button>
           </.form>
         </div>
 
@@ -552,14 +558,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
               >
                 <.icon name="hero-pencil-square" class="size-4" />
               </button>
-              <button
+              <.async_button
                 :if={entry.kind == :folder}
                 phx-click="delete_folder"
                 phx-value-id={entry.id}
+                spinner_size="xs"
                 class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
               >
                 <.icon name="hero-trash" class="size-4" />
-              </button>
+              </.async_button>
               <button
                 :if={entry.kind == :file}
                 phx-click="start_rename_file"
@@ -568,15 +575,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
               >
                 <.icon name="hero-pencil-square" class="size-4" />
               </button>
-              <button
+              <.async_button
                 :if={entry.kind == :file}
-                type="button"
                 phx-click="delete_file"
                 phx-value-id={entry.id}
+                spinner_size="xs"
                 class="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-rose-500"
               >
                 <.icon name="hero-trash" class="size-4" />
-              </button>
+              </.async_button>
             </div>
           </div>
 
@@ -759,13 +766,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <%= for entry <- @view.selected_file_entries do %>
               <input type="hidden" name="file_ids[]" value={entry.id} />
             <% end %>
-            <button
+            <.async_button
               type="submit"
+              data-submit-loading
+              loading_label={gettext("Preparing...")}
               disabled={@view.selected_file_entries == []}
               class="w-full rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition enabled:hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 sm:w-auto"
             >
               {gettext("Download ZIP")}
-            </button>
+            </.async_button>
           </form>
 
           <button
@@ -893,14 +902,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </button>
-            <button
+            <.async_button
               :if={entry.kind == :folder}
               phx-click="delete_folder"
               phx-value-id={entry.id}
+              spinner_size="xs"
               class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
             >
               <.icon name="hero-trash" class="size-4" />
-            </button>
+            </.async_button>
             <button
               :if={entry.kind == :file}
               phx-click="start_rename_file"
@@ -909,15 +919,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </button>
-            <button
+            <.async_button
               :if={entry.kind == :file}
-              type="button"
               phx-click="delete_file"
               phx-value-id={entry.id}
+              spinner_size="xs"
               class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
             >
               <.icon name="hero-trash" class="size-4" />
-            </button>
+            </.async_button>
           </div>
         </div>
 
@@ -1011,14 +1021,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </button>
-            <button
+            <.async_button
               :if={entry.kind == :folder}
               phx-click="delete_folder"
               phx-value-id={entry.id}
+              spinner_size="xs"
               class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
             >
               <.icon name="hero-trash" class="size-4" />
-            </button>
+            </.async_button>
             <button
               :if={entry.kind == :file}
               phx-click="start_rename_file"
@@ -1027,15 +1038,15 @@ defmodule OpenDriveWeb.DriveLive.Components do
             >
               <.icon name="hero-pencil-square" class="size-4" />
             </button>
-            <button
+            <.async_button
               :if={entry.kind == :file}
-              type="button"
               phx-click="delete_file"
               phx-value-id={entry.id}
+              spinner_size="xs"
               class="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-rose-500"
             >
               <.icon name="hero-trash" class="size-4" />
-            </button>
+            </.async_button>
           </div>
         </div>
       <% end %>

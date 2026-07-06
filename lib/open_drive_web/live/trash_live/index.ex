@@ -223,13 +223,14 @@ defmodule OpenDriveWeb.TrashLive.Index do
                         </div>
                       </div>
 
-                      <button
+                      <.async_button
                         phx-click="restore_folder"
                         phx-value-id={folder.id}
+                        loading_label={gettext("Restoring...")}
                         class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700"
                       >
                         <.icon name="hero-arrow-path" class="mr-2 size-4" /> {gettext("Restore")}
-                      </button>
+                      </.async_button>
                     </div>
                   <% end %>
                 <% end %>
@@ -284,13 +285,14 @@ defmodule OpenDriveWeb.TrashLive.Index do
                         </div>
                       </div>
 
-                      <button
+                      <.async_button
                         phx-click="restore_file"
                         phx-value-id={file.id}
+                        loading_label={gettext("Restoring...")}
                         class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-sky-200 hover:text-sky-700"
                       >
                         <.icon name="hero-arrow-path" class="mr-2 size-4" /> {gettext("Restore")}
-                      </button>
+                      </.async_button>
                     </div>
                   <% end %>
                 <% end %>
@@ -424,8 +426,9 @@ defmodule OpenDriveWeb.TrashLive.Index do
                         type="button"
                         disabled
                         aria-disabled="true"
-                        class="inline-flex cursor-not-allowed items-center justify-center rounded-full border border-rose-300/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+                        class="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-full border border-rose-300/20 bg-rose-400/10 px-4 py-2 text-sm font-semibold text-rose-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
                       >
+                        <.spinner size="xs" class="text-rose-100" />
                         {gettext("Deleting permanently...")}
                       </button>
                     </div>
@@ -471,13 +474,13 @@ defmodule OpenDriveWeb.TrashLive.Index do
                     >
                       {gettext("Cancel")}
                     </button>
-                    <button
-                      type="button"
+                    <.async_button
                       phx-click="empty_trash"
+                      loading_label={gettext("Emptying...")}
                       class="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(225,29,72,0.28)] transition hover:bg-rose-700"
                     >
                       {gettext("Empty trash")}
-                    </button>
+                    </.async_button>
                   </div>
                 </div>
               <% end %>

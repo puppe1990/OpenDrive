@@ -249,12 +249,13 @@ defmodule OpenDriveWeb.MembersLive.Index do
                 label={gettext("Role")}
                 options={[{gettext("Admin"), "admin"}, {gettext("Member"), "member"}]}
               />
-              <button
+              <.async_button
                 type="submit"
+                loading_label={gettext("Adding...")}
                 class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-sky-600 px-6 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(2,132,199,0.24)] transition hover:-translate-y-0.5 hover:bg-sky-700"
               >
                 <.icon name="hero-user-plus" class="mr-2 size-4" /> {gettext("Add member")}
-              </button>
+              </.async_button>
             </.form>
 
             <div

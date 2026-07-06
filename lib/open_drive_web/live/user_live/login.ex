@@ -75,7 +75,12 @@ defmodule OpenDriveWeb.UserLive.Login do
             /> {gettext("Keep me signed in")}
           </label>
 
-          <.button class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-slate-800">
+          <.button
+            type="submit"
+            data-submit-loading
+            loading_label={gettext("Logging in...")}
+            class="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-slate-950 text-sm font-semibold text-white shadow-[0_18px_40px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-slate-800"
+          >
             {gettext("Log in")}
           </.button>
         </.form>
