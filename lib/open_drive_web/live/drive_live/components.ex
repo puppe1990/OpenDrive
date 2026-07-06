@@ -407,12 +407,17 @@ defmodule OpenDriveWeb.DriveLive.Components do
           name={@view.controls_form[:view].name}
           value={@view.controls_form[:view].value}
         />
+        <input
+          type="hidden"
+          name={@view.controls_form[:page].name}
+          value={@view.controls_form[:page].value}
+        />
       </.form>
 
       <div class="flex flex-col gap-3 border-t border-slate-200 pt-4 md:flex-row md:items-center md:justify-between">
         <div class="flex flex-wrap items-center gap-2 text-sm text-slate-500">
           <span class="rounded-full border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
-            {gettext("%{count} results", count: length(@view.entries))}
+            {gettext("%{count} results", count: @view.pagination.total)}
           </span>
           <span
             :if={@view.controls["type"] != "all"}
@@ -451,8 +456,70 @@ defmodule OpenDriveWeb.DriveLive.Components do
       <.empty_state :if={@view.entries == []} />
       <.grid_entries :if={@view.entries != [] and @view.controls["view"] == "grid"} view={@view} />
       <.list_entries :if={@view.entries != [] and @view.controls["view"] == "list"} view={@view} />
+      <.entry_pagination :if={@view.pagination.total_pages > 1} view={@view} />
     </div>
     """
+  end
+
+  attr :view, :map, required: true
+
+  def entry_pagination(assigns) do
+    ~H"""
+    <div class="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <p class="text-sm text-slate-500">
+        {gettext("Showing %{from}-%{to} of %{total}",
+          from: pagination_from(@view.pagination),
+          to: pagination_to(@view.pagination),
+          total: @view.pagination.total
+        )}
+      </p>
+
+      <div class="inline-flex items-center gap-2 self-start rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:self-auto">
+        <button
+          type="button"
+          phx-click="set_page"
+          phx-value-page={@view.pagination.page - 1}
+          disabled={!@view.pagination.has_prev?}
+          class={[
+            "rounded-xl px-3 py-2 text-sm font-medium transition",
+            @view.pagination.has_prev? && "text-slate-700 hover:bg-slate-100",
+            !@view.pagination.has_prev? && "cursor-not-allowed text-slate-300"
+          ]}
+        >
+          {gettext("Previous")}
+        </button>
+        <span class="px-2 text-sm text-slate-500">
+          {gettext("Page %{page} of %{total}",
+            page: @view.pagination.page,
+            total: @view.pagination.total_pages
+          )}
+        </span>
+        <button
+          type="button"
+          phx-click="set_page"
+          phx-value-page={@view.pagination.page + 1}
+          disabled={!@view.pagination.has_next?}
+          class={[
+            "rounded-xl px-3 py-2 text-sm font-medium transition",
+            @view.pagination.has_next? && "text-slate-700 hover:bg-slate-100",
+            !@view.pagination.has_next? && "cursor-not-allowed text-slate-300"
+          ]}
+        >
+          {gettext("Next")}
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  defp pagination_from(%{total: 0}), do: 0
+
+  defp pagination_from(%{page: page, per_page: per_page}) do
+    (page - 1) * per_page + 1
+  end
+
+  defp pagination_to(%{total: total, page: page, per_page: per_page}) do
+    min(page * per_page, total)
   end
 
   attr :view, :map, required: true

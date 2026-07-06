@@ -499,4 +499,55 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     refute html =~ "second.txt"
     assert Drive.list_children(workspace.scope).files == []
   end
+
+  test "paginates large folders and keeps sorting by name stable", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Pagination Space"})
+
+    for index <- 1..120 do
+      path = Path.join(System.tmp_dir!(), "open_drive-pagination-#{index}.txt")
+
+      File.write!(path, "x")
+
+      {:ok, _} =
+        Drive.upload_file(workspace.scope, %{}, %{
+          path: path,
+          client_name: "file-#{String.pad_leading("#{index}", 3, "0")}.txt",
+          content_type: "text/plain",
+          size: 1
+        })
+    end
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, html} = live(conn, ~p"/app")
+
+    assert html =~ "120 resultados"
+    assert html =~ ~s(phx-click="set_page")
+    assert html =~ ~s(phx-value-page="2")
+
+    html =
+      lv
+      |> form("#controls_form", %{
+        "controls" => %{
+          "query" => "",
+          "type" => "all",
+          "sort" => "name_asc",
+          "view" => "grid",
+          "page" => "1"
+        }
+      })
+      |> render_change()
+
+    refute html =~ "Something went wrong"
+    refute html =~ "Attempting to reconnect"
+    assert html =~ "file-001.txt"
+    refute html =~ "file-120.txt"
+
+    html =
+      lv
+      |> element("button[phx-click='set_page'][phx-value-page='2']")
+      |> render_click()
+
+    assert html =~ "file-120.txt"
+    refute html =~ "file-001.txt"
+  end
 end

@@ -4,12 +4,14 @@ defmodule OpenDriveWeb.DriveLive.Index do
   alias OpenDrive.Drive
   alias OpenDriveWeb.DriveLive.Components
   alias OpenDriveWeb.DriveLive.Entries
+  alias OpenDriveWeb.DriveLive.Pagination
 
   @default_controls %{
     "query" => "",
     "type" => "all",
     "sort" => "modified_desc",
-    "view" => "grid"
+    "view" => "grid",
+    "page" => "1"
   }
 
   @impl true
@@ -27,7 +29,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:confirm_bulk_delete, false)
       |> assign(:new_menu_open, true)
       |> assign(:children, %{folders: [], files: []})
+      |> assign(:filtered_entries, [])
       |> assign(:entries, [])
+      |> assign(:pagination, %{
+        page: 1,
+        per_page: Pagination.per_page(),
+        total: 0,
+        total_pages: 1,
+        has_prev?: false,
+        has_next?: false
+      })
       |> assign(:selected_entries, MapSet.new())
       |> assign(:selected_image_id, nil)
       |> assign(:selected_video_id, nil)
@@ -129,7 +140,16 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
     socket =
       socket
-      |> assign_controls(%{"sort" => sort})
+      |> assign_controls(%{"sort" => sort, "page" => "1"})
+      |> refresh_entries()
+
+    {:noreply, socket}
+  end
+
+  def handle_event("set_page", %{"page" => page}, socket) do
+    socket =
+      socket
+      |> assign_controls(%{"page" => page})
       |> refresh_entries()
 
     {:noreply, socket}
@@ -216,7 +236,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
 
   def handle_event("open_bulk_delete_modal", _params, socket) do
     socket =
-      if selected_entries(socket.assigns.entries, socket.assigns.selected_entries) == [] do
+      if selected_entries(socket.assigns.filtered_entries, socket.assigns.selected_entries) ==
+           [] do
         socket
       else
         assign(socket, :confirm_bulk_delete, true)
@@ -230,7 +251,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   def handle_event("confirm_bulk_delete", _params, socket) do
-    entries = selected_entries(socket.assigns.entries, socket.assigns.selected_entries)
+    entries = selected_entries(socket.assigns.filtered_entries, socket.assigns.selected_entries)
 
     case bulk_delete_entries(socket.assigns.current_scope, entries) do
       :ok ->
@@ -342,7 +363,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
     image_id = normalize_id(id)
 
     socket =
-      if Enum.any?(Entries.visible_images(socket.assigns.entries), &(&1.id == image_id)) do
+      if Enum.any?(Entries.visible_images(socket.assigns.filtered_entries), &(&1.id == image_id)) do
         assign(socket, :selected_image_id, image_id)
       else
         socket
@@ -366,7 +387,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
     video_id = normalize_id(id)
 
     socket =
-      if Enum.any?(Entries.visible_videos(socket.assigns.entries), &(&1.id == video_id)) do
+      if Enum.any?(Entries.visible_videos(socket.assigns.filtered_entries), &(&1.id == video_id)) do
         assign(socket, :selected_video_id, video_id)
       else
         socket
@@ -383,7 +404,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
     audio_id = normalize_id(id)
 
     socket =
-      if Enum.any?(Entries.visible_audios(socket.assigns.entries), &(&1.id == audio_id)) do
+      if Enum.any?(Entries.visible_audios(socket.assigns.filtered_entries), &(&1.id == audio_id)) do
         assign(socket, :selected_audio_id, audio_id)
       else
         socket
@@ -438,16 +459,24 @@ defmodule OpenDriveWeb.DriveLive.Index do
     controls = socket.assigns.controls
     children = socket.assigns.children
 
-    entries =
-      Entries.apply(children, controls)
+    filtered_entries = Entries.apply(children, controls)
+    {entries, pagination} = Pagination.paginate(filtered_entries, controls["page"])
 
     assign(socket,
+      filtered_entries: filtered_entries,
       entries: entries,
+      pagination: pagination,
       selected_entries:
-        Entries.sanitize_selected(entries, socket.assigns[:selected_entries] || MapSet.new()),
-      selected_image_id: Entries.selected_image_id(entries, socket.assigns[:selected_image_id]),
-      selected_video_id: Entries.selected_video_id(entries, socket.assigns[:selected_video_id]),
-      selected_audio_id: Entries.selected_audio_id(entries, socket.assigns[:selected_audio_id]),
+        Entries.sanitize_selected(
+          filtered_entries,
+          socket.assigns[:selected_entries] || MapSet.new()
+        ),
+      selected_image_id:
+        Entries.selected_image_id(filtered_entries, socket.assigns[:selected_image_id]),
+      selected_video_id:
+        Entries.selected_video_id(filtered_entries, socket.assigns[:selected_video_id]),
+      selected_audio_id:
+        Entries.selected_audio_id(filtered_entries, socket.assigns[:selected_audio_id]),
       workspace_used_size: Drive.workspace_used_size(socket.assigns.current_scope),
       folder_count: length(children.folders),
       file_count: length(children.files),
@@ -487,9 +516,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   defp assign_controls(socket, params) do
+    previous = socket.assigns.controls || @default_controls
+
     controls =
       @default_controls
-      |> Map.merge(socket.assigns.controls || %{})
+      |> Map.merge(previous)
       |> Map.merge(params)
       |> Map.update!("view", fn view -> if view in ["grid", "list"], do: view, else: "grid" end)
       |> Map.update!("type", fn type ->
@@ -511,10 +542,21 @@ defmodule OpenDriveWeb.DriveLive.Index do
           "modified_desc"
         end
       end)
+      |> maybe_reset_page(previous)
+      |> Map.update!("page", fn page -> Integer.to_string(Pagination.parse_page(page)) end)
 
     socket
     |> assign(:controls, controls)
     |> assign(:controls_form, to_form(controls, as: "controls"))
+  end
+
+  defp maybe_reset_page(controls, previous) do
+    if controls["query"] != previous["query"] or controls["type"] != previous["type"] or
+         controls["sort"] != previous["sort"] do
+      Map.put(controls, "page", "1")
+    else
+      controls
+    end
   end
 
   defp next_sort(current_sort, "name") when current_sort == "name_asc", do: "name_desc"
@@ -575,7 +617,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
   end
 
   defp cycle_selected_image(socket, step) do
-    images = Entries.visible_images(socket.assigns.entries)
+    images = Entries.visible_images(socket.assigns.filtered_entries)
 
     case Enum.find_index(images, &(&1.id == socket.assigns.selected_image_id)) do
       nil ->
@@ -617,19 +659,31 @@ defmodule OpenDriveWeb.DriveLive.Index do
   def render(assigns) do
     assigns =
       assigns
-      |> assign(:selected_image, selected_image(assigns.entries, assigns.selected_image_id))
-      |> assign(:selected_video, selected_video(assigns.entries, assigns.selected_video_id))
-      |> assign(:selected_audio, selected_audio(assigns.entries, assigns.selected_audio_id))
-      |> assign(:audio_playlist, visible_audio_playlist(assigns.entries))
-      |> assign(:editing_folder, editing_folder(assigns.entries, assigns.editing_folder_id))
-      |> assign(:editing_file, editing_file(assigns.entries, assigns.editing_file_id))
+      |> assign(
+        :selected_image,
+        selected_image(assigns.filtered_entries, assigns.selected_image_id)
+      )
+      |> assign(
+        :selected_video,
+        selected_video(assigns.filtered_entries, assigns.selected_video_id)
+      )
+      |> assign(
+        :selected_audio,
+        selected_audio(assigns.filtered_entries, assigns.selected_audio_id)
+      )
+      |> assign(:audio_playlist, visible_audio_playlist(assigns.filtered_entries))
+      |> assign(
+        :editing_folder,
+        editing_folder(assigns.filtered_entries, assigns.editing_folder_id)
+      )
+      |> assign(:editing_file, editing_file(assigns.filtered_entries, assigns.editing_file_id))
       |> assign(
         :selected_list_entries,
-        selected_entries(assigns.entries, assigns.selected_entries)
+        selected_entries(assigns.filtered_entries, assigns.selected_entries)
       )
       |> assign(
         :selected_file_entries,
-        selected_file_entries(assigns.entries, assigns.selected_entries)
+        selected_file_entries(assigns.filtered_entries, assigns.selected_entries)
       )
       |> assign(
         :all_list_entries_selected,
@@ -637,11 +691,11 @@ defmodule OpenDriveWeb.DriveLive.Index do
       )
       |> assign(
         :pending_delete_folder,
-        pending_delete_folder(assigns.entries, assigns.pending_delete_folder_id)
+        pending_delete_folder(assigns.filtered_entries, assigns.pending_delete_folder_id)
       )
       |> assign(
         :pending_delete_file,
-        pending_delete_file(assigns.entries, assigns.pending_delete_file_id)
+        pending_delete_file(assigns.filtered_entries, assigns.pending_delete_file_id)
       )
 
     ~H"""
