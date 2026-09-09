@@ -3,6 +3,8 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   use OpenDriveWeb, :verified_routes
 
+  alias OpenDrive.Storage
+
   @default_sort "modified_desc"
 
   def apply(children, controls) do
@@ -83,12 +85,15 @@ defmodule OpenDriveWeb.DriveLive.Entries do
           size: nil,
           updated_at: folder.updated_at,
           href: ~p"/app/folders/#{folder.id}",
+          media_url: nil,
           preview: :folder
         }
       end)
 
     file_entries =
       Enum.map(children.files, fn file ->
+        preview = preview_kind(file)
+
         %{
           id: file.id,
           kind: :file,
@@ -97,13 +102,8 @@ defmodule OpenDriveWeb.DriveLive.Entries do
           size: file.file_object.size,
           updated_at: file.updated_at,
           href: ~p"/app/files/#{file.id}/download",
-          preview:
-            cond do
-              image_file?(file) -> :image
-              video_file?(file) -> :video
-              audio_file?(file) -> :audio
-              true -> :file
-            end
+          media_url: media_url(file, preview),
+          preview: preview
         }
       end)
 
@@ -191,6 +191,24 @@ defmodule OpenDriveWeb.DriveLive.Entries do
 
   defp entry_order(%{kind: :folder}), do: 0
   defp entry_order(%{kind: :file}), do: 1
+
+  defp preview_kind(file) do
+    cond do
+      image_file?(file) -> :image
+      video_file?(file) -> :video
+      audio_file?(file) -> :audio
+      true -> :file
+    end
+  end
+
+  defp media_url(_file, preview) when preview not in [:image, :video, :audio], do: nil
+
+  defp media_url(file, _preview) do
+    case Storage.presigned_download_url(file.file_object.key) do
+      {:ok, url} -> url
+      _ -> nil
+    end
+  end
 
   defp image_file?(file), do: String.starts_with?(file.file_object.content_type || "", "image/")
   defp video_file?(file), do: String.starts_with?(file.file_object.content_type || "", "video/")

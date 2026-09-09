@@ -590,6 +590,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
         "id" => entry.id,
         "name" => entry.name,
         "href" => entry.href,
+        "media_url" => entry.media_url,
         "content_type" => entry.content_type,
         "size" => entry.size
       }
@@ -1056,7 +1057,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                   </button>
 
                   <img
-                    src={selected.href}
+                    src={selected.media_url}
                     alt={selected.name}
                     class="max-h-[75vh] w-full rounded-[1.5rem] object-contain"
                   />
@@ -1106,7 +1107,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                     <div class="relative overflow-hidden rounded-[1.4rem] bg-black">
                       <div class="aspect-video">
                         <video
-                          src={selected.href}
+                          src={selected.media_url}
                           preload="metadata"
                           playsinline
                           muted
@@ -1506,7 +1507,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
                         </div>
 
                         <audio
-                          src={selected.href}
+                          src={selected.media_url}
                           preload="metadata"
                           class="hidden"
                         />
