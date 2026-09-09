@@ -2126,7 +2126,7 @@ const Hooks = {
 
       const track = this.playlist[index];
       this.currentIndex = index;
-      this.audio.src = track.href;
+      this.audio.src = track.media_url || track.href;
       this.audio.load();
       this.audio.currentTime = 0;
       this.syncTrackMeta();

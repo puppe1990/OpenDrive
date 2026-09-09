@@ -57,7 +57,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     File.write!(video_path, "fake video")
     File.write!(audio_path, "fake audio")
 
-    {:ok, _image} =
+    {:ok, image} =
       Drive.upload_file(workspace.scope, %{}, %{
         path: image_path,
         client_name: "cover.webp",
@@ -65,7 +65,7 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
         size: byte_size("fake image")
       })
 
-    {:ok, _video} =
+    {:ok, video} =
       Drive.upload_file(workspace.scope, %{}, %{
         path: video_path,
         client_name: "clip.mp4",
@@ -85,8 +85,13 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     {:ok, lv, html} = live(conn, ~p"/app")
 
     video_card_html = render(lv)
+    {:ok, image_media_url} = OpenDrive.Storage.presigned_download_url(image.file_object.key)
+    {:ok, video_media_url} = OpenDrive.Storage.presigned_download_url(video.file_object.key)
 
-    assert html =~ ~s(src="/app/files/)
+    assert html =~ ~s(src="#{image_media_url}")
+    refute html =~ ~s(<img src="/app/files/#{image.id}/download")
+    assert html =~ ~s(href="/app/files/#{image.id}/download")
+    assert html =~ ~s(loading="lazy")
     assert html =~ "<img"
     assert html =~ ~s(phx-click="open_video")
     assert html =~ ~s(phx-hook="VideoCardPreview")
@@ -96,6 +101,8 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "Abrir player de audio"
     assert video_card_html =~ ~s(id="video-card-preview-)
     assert video_card_html =~ ~s(data-role="video-card-source")
+    assert video_card_html =~ ~s(src="#{video_media_url}")
+    refute video_card_html =~ ~s(src="/app/files/#{video.id}/download")
     assert video_card_html =~ ~s(preload="metadata")
     assert video_card_html =~ ~s(crossorigin="anonymous")
     assert video_card_html =~ ~s(data-fallback-visibility="visible")
@@ -277,7 +284,10 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("button[phx-click='open_image'][phx-value-id='#{first.id}']")
       |> render_click()
 
+    {:ok, first_media_url} = OpenDrive.Storage.presigned_download_url(first.file_object.key)
     assert html =~ "first.webp"
+    assert html =~ ~s(src="#{first_media_url}")
+    refute html =~ ~s(src="/app/files/#{first.id}/download")
 
     html =
       lv
@@ -320,8 +330,11 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("button[phx-click='open_video'][phx-value-id='#{video.id}']")
       |> render_click()
 
+    {:ok, video_media_url} = OpenDrive.Storage.presigned_download_url(video.file_object.key)
     assert html =~ "OpenDrive Player"
     assert html =~ "demo.mp4"
+    assert html =~ ~s(src="#{video_media_url}")
+    refute html =~ ~s(src="/app/files/#{video.id}/download")
     assert html =~ ~s(id="video-modal-#{video.id}")
     assert html =~ "Atalhos do teclado"
     assert html =~ "Play / Pause"
@@ -370,8 +383,11 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       |> element("button[phx-click='open_audio'][phx-value-id='#{audio.id}']")
       |> render_click()
 
+    {:ok, audio_media_url} = OpenDrive.Storage.presigned_download_url(audio.file_object.key)
     assert html =~ "OpenDrive Audio"
     assert html =~ "episode.mp3"
+    assert html =~ audio_media_url
+    refute html =~ ~s(src="/app/files/#{audio.id}/download")
     assert html =~ ~s(id="audio-modal-#{audio.id}")
     assert html =~ ~s(phx-hook="AudioPreview")
     assert html =~ ~s(data-role="progress")

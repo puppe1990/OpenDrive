@@ -606,7 +606,13 @@ defmodule OpenDriveWeb.DriveLive.Components do
               phx-value-id={entry.id}
               class="block w-full overflow-hidden rounded-[1.25rem] ring-1 ring-slate-200 transition hover:ring-sky-300"
             >
-              <img src={entry.href} alt={entry.name} class="h-36 w-full object-cover" />
+              <img
+                src={entry.media_url}
+                alt={entry.name}
+                loading="lazy"
+                decoding="async"
+                class="h-36 w-full object-cover"
+              />
             </button>
 
             <button
@@ -629,7 +635,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
               </canvas>
               <video
                 data-role="video-card-source"
-                src={entry.href}
+                src={entry.media_url}
                 preload="metadata"
                 muted
                 playsinline
