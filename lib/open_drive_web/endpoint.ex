@@ -30,6 +30,8 @@ defmodule OpenDriveWeb.Endpoint do
     only: OpenDriveWeb.static_paths(),
     raise_on_missing_only: code_reloading?
 
+  plug OpenDriveWeb.ScannerBlocker
+
   # Code reloading can be explicitly enabled under the
   # :code_reloader configuration of your endpoint.
   if code_reloading? do
