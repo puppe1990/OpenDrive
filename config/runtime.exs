@@ -43,15 +43,14 @@ if config_env() == :prod do
   config :open_drive, OpenDrive.Repo, OpenDrive.Config.Turso.repo_config()
 end
 
-storage_adapter =
-  case System.get_env("OPEN_DRIVE_STORAGE_ADAPTER") do
-    "s3" -> OpenDrive.Storage.S3
-    _ -> OpenDrive.Storage.Fake
-  end
+storage_settings = OpenDrive.Config.Storage.provider_settings(&System.get_env/1, config_env())
+
+config :ex_aws, storage_settings.ex_aws
+config :ex_aws, :s3, storage_settings.ex_aws_service
 
 config :open_drive, OpenDrive.Storage,
-  adapter: storage_adapter,
-  bucket: System.get_env("AWS_S3_BUCKET") || "open-drive-dev"
+  adapter: storage_settings.adapter,
+  bucket: storage_settings.bucket
 
 if config_env() == :prod do
   secret_key_base =
