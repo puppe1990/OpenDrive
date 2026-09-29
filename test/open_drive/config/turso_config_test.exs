@@ -40,6 +40,19 @@ defmodule OpenDrive.Config.TursoConfigTest do
            ] = Turso.repo_config(env)
   end
 
+  test "prefers DATABASE_PATH over Turso so a local cutover does not need the URL unset first" do
+    env = fn
+      "DATABASE_PATH" -> "/var/lib/open_drive/open_drive.db"
+      "TURSO_DATABASE_URL" -> "libsql://open-drive-prod.turso.io"
+      "TURSO_AUTH_TOKEN" -> "secret-token"
+      _ -> nil
+    end
+
+    config = Turso.repo_config(env)
+    assert config[:database] == "/var/lib/open_drive/open_drive.db"
+    refute Keyword.has_key?(config, :uri)
+  end
+
   test "falls back to local SQLite path when Turso URL is absent" do
     env = fn
       "DATABASE_PATH" -> "/var/data/open_drive.db"
@@ -50,6 +63,7 @@ defmodule OpenDrive.Config.TursoConfigTest do
     assert [
              adapter: Ecto.Adapters.LibSql,
              database: "/var/data/open_drive.db",
+             journal_mode: :wal,
              pool_size: 5,
              queue_target: 5000,
              queue_interval: 1000,
