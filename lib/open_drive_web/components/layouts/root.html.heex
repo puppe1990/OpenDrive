@@ -4,9 +4,37 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="application-name" content="OpenDrive" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="OpenDrive" />
+    <meta name="description" content="A calm, secure workspace for your team's files." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="OpenDrive" />
+    <meta property="og:title" content="OpenDrive — Your team's work, in one calm place." />
+    <meta
+      property="og:description"
+      content="Organize files, people, and activity in one calm, secure workspace."
+    />
+    <meta property="og:url" content={url(~p"/")} />
+    <meta property="og:image" content={url(~p"/images/og-preview.jpg")} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="OpenDrive team file workspace preview" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenDrive — Your team's work, in one calm place." />
+    <meta
+      name="twitter:description"
+      content="Organize files, people, and activity in one calm, secure workspace."
+    />
+    <meta name="twitter:image" content={url(~p"/images/og-preview.jpg")} />
     <title>OpenDrive</title>
     <link rel="icon" type="image/svg+xml" href={~p"/favicon.svg"} />
     <link rel="alternate icon" href={~p"/favicon.ico"} />
+    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/pwa-icon-180.png"} />
+    <link rel="manifest" href={~p"/manifest.webmanifest"} />
     <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
     </script>

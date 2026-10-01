@@ -43,7 +43,7 @@ defmodule OpenDriveWeb.Layouts do
       class="od-app-shell min-h-screen text-slate-950"
     >
       <header class="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
-        <div class="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-8">
+        <div class="mx-auto flex max-w-[1440px] flex-col gap-3 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-8">
           <a href="/" class="flex items-center gap-3">
             <div class="od-brand-mark size-10 rounded-[0.9rem]" aria-hidden="true"></div>
             <div>
@@ -89,43 +89,43 @@ defmodule OpenDriveWeb.Layouts do
 
           <div class="flex flex-col gap-3 lg:ml-auto lg:items-end">
             <%= if @current_scope && @current_scope.user do %>
-              <div class="flex flex-col gap-3 lg:hidden">
+              <div class="lg:hidden">
                 <.tenant_switcher current_scope={@current_scope} />
-                <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+                <div class="flex items-center gap-1 overflow-x-auto rounded-xl bg-slate-100 p-1">
                   <.link
                     navigate={~p"/app"}
-                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                    class="inline-flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-white hover:text-slate-950"
                   >
                     {gettext("Drive")}
                   </.link>
                   <.link
                     navigate={~p"/app/members"}
-                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                    class="inline-flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-white hover:text-slate-950"
                   >
                     {gettext("Members")}
                   </.link>
                   <.link
                     navigate={~p"/app/trash"}
-                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                    class="inline-flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-white hover:text-slate-950"
                   >
                     {gettext("Trash")}
                   </.link>
                   <.link
                     href={~p"/users/settings"}
-                    class="inline-flex h-11 items-center justify-center rounded-2xl px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/75 hover:text-slate-950"
+                    class="inline-flex h-9 flex-1 items-center justify-center rounded-lg px-3 text-sm font-semibold text-slate-700 transition hover:bg-white hover:text-slate-950"
                   >
                     {gettext("Settings")}
                   </.link>
                 </div>
               </div>
 
-              <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center lg:justify-end lg:gap-2">
+              <div class="flex flex-wrap items-center gap-2 lg:justify-end">
                 <.tenant_switcher current_scope={@current_scope} />
                 <.translation_switcher locale={@locale || Gettext.get_locale(OpenDriveWeb.Gettext)} />
                 <.link
                   href={~p"/users/log-out"}
                   method="delete"
-                  class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
+                  class="inline-flex h-10 flex-1 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950 sm:flex-none"
                 >
                   {gettext("Log out")}
                 </.link>
@@ -166,11 +166,11 @@ defmodule OpenDriveWeb.Layouts do
 
   def translation_switcher(assigns) do
     ~H"""
-    <div class="inline-flex rounded-[1.4rem] bg-slate-100 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-slate-200/80">
+    <div class="inline-flex rounded-xl bg-slate-100 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-slate-200/80">
       <.link
         href="?locale=pt-BR"
         class={[
-          "rounded-[1rem] px-4 py-2 text-[0.95rem] font-semibold tracking-[-0.02em] transition",
+          "rounded-lg px-3 py-2 text-sm font-semibold tracking-[-0.02em] transition",
           @locale == "pt_BR" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
           @locale != "pt_BR" && "text-slate-500 hover:text-slate-800"
         ]}
@@ -180,7 +180,7 @@ defmodule OpenDriveWeb.Layouts do
       <.link
         href="?locale=en"
         class={[
-          "rounded-[1rem] px-4 py-2 text-[0.95rem] font-semibold tracking-[-0.02em] transition",
+          "rounded-lg px-3 py-2 text-sm font-semibold tracking-[-0.02em] transition",
           @locale == "en" && "bg-white text-slate-950 shadow-[0_6px_16px_rgba(15,23,42,0.12)]",
           @locale != "en" && "text-slate-500 hover:text-slate-800"
         ]}

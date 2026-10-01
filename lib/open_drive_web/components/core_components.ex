@@ -217,7 +217,7 @@ defmodule OpenDriveWeb.CoreComponents do
 
   defp button_loading_content(assigns) do
     ~H"""
-    <span class="inline-flex items-center gap-2 phx-click-loading:inline-flex phx-submit-loading:inline-flex hidden">
+    <span class="hidden items-center gap-2 phx-click-loading:inline-flex phx-submit-loading:inline-flex">
       <.spinner size={@spinner_size} />
       <span :if={@loading_label}>{@loading_label}</span>
     </span>
