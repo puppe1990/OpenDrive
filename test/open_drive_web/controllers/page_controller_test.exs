@@ -4,7 +4,7 @@ defmodule OpenDriveWeb.PageControllerTest do
   test "GET / renders the product landing page", %{conn: conn} do
     conn = get(conn, ~p"/")
 
-    assert html_response(conn, 200) =~ "Seu drive interno multi-tenant"
+    assert html_response(conn, 200) =~ "O trabalho da sua equipe"
     assert html_response(conn, 200) =~ "Criar workspace"
   end
 
