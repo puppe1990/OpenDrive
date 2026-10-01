@@ -7,26 +7,26 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def sidebar(assigns) do
     ~H"""
-    <aside class="space-y-5 lg:sticky lg:top-6">
-      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_40px_rgba(23,32,47,0.06)]">
-        <div class="mb-5 border-b border-slate-200/80 pb-4">
+    <aside class="border-b border-slate-200 bg-slate-50/80 lg:border-b-0 lg:border-r">
+      <div class="p-4 lg:sticky lg:top-0 lg:p-5">
+        <div class="mb-6 hidden rounded-2xl bg-slate-950 p-4 text-white shadow-[0_16px_34px_rgba(15,23,42,0.14)] lg:block">
           <div class="flex items-start gap-3">
             <div class="od-brand-mark size-11 rounded-xl" aria-hidden="true"></div>
             <div class="min-w-0">
-              <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">
+              <p class="text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-400">
                 {gettext("Workspace")}
               </p>
-              <p class="mt-2 truncate text-lg font-black tracking-tight text-slate-950">
+              <p class="mt-1 truncate text-base font-bold tracking-tight text-white">
                 {@view.current_scope.tenant.name}
               </p>
-              <p class="mt-1 truncate text-sm text-slate-500">{@view.current_scope.user.email}</p>
+              <p class="mt-1 truncate text-xs text-slate-400">{@view.current_scope.user.email}</p>
             </div>
           </div>
         </div>
 
         <button
           phx-click="toggle_new_menu"
-          class="flex w-full items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.22)] transition hover:bg-blue-700"
+          class="flex w-full items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.2)] transition hover:-translate-y-0.5 hover:bg-blue-700"
         >
           <span class="flex items-center gap-3">
             <span class="flex size-8 items-center justify-center rounded-xl bg-white/10">
@@ -42,7 +42,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
         <div
           :if={@view.new_menu_open}
-          class="mt-3 space-y-4 rounded-[1.35rem] border border-slate-200/80 bg-slate-50/90 p-3"
+          class="mt-3 space-y-4 rounded-xl border border-slate-200 bg-white p-3 shadow-sm"
         >
           <.form for={@view.folder_form} phx-submit="create_folder" class="space-y-2">
             <.input
@@ -54,24 +54,24 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <.button
               type="submit"
               loading_label={gettext("Creating...")}
-              class="btn btn-primary w-full"
+              class="inline-flex h-10 w-full items-center justify-center rounded-lg bg-blue-600 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
             >
               {gettext("Create folder")}
             </.button>
           </.form>
         </div>
 
-        <div class="mt-5">
+        <div class="mt-7 hidden lg:block">
           <p class="px-2 text-[11px] font-semibold uppercase tracking-[0.28em] text-slate-400">
             {gettext("Browse")}
           </p>
-          <nav class="mt-3 space-y-1">
+          <nav class="mt-3 space-y-0.5">
             <button
               phx-click="set_sidebar_preset"
               phx-value-preset="my_drive"
-              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-slate-100"
+              class="flex w-full items-center gap-3 rounded-xl bg-blue-50 px-3 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-slate-950 text-white">
+              <span class="flex size-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm">
                 <.icon name="hero-home" class="size-4.5" />
               </span>
               {gettext("My Drive")}
@@ -79,9 +79,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <button
               phx-click="set_sidebar_preset"
               phx-value-preset="recent"
-              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-slate-100 text-slate-600">
+              <span class="flex size-8 items-center justify-center rounded-lg text-slate-500">
                 <.icon name="hero-clock" class="size-4.5" />
               </span>
               {gettext("Recent")}
@@ -89,9 +89,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <button
               phx-click="set_sidebar_preset"
               phx-value-preset="images"
-              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-sky-50 text-sky-700">
+              <span class="flex size-8 items-center justify-center rounded-lg text-slate-500">
                 <.icon name="hero-photo" class="size-4.5" />
               </span>
               {gettext("Images")}
@@ -99,9 +99,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <button
               phx-click="set_sidebar_preset"
               phx-value-preset="videos"
-              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-violet-50 text-violet-700">
+              <span class="flex size-8 items-center justify-center rounded-lg text-slate-500">
                 <.icon name="hero-film" class="size-4.5" />
               </span>
               {gettext("Videos")}
@@ -109,18 +109,18 @@ defmodule OpenDriveWeb.DriveLive.Components do
             <button
               phx-click="set_sidebar_preset"
               phx-value-preset="folders"
-              class="flex w-full items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-amber-50 text-amber-700">
+              <span class="flex size-8 items-center justify-center rounded-lg text-slate-500">
                 <.icon name="hero-folder" class="size-4.5" />
               </span>
               {gettext("Folders")}
             </button>
             <.link
               navigate={~p"/app/trash"}
-              class="flex items-center gap-3 rounded-[1.2rem] px-2.5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-600 transition hover:bg-white hover:text-slate-950"
             >
-              <span class="flex size-9 items-center justify-center rounded-[1rem] bg-rose-50 text-rose-700">
+              <span class="flex size-8 items-center justify-center rounded-lg text-slate-500">
                 <.icon name="hero-trash" class="size-4.5" />
               </span>
               {gettext("Trash")}
@@ -128,8 +128,8 @@ defmodule OpenDriveWeb.DriveLive.Components do
           </nav>
         </div>
 
-        <div class="mt-5 border-t border-slate-200/80 pt-4">
-          <div class="flex items-center justify-between gap-3 rounded-[1.2rem] bg-slate-50 px-3 py-3">
+        <div class="mt-7 hidden border-t border-slate-200 pt-5 lg:block">
+          <div class="flex items-center justify-between gap-3 px-2">
             <div>
               <p class="text-[11px] font-semibold uppercase tracking-[0.26em] text-slate-400">
                 {gettext("Storage")}
@@ -143,7 +143,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             </p>
           </div>
           <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-200">
-            <div class="h-full w-2/3 rounded-full bg-slate-950"></div>
+            <div class="h-full w-2/3 rounded-full bg-blue-600"></div>
           </div>
           <p class="mt-2 px-1 text-xs text-slate-400">
             {gettext("Workspace overview")}
@@ -158,7 +158,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def main_content(assigns) do
     ~H"""
-    <div class="space-y-5">
+    <div class="min-w-0 space-y-6 p-4 sm:p-6 lg:p-8">
       <input
         id="folder-upload-input"
         data-direct-upload-input
@@ -194,13 +194,13 @@ defmodule OpenDriveWeb.DriveLive.Components do
         </div>
       </div>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_40px_rgba(23,32,47,0.06)]">
-        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-slate-200/80 bg-white/85 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+      <section class="rounded-2xl bg-blue-600 p-4 text-white shadow-[0_16px_36px_rgba(37,99,235,0.16)]">
+        <div class="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p class="text-sm font-semibold text-slate-900">
+            <p class="text-sm font-semibold text-white">
               {gettext("Upload files from anywhere on the screen")}
             </p>
-            <p class="text-xs text-slate-500">
+            <p class="mt-0.5 text-xs text-blue-100">
               {gettext("Or choose files manually if you prefer.")}
             </p>
           </div>
@@ -210,7 +210,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             data-direct-upload-trigger
             type="button"
             aria-label={gettext("Select files from device")}
-            class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+            class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50"
           >
             <.icon name="hero-arrow-up-tray" class="size-4.5" />
             {gettext("Choose files")}
@@ -221,7 +221,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
           id="direct-upload-queue"
           data-direct-upload-queue
           phx-update="ignore"
-          class="mb-4 overflow-hidden rounded-[1.65rem] bg-white shadow-sm ring-1 ring-slate-200"
+          class="mt-4 overflow-hidden rounded-xl bg-white text-slate-900 shadow-sm ring-1 ring-blue-400"
           hidden
         >
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
@@ -301,7 +301,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
           id="direct-upload-errors"
           data-direct-upload-errors
           phx-update="ignore"
-          class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"
+          class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800"
           hidden
         >
         </div>
@@ -310,7 +310,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
           id="direct-upload-preparing"
           data-direct-upload-preparing
           phx-update="ignore"
-          class="mb-4 rounded-2xl border border-sky-200 bg-sky-50/90 px-4 py-3 text-sm text-sky-900 shadow-sm ring-1 ring-sky-100"
+          class="mt-4 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm text-blue-900 shadow-sm"
           aria-live="polite"
           hidden
         >
@@ -333,25 +333,25 @@ defmodule OpenDriveWeb.DriveLive.Components do
       <nav
         id="drive-breadcrumbs"
         aria-label={gettext("Breadcrumb")}
-        class="flex flex-wrap items-center gap-2 rounded-[1.4rem] border border-slate-200/80 bg-white/80 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+        class="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-5 text-sm"
       >
         <.link
           navigate={~p"/app"}
-          class="rounded-full px-2.5 py-1 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
+          class="text-2xl font-bold tracking-[-0.04em] text-slate-950 transition hover:text-blue-600"
         >
           {gettext("My Drive")}
         </.link>
 
         <%= for folder <- @view.breadcrumbs do %>
-          <span class="text-slate-300">/</span>
+          <span class="text-lg text-slate-300">/</span>
           <.link
             navigate={~p"/app/folders/#{folder.id}"}
             class={[
-              "rounded-full px-2.5 py-1 font-medium transition",
+              "text-lg font-semibold transition",
               folder.id == @view.current_folder_id &&
-                "bg-sky-50 text-sky-700 ring-1 ring-sky-100 hover:bg-sky-100",
+                "text-blue-600 hover:text-blue-700",
               folder.id != @view.current_folder_id &&
-                "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+                "text-slate-500 hover:text-slate-950"
             ]}
             aria-current={folder.id == @view.current_folder_id && "page"}
           >
@@ -364,9 +364,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
         for={@view.controls_form}
         id="controls_form"
         phx-change="update_controls"
-        class="flex flex-col gap-3 rounded-[1.6rem] border border-slate-200/80 bg-white/80 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:flex-row md:flex-wrap md:items-center"
+        class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-2 md:flex-row md:flex-wrap md:items-center"
       >
-        <label class="flex w-full min-w-0 flex-1 items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] md:min-w-[220px]">
+        <label class="flex w-full min-w-0 flex-1 items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm md:min-w-[220px]">
           <.icon name="hero-magnifying-glass" class="size-5 text-slate-400" />
           <input
             type="text"
@@ -387,7 +387,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             {gettext("Images"), "images"},
             {gettext("Videos"), "videos"}
           ]}
-          class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
+          class="select w-full rounded-lg border-slate-200 bg-white px-4 md:w-auto"
         />
 
         <.input
@@ -403,7 +403,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             {gettext("Largest size"), "size_desc"},
             {gettext("Smallest size"), "size_asc"}
           ]}
-          class="select w-full rounded-2xl bg-slate-100 px-4 md:w-auto"
+          class="select w-full rounded-lg border-slate-200 bg-white px-4 md:w-auto"
         />
 
         <input
@@ -431,12 +431,12 @@ defmodule OpenDriveWeb.DriveLive.Components do
           </span>
         </div>
 
-        <div class="inline-flex self-start rounded-2xl border border-slate-200 bg-white p-1 shadow-sm md:self-auto">
+        <div class="inline-flex self-start rounded-xl border border-slate-200 bg-slate-50 p-1 md:self-auto">
           <button
             phx-click="set_view"
             phx-value-view="grid"
             class={[
-              "rounded-xl px-3 py-2 text-sm transition",
+              "rounded-lg px-3 py-2 text-sm transition",
               @view.controls["view"] == "grid" && "bg-white shadow-sm text-slate-950",
               @view.controls["view"] != "grid" && "text-slate-500"
             ]}
@@ -447,7 +447,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
             phx-click="set_view"
             phx-value-view="list"
             class={[
-              "rounded-xl px-3 py-2 text-sm transition",
+              "rounded-lg px-3 py-2 text-sm transition",
               @view.controls["view"] == "list" && "bg-white shadow-sm text-slate-950",
               @view.controls["view"] != "list" && "text-slate-500"
             ]}
@@ -530,9 +530,9 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
   def grid_entries(assigns) do
     ~H"""
-    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <section class="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
       <%= for entry <- @view.entries do %>
-        <article class="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_18px_55px_rgba(148,163,184,0.14)] ring-1 ring-white/80 transition duration-200 hover:-translate-y-0.5 hover:shadow-[0_26px_70px_rgba(148,163,184,0.22)]">
+        <article class="group overflow-hidden rounded-2xl border border-slate-200 bg-white transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_18px_44px_rgba(23,32,47,0.10)]">
           <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-4">
             <div class="flex min-w-0 flex-1 items-center gap-3">
               <div class={[

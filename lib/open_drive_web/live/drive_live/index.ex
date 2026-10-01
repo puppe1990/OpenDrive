@@ -27,7 +27,7 @@ defmodule OpenDriveWeb.DriveLive.Index do
       |> assign(:pending_delete_folder_id, nil)
       |> assign(:pending_delete_file_id, nil)
       |> assign(:confirm_bulk_delete, false)
-      |> assign(:new_menu_open, true)
+      |> assign(:new_menu_open, false)
       |> assign(:children, %{folders: [], files: []})
       |> assign(:filtered_entries, [])
       |> assign(:entries, [])
@@ -715,8 +715,8 @@ defmodule OpenDriveWeb.DriveLive.Index do
       data-backend-fallback-size={Drive.backend_upload_fallback_size()}
       data-max-concurrent-uploads={Drive.max_concurrent_uploads()}
     >
-      <section class="od-reveal">
-        <div class="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+      <section class="od-reveal overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_24px_80px_rgba(23,32,47,0.08)]">
+        <div class="grid min-h-[calc(100vh-11rem)] lg:grid-cols-[260px_minmax(0,1fr)]">
           <Components.sidebar view={assigns} />
           <Components.main_content view={assigns} />
 
