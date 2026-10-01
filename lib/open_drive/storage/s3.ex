@@ -31,7 +31,8 @@ defmodule OpenDrive.Storage.S3 do
     with {:ok, url} <-
            ExAws.Config.new(:s3)
            |> ExAws.S3.presigned_url(:put, OpenDrive.Storage.bucket(), key,
-             expires_in: expires_in
+             expires_in: expires_in,
+             headers: [{"content-type", content_type}]
            ) do
       {:ok, %{url: url, headers: %{"content-type" => content_type}}}
     end

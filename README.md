@@ -206,15 +206,24 @@ To verify:
 aws s3api get-bucket-cors --bucket YOUR_BUCKET
 ```
 
-Backblaze B2 expresses the same rules as `corsRules` on the bucket (Backblaze panel → Bucket → CORS Rules, or a `b2_update_bucket` call):
+OpenDrive talks to B2 through the S3-compatible API (`PUT`/`GET`/`HEAD` on presigned URLs). Native B2 operations such as `b2_upload_file` do not cover that path. If the bucket has no native CORS rules yet, `PutBucketCors` works (or the Backblaze panel with **S3 Compatible API** selected). If native rules already exist, B2 rejects `PutBucketCors` — update them with `b2_update_bucket` and include `s3_put`, `s3_get`, and `s3_head`.
+
+```bash
+aws s3api put-bucket-cors \
+  --bucket YOUR_BUCKET \
+  --endpoint-url https://s3.us-east-005.backblazeb2.com \
+  --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://localhost:4000","https://drive.gestaobem.com"],"AllowedMethods":["GET","HEAD","PUT"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag","Content-Length"],"MaxAgeSeconds":3600}]}'
+```
+
+The equivalent native `corsRules` JSON uses `s3_put`, `s3_get`, and `s3_head`:
 
 ```json
 [
   {
     "corsRuleName": "opendrive-web",
-    "allowedOrigins": ["http://localhost:4000", "https://drive.example.com"],
+    "allowedOrigins": ["http://localhost:4000", "https://drive.gestaobem.com"],
     "allowedHeaders": ["*"],
-    "allowedOperations": ["b2_download_file_by_name", "b2_download_file_by_id", "b2_upload_file", "b2_upload_part"],
+    "allowedOperations": ["s3_put", "s3_get", "s3_head"],
     "exposeHeaders": ["ETag", "Content-Length"],
     "maxAgeSeconds": 3600
   }
@@ -224,8 +233,9 @@ Backblaze B2 expresses the same rules as `corsRules` on the bucket (Backblaze pa
 Notes:
 
 - Add any extra local or deployed origins you actually use, such as staging or production domains
-- `PUT` (or `b2_upload_file`/`b2_upload_part`) is required for direct uploads
-- `AllowedHeaders=["*"]` avoids preflight failures with presigned headers
+- `s3_put` is required for direct browser uploads; `s3_get`/`s3_head` cover media previews and downloads
+- `AllowedHeaders=["*"]` avoids preflight failures with the signed `content-type` header
+- Fallback through `/app/uploads/proxy` only covers files up to 25 MB. Larger files need this CORS rule.
 
 #### 2. Credentials: IAM policy (AWS) or application key (B2)
 
