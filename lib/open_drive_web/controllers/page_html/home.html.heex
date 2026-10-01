@@ -1,42 +1,120 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <section class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-    <div class="space-y-8">
-      <div class="space-y-4">
-        <p class="text-sm uppercase tracking-[0.4em] text-sky-700">OpenDrive</p>
-        <h1 class="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-          {gettext("Your internal multi-tenant drive built with Phoenix LiveView.")}
+  <section class="grid min-h-[calc(100vh-10rem)] gap-12 py-8 lg:grid-cols-[0.82fr_1.18fr] lg:items-center lg:py-14">
+    <div class="od-reveal space-y-8">
+      <div class="space-y-5">
+        <p class="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.28em] text-blue-700">
+          <span class="h-px w-8 bg-blue-600"></span> OpenDrive for teams
+        </p>
+        <h1 class="od-display max-w-2xl text-5xl leading-[0.98] text-slate-950 sm:text-6xl lg:text-7xl">
+          {gettext("Your team's work, finally in one calm place.")}
         </h1>
         <p class="max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
           {gettext(
-            "Organize files by workspace, control members by role, and keep blobs in S3 with lightweight metadata in SQLite/Turso-compatible storage."
+            "Organize files by workspace, give every person the right access, and keep a clear history of what changed — without the usual clutter."
           )}
         </p>
       </div>
 
-      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <.link navigate={~p"/users/register"} class="btn btn-primary w-full sm:w-auto sm:btn-lg">
+      <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <.link
+          navigate={~p"/users/register"}
+          class="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-[0_14px_30px_rgba(37,99,235,0.25)] transition hover:-translate-y-0.5 hover:bg-blue-700"
+        >
           {gettext("Create workspace")}
+          <.icon name="hero-arrow-right" class="size-4" />
         </.link>
-        <.link navigate={~p"/users/log-in"} class="btn btn-outline w-full sm:w-auto sm:btn-lg">
+        <.link
+          navigate={~p"/users/log-in"}
+          class="inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-bold text-slate-700 transition hover:bg-white hover:text-slate-950 hover:shadow-sm"
+        >
           {gettext("Log in")}
         </.link>
       </div>
+
+      <div class="flex items-center gap-4 border-t border-slate-200 pt-6 text-sm text-slate-500">
+        <div class="flex -space-x-2">
+          <span class="size-8 rounded-full border-2 border-white bg-blue-200"></span>
+          <span class="size-8 rounded-full border-2 border-white bg-amber-200"></span>
+          <span class="size-8 rounded-full border-2 border-white bg-emerald-200"></span>
+        </div>
+        <p>{gettext("Files, people and activity in one workspace")}</p>
+      </div>
     </div>
 
-    <div class="rounded-[2rem] border border-slate-200 bg-gradient-to-br from-sky-50 via-white to-cyan-100 p-5 shadow-xl shadow-sky-100 sm:p-8">
-      <div class="space-y-4">
-        <div class="rounded-2xl bg-slate-950 p-5 text-slate-100">
-          <p class="text-sm text-sky-300">{gettext("Active workspace")}</p>
-          <p class="mt-2 text-2xl font-bold">Product Ops</p>
-        </div>
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="rounded-2xl bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">{gettext("Uploads today")}</p>
-            <p class="mt-2 text-3xl font-bold text-slate-950">128</p>
+    <div class="od-product-preview od-reveal-late overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+        <div class="flex items-center gap-3">
+          <div class="od-brand-mark size-9 rounded-xl"></div>
+          <div>
+            <p class="text-sm font-bold text-slate-950">Product Ops</p>
+            <p class="text-xs text-slate-400">{gettext("Team workspace")}</p>
           </div>
-          <div class="rounded-2xl bg-white p-5 shadow-sm">
-            <p class="text-sm text-slate-500">{gettext("Members")}</p>
-            <p class="mt-2 text-3xl font-bold text-slate-950">14</p>
+        </div>
+        <button class="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white">
+          + {gettext("New")}
+        </button>
+      </div>
+      <div class="grid min-h-[420px] grid-cols-[150px_1fr] sm:grid-cols-[190px_1fr]">
+        <aside class="border-r border-slate-200 bg-slate-50 p-4">
+          <p class="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+            Workspace
+          </p>
+          <div class="space-y-1 text-sm">
+            <div class="rounded-lg bg-blue-50 px-3 py-2.5 font-bold text-blue-700">
+              ◫ {gettext("My Drive")}
+            </div>
+            <div class="px-3 py-2.5 text-slate-500">◷ {gettext("Recent")}</div>
+            <div class="px-3 py-2.5 text-slate-500">♙ {gettext("Shared")}</div>
+          </div>
+        </aside>
+        <div class="min-w-0 p-5 sm:p-7">
+          <div class="mb-7 flex items-end justify-between gap-4">
+            <div>
+              <p class="text-xs font-semibold text-blue-600">{gettext("My Drive")}</p>
+              <h2 class="mt-1 text-xl font-bold tracking-tight text-slate-950">Q4 Launch</h2>
+            </div>
+            <div class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-400 sm:block">
+              ⌕ {gettext("Search files")}
+            </div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-xl border border-slate-200 p-4">
+              <div class="mb-7 flex size-10 items-center justify-center rounded-lg bg-blue-50 text-xl">
+                📁
+              </div>
+              <p class="text-sm font-bold text-slate-900">Brand assets</p>
+              <p class="mt-1 text-xs text-slate-400">12 {gettext("items")}</p>
+            </div>
+            <div class="rounded-xl border border-slate-200 p-4">
+              <div class="mb-7 flex size-10 items-center justify-center rounded-lg bg-amber-50 text-xl">
+                📁
+              </div>
+              <p class="text-sm font-bold text-slate-900">Research</p>
+              <p class="mt-1 text-xs text-slate-400">8 {gettext("items")}</p>
+            </div>
+            <div class="sm:col-span-2">
+              <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                {gettext("Recently updated")}
+              </p>
+              <div class="flex items-center gap-3 border-t border-slate-100 py-3">
+                <span class="flex size-9 items-center justify-center rounded-lg bg-rose-50 text-sm">
+                  PDF
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold">Launch brief.pdf</p>
+                  <p class="text-xs text-slate-400">2.4 MB · {gettext("Today")}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3 border-t border-slate-100 py-3">
+                <span class="flex size-9 items-center justify-center rounded-lg bg-sky-50 text-sm">
+                  IMG
+                </span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold">Campaign-cover.png</p>
+                  <p class="text-xs text-slate-400">8.1 MB · {gettext("Yesterday")}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

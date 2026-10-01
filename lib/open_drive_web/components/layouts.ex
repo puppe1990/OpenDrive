@@ -40,45 +40,46 @@ defmodule OpenDriveWeb.Layouts do
     ~H"""
     <div
       {@rest}
-      class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.18),_transparent_30%),radial-gradient(circle_at_top_right,_rgba(59,130,246,0.12),_transparent_24%),linear-gradient(180deg,_#f7fbff_0%,_#edf4ff_48%,_#f8fbff_100%)] text-slate-950"
+      class="od-app-shell min-h-screen text-slate-950"
     >
-      <header class="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:gap-6">
+      <header class="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl">
+        <div class="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-8">
           <a href="/" class="flex items-center gap-3">
-            <div class="flex size-11 items-center justify-center rounded-2xl bg-slate-950 text-sm font-black text-white">
-              OD
-            </div>
+            <div class="od-brand-mark size-10 rounded-[0.9rem]" aria-hidden="true"></div>
             <div>
-              <p class="text-sm font-semibold uppercase tracking-[0.35em] text-slate-700">
+              <p class="text-lg font-bold tracking-[-0.04em] text-slate-950">
                 OpenDrive
+              </p>
+              <p class="text-[10px] font-semibold uppercase tracking-[0.22em] text-slate-400">
+                Work files
               </p>
             </div>
           </a>
 
           <%= if @current_scope && @current_scope.user do %>
             <div class="hidden lg:flex lg:flex-1 lg:justify-center">
-              <div class="flex items-center gap-1 rounded-[1.6rem] bg-white/45 p-1 ring-1 ring-white/70 backdrop-blur">
+              <div class="flex items-center gap-1 rounded-xl bg-slate-100/80 p-1">
                 <.link
                   navigate={~p"/app"}
-                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                  class="inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950 hover:shadow-sm"
                 >
                   {gettext("Drive")}
                 </.link>
                 <.link
                   navigate={~p"/app/members"}
-                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                  class="inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950 hover:shadow-sm"
                 >
                   {gettext("Members")}
                 </.link>
                 <.link
                   navigate={~p"/app/trash"}
-                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                  class="inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950 hover:shadow-sm"
                 >
                   {gettext("Trash")}
                 </.link>
                 <.link
                   href={~p"/users/settings"}
-                  class="inline-flex h-11 items-center justify-center rounded-[1.1rem] px-4 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-white/85 hover:text-slate-950"
+                  class="inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-semibold text-slate-600 transition hover:bg-white hover:text-slate-950 hover:shadow-sm"
                 >
                   {gettext("Settings")}
                 </.link>
@@ -124,7 +125,7 @@ defmodule OpenDriveWeb.Layouts do
                 <.link
                   href={~p"/users/log-out"}
                   method="delete"
-                  class="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-900 px-7 text-[0.95rem] font-semibold tracking-[-0.02em] text-slate-900 transition hover:bg-slate-950 hover:text-white"
+                  class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-950"
                 >
                   {gettext("Log out")}
                 </.link>
@@ -150,8 +151,8 @@ defmodule OpenDriveWeb.Layouts do
         </div>
       </header>
 
-      <main class="px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-        <div class="mx-auto max-w-7xl space-y-4">
+      <main class="px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-[1440px] space-y-4">
           {render_slot(@inner_block)}
         </div>
       </main>

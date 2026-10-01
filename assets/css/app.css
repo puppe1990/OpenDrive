@@ -104,6 +104,82 @@
 
 /* This file is for your main application CSS */
 
+:root {
+  --od-ink: #17202f;
+  --od-muted: #687386;
+  --od-blue: #2563eb;
+  --od-blue-deep: #1649b8;
+  --od-canvas: #f5f7fb;
+  --od-surface: #ffffff;
+  --od-line: #dfe5ee;
+}
+
+html {
+  background: var(--od-canvas);
+}
+
+body {
+  color: var(--od-ink);
+  font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  font-feature-settings: "ss01" 1, "cv02" 1;
+  text-rendering: optimizeLegibility;
+}
+
+.od-display {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  letter-spacing: -0.045em;
+}
+
+.od-app-shell {
+  background:
+    radial-gradient(circle at 4% 0%, rgba(37, 99, 235, 0.08), transparent 25rem),
+    linear-gradient(180deg, #fbfcfe 0%, var(--od-canvas) 32rem);
+}
+
+.od-brand-mark {
+  position: relative;
+  overflow: hidden;
+  background: var(--od-blue);
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.24);
+}
+
+.od-brand-mark::after {
+  position: absolute;
+  inset: 7px;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-top-color: transparent;
+  border-radius: 999px;
+  content: "";
+  transform: rotate(-35deg);
+}
+
+.od-product-preview {
+  box-shadow: 0 40px 100px rgba(23, 32, 47, 0.18);
+  transform: perspective(1200px) rotateY(-2deg) rotateX(1deg);
+  transform-origin: center;
+}
+
+@keyframes od-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.od-reveal {
+  animation: od-rise 560ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.od-reveal-late {
+  animation: od-rise 650ms 100ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-reveal,
+  .od-reveal-late { animation: none; }
+
+  .od-product-preview { transform: none; }
+}
+
 .drive-list-grid {
   grid-template-columns:
     52px

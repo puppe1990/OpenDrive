@@ -8,12 +8,10 @@ defmodule OpenDriveWeb.DriveLive.Components do
   def sidebar(assigns) do
     ~H"""
     <aside class="space-y-5 lg:sticky lg:top-6">
-      <div class="overflow-hidden rounded-[1.9rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,252,0.98))] p-4 shadow-[0_24px_70px_rgba(148,163,184,0.14)] ring-1 ring-white/70 backdrop-blur">
+      <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_40px_rgba(23,32,47,0.06)]">
         <div class="mb-5 border-b border-slate-200/80 pb-4">
           <div class="flex items-start gap-3">
-            <div class="flex size-11 items-center justify-center rounded-[1.2rem] bg-slate-950 text-sm font-black text-white shadow-[0_12px_28px_rgba(15,23,42,0.22)]">
-              OD
-            </div>
+            <div class="od-brand-mark size-11 rounded-xl" aria-hidden="true"></div>
             <div class="min-w-0">
               <p class="text-[11px] font-semibold uppercase tracking-[0.32em] text-slate-400">
                 {gettext("Workspace")}
@@ -28,7 +26,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
 
         <button
           phx-click="toggle_new_menu"
-          class="flex w-full items-center justify-between rounded-[1.35rem] bg-slate-950 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition hover:bg-slate-800"
+          class="flex w-full items-center justify-between rounded-xl bg-blue-600 px-4 py-3 text-left text-sm font-semibold text-white shadow-[0_10px_24px_rgba(37,99,235,0.22)] transition hover:bg-blue-700"
         >
           <span class="flex items-center gap-3">
             <span class="flex size-8 items-center justify-center rounded-xl bg-white/10">
@@ -196,7 +194,7 @@ defmodule OpenDriveWeb.DriveLive.Components do
         </div>
       </div>
 
-      <section class="rounded-[2rem] border border-slate-200/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,250,255,0.98))] p-4 shadow-[0_20px_60px_rgba(148,163,184,0.14)] ring-1 ring-white/70">
+      <section class="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_40px_rgba(23,32,47,0.06)]">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.4rem] border border-slate-200/80 bg-white/85 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
           <div>
             <p class="text-sm font-semibold text-slate-900">
