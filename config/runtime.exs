@@ -48,6 +48,18 @@ storage_settings = OpenDrive.Config.Storage.provider_settings(&System.get_env/1,
 config :ex_aws, storage_settings.ex_aws
 config :ex_aws, :s3, storage_settings.ex_aws_service
 
+# Backblaze's S3 endpoint sits behind Cloudflare, which replies with a TLS 1.3
+# HelloRetryRequest that OTP's TLS client rejects (hello_retry_middlebox_assert:
+# "Failed to assert middlebox server message"). Pin TLS 1.2 for the B2 endpoint
+# only — `hackney_opts` replaces ExAws' defaults, so recv_timeout is repeated.
+b2_host = storage_settings.ex_aws_service[:host] || ""
+
+if String.contains?(to_string(b2_host), "backblazeb2.com") do
+  config :ex_aws, :hackney_opts,
+    recv_timeout: 30_000,
+    ssl_options: [versions: [:"tlsv1.2"]]
+end
+
 config :open_drive, OpenDrive.Storage,
   adapter: storage_settings.adapter,
   bucket: storage_settings.bucket

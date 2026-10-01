@@ -31,10 +31,10 @@ env:
     PHX_PORT: "443"
     PORT: "4000"
     DATABASE_PATH: /data/open_drive.db
-    OPEN_DRIVE_STORAGE_ADAPTER: s3
-    AWS_REGION: us-east-1
-    AWS_S3_BUCKET: your-s3-bucket
+    OPEN_DRIVE_STORAGE_ADAPTER: b2
+    B2_BUCKET: open-drive-phoenix
+    B2_REGION: us-east-005
   secret:
     - SECRET_KEY_BASE
-    - AWS_ACCESS_KEY_ID
-    - AWS_SECRET_ACCESS_KEY
+    - B2_APPLICATION_KEY_ID
+    - B2_APPLICATION_KEY
