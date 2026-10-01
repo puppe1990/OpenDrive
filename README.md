@@ -138,9 +138,30 @@ Downloads support:
 
 ## Storage configuration
 
-By default, development and tests use `OpenDrive.Storage.Fake`.
+Three adapters implement the same `OpenDrive.Storage` behaviour, so the rest of the app does not care which one is in use. Pick one with `OPEN_DRIVE_STORAGE_ADAPTER`:
 
-To enable the S3-compatible adapter at runtime:
+| Adapter | Value | Default in | Notes |
+| --- | --- | --- | --- |
+| Fake | `fake` | development and test | writes under the system temp dir; nothing leaves the machine |
+| Backblaze B2 | `b2` | production (when unset) | native-friendly defaults; only the key and bucket are required |
+| S3-compatible | `s3` | — | AWS S3 or any S3-compatible service with AWS-style credentials |
+
+### Backblaze B2 (`b2`)
+
+```bash
+export OPEN_DRIVE_STORAGE_ADAPTER=b2
+export B2_BUCKET=your-bucket
+export B2_APPLICATION_KEY_ID=...
+export B2_APPLICATION_KEY=...
+export B2_REGION=us-east-005                        # optional, defaults to us-east-005
+export B2_ENDPOINT=s3.us-east-005.backblazeb2.com   # optional, derived from B2_REGION
+```
+
+Create the application key in the Backblaze panel with access to the bucket and these capabilities: `listBuckets`, `listFiles`, `readFiles`, `writeFiles`, `deleteFiles`, `shareFiles`. The bucket can stay private — media is served through presigned URLs.
+
+**TLS note:** Backblaze's S3 endpoint sits behind Cloudflare, which replies with a TLS 1.3 `HelloRetryRequest` that OTP's TLS client rejects (`hello_retry_middlebox_assert`). `config/runtime.exs` pins TLS 1.2 for `*.backblazeb2.com` hosts, so no action is needed when you use the `b2` adapter.
+
+### S3-compatible (`s3`)
 
 ```bash
 export OPEN_DRIVE_STORAGE_ADAPTER=s3
@@ -150,7 +171,7 @@ export AWS_SECRET_ACCESS_KEY=...
 export AWS_REGION=us-east-1
 ```
 
-Optional custom endpoint variables:
+Optional custom endpoint variables (MinIO, Ceph, R2, a VPC endpoint, …):
 
 ```bash
 export AWS_S3_HOST=localhost
@@ -171,9 +192,9 @@ These solve different problems and both may be required.
 
 #### 1. Bucket CORS for direct browser uploads
 
-If the browser uploads directly to S3 with a presigned `PUT` URL, the bucket must allow cross-origin requests from the app origin. Without this, the browser blocks the request before the object reaches S3 and the UI falls back to `/app/uploads/proxy`.
+If the browser uploads directly with a presigned `PUT` URL, the bucket must allow cross-origin requests from the app origin — this applies to AWS S3 and to Backblaze B2 alike. Without it, the browser blocks the request and the UI falls back to `/app/uploads/proxy` (the upload still works, it just goes through the app server).
 
-Example one-line command for local development:
+AWS S3, one-line command for local development:
 
 ```bash
 aws s3api put-bucket-cors --bucket YOUR_BUCKET --cors-configuration '{"CORSRules":[{"AllowedOrigins":["http://127.0.0.1:4000","http://localhost:4000"],"AllowedMethods":["GET","HEAD","PUT"],"AllowedHeaders":["*"],"ExposeHeaders":["ETag"],"MaxAgeSeconds":3000}]}'
@@ -185,15 +206,32 @@ To verify:
 aws s3api get-bucket-cors --bucket YOUR_BUCKET
 ```
 
+Backblaze B2 expresses the same rules as `corsRules` on the bucket (Backblaze panel → Bucket → CORS Rules, or a `b2_update_bucket` call):
+
+```json
+[
+  {
+    "corsRuleName": "opendrive-web",
+    "allowedOrigins": ["http://localhost:4000", "https://drive.example.com"],
+    "allowedHeaders": ["*"],
+    "allowedOperations": ["b2_download_file_by_name", "b2_download_file_by_id", "b2_upload_file", "b2_upload_part"],
+    "exposeHeaders": ["ETag", "Content-Length"],
+    "maxAgeSeconds": 3600
+  }
+]
+```
+
 Notes:
 
 - Add any extra local or deployed origins you actually use, such as staging or production domains
-- `PUT` is required for direct uploads
-- `AllowedHeaders=["*"]` avoids preflight failures with presigned S3 headers
+- `PUT` (or `b2_upload_file`/`b2_upload_part`) is required for direct uploads
+- `AllowedHeaders=["*"]` avoids preflight failures with presigned headers
 
-#### 2. IAM policy for the app credentials
+#### 2. Credentials: IAM policy (AWS) or application key (B2)
 
-The AWS credentials used by `OpenDrive.Storage.S3` need permission to manage the objects stored by the app. A minimal example looks like this:
+With the `b2` adapter there is no IAM to write: the application key created in the Backblaze panel already scopes the access (bucket + capabilities listed [above](#backblaze-b2-b2)). Skip to the [Database configuration](#database-configuration) section.
+
+With the `s3` adapter on AWS, the credentials used by `OpenDrive.Storage.S3` need permission to manage the objects stored by the app. A minimal example looks like this:
 
 ```json
 {
