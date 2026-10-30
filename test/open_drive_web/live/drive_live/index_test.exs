@@ -309,6 +309,30 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
     assert html =~ "second.webp"
   end
 
+  test "renders the image preview overlay outside the clipped drive shell", %{conn: conn} do
+    workspace = workspace_fixture(%{tenant_name: "Overlay Space"})
+    image_path = Path.join(System.tmp_dir!(), "open_drive-overlay-image.webp")
+    File.write!(image_path, "overlay image")
+
+    {:ok, image} =
+      Drive.upload_file(workspace.scope, %{}, %{
+        path: image_path,
+        client_name: "overlay.webp",
+        content_type: "image/webp",
+        size: byte_size("overlay image")
+      })
+
+    conn = log_in_user(conn, workspace.user, workspace.scope)
+    {:ok, lv, _html} = live(conn, ~p"/app")
+
+    lv
+    |> element("button[phx-click='open_image'][phx-value-id='#{image.id}']")
+    |> render_click()
+
+    assert has_element?(lv, "button[aria-label='Fechar visualizacao']")
+    refute has_element?(lv, "section.od-reveal button[aria-label='Fechar visualizacao']")
+  end
+
   test "opens the video in a modal player", %{conn: conn} do
     workspace = workspace_fixture(%{tenant_name: "Video Modal Space"})
     video_path = Path.join(System.tmp_dir!(), "open_drive-modal-video.mp4")
@@ -329,6 +353,9 @@ defmodule OpenDriveWeb.DriveLive.IndexTest do
       lv
       |> element("button[phx-click='open_video'][phx-value-id='#{video.id}']")
       |> render_click()
+
+    assert has_element?(lv, "button[aria-label='Fechar player de video']")
+    refute has_element?(lv, "section.od-reveal button[aria-label='Fechar player de video']")
 
     {:ok, video_media_url} = OpenDrive.Storage.presigned_download_url(video.file_object.key)
     assert html =~ "OpenDrive Player"
